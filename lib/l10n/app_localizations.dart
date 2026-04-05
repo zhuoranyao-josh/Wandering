@@ -310,6 +310,108 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'or'**
   String get orText;
+
+  /// No description provided for @profileSetupTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Set up your profile'**
+  String get profileSetupTitle;
+
+  /// No description provided for @profileNickname.
+  ///
+  /// In en, this message translates to:
+  /// **'Nickname'**
+  String get profileNickname;
+
+  /// No description provided for @profileNicknameHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Nickname must be unique'**
+  String get profileNicknameHint;
+
+  /// No description provided for @profileBirthday.
+  ///
+  /// In en, this message translates to:
+  /// **'Birthday'**
+  String get profileBirthday;
+
+  /// No description provided for @profileGender.
+  ///
+  /// In en, this message translates to:
+  /// **'Gender'**
+  String get profileGender;
+
+  /// No description provided for @profileGenderMale.
+  ///
+  /// In en, this message translates to:
+  /// **'Male'**
+  String get profileGenderMale;
+
+  /// No description provided for @profileGenderFemale.
+  ///
+  /// In en, this message translates to:
+  /// **'Female'**
+  String get profileGenderFemale;
+
+  /// No description provided for @profileGenderOther.
+  ///
+  /// In en, this message translates to:
+  /// **'Other'**
+  String get profileGenderOther;
+
+  /// No description provided for @profileCountryOptional.
+  ///
+  /// In en, this message translates to:
+  /// **'Country (Optional)'**
+  String get profileCountryOptional;
+
+  /// No description provided for @profileBio.
+  ///
+  /// In en, this message translates to:
+  /// **'Bio'**
+  String get profileBio;
+
+  /// No description provided for @profileBioHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Introduce yourself (max 100 characters)'**
+  String get profileBioHint;
+
+  /// No description provided for @profileContinue.
+  ///
+  /// In en, this message translates to:
+  /// **'Continue'**
+  String get profileContinue;
+
+  /// No description provided for @profileErrorNicknameEmpty.
+  ///
+  /// In en, this message translates to:
+  /// **'Please enter your nickname.'**
+  String get profileErrorNicknameEmpty;
+
+  /// No description provided for @profileErrorNicknameTooLong.
+  ///
+  /// In en, this message translates to:
+  /// **'Nickname cannot exceed 20 characters.'**
+  String get profileErrorNicknameTooLong;
+
+  /// No description provided for @profileErrorBioTooLong.
+  ///
+  /// In en, this message translates to:
+  /// **'Bio cannot exceed 100 characters.'**
+  String get profileErrorBioTooLong;
+
+  /// No description provided for @profileErrorNicknameTaken.
+  ///
+  /// In en, this message translates to:
+  /// **'Your nickname is already used by another user ~'**
+  String get profileErrorNicknameTaken;
+
+  /// No description provided for @profileErrorSaveFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Failed to save profile. Please try again later.'**
+  String get profileErrorSaveFailed;
 }
 
 class _AppLocalizationsDelegate extends LocalizationsDelegate<AppLocalizations> {

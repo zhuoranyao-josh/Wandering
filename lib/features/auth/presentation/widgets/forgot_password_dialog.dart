@@ -72,7 +72,11 @@ class _ForgotPasswordDialogState extends State<ForgotPasswordDialog> {
 
   @override
   Widget build(BuildContext context) {
-    final t = AppLocalizations.of(context)!;
+    final t = AppLocalizations.of(context);
+
+    if (t == null) {
+      return const Scaffold(body: Center(child: CircularProgressIndicator()));
+    }
 
     return AlertDialog(
       title: Text(t.forgotPassword),

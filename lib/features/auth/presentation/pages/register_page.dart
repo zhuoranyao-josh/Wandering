@@ -64,7 +64,7 @@ class _RegisterPageState extends State<RegisterPage> {
       );
 
       if (mounted) {
-        Navigator.pushReplacementNamed(context, AppRouter.home);
+        Navigator.pushReplacementNamed(context, AppRouter.authGate);
       }
     } on AppException catch (e) {
       setState(() {
@@ -89,7 +89,11 @@ class _RegisterPageState extends State<RegisterPage> {
 
   @override
   Widget build(BuildContext context) {
-    final t = AppLocalizations.of(context)!;
+    final t = AppLocalizations.of(context);
+
+    if (t == null) {
+      return const Scaffold(body: Center(child: CircularProgressIndicator()));
+    }
 
     return Scaffold(
       backgroundColor: const Color(0xFFF3F3F3),

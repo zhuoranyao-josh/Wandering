@@ -14,15 +14,16 @@ class FirebaseAuthRemoteDataSource implements AuthRemoteDataSource {
     required this.googleSignIn,
   });
 
-  // 把 Firebase User 转成我们自己定义的 AuthUser
+  // 把 Firebase User 转成自己定义的 AuthUser
   AuthUser? _mapUser(User? user) {
     if (user == null) return null;
 
     return AuthUser(
-      uid: user.uid,
-      email: user.email,
-      displayName: user.displayName,
-      photoUrl: user.photoURL,
+      uid: user.uid, // 用户唯一ID（Firebase自动生成）
+      email: user.email, // 用户邮箱（邮箱登录）
+      displayName: user.displayName, // 用户的昵称（Google登录）
+      photoUrl: user.photoURL, // 用户头像的网络地址（Google登录）
+      isAnonymous: user.isAnonymous, // 是否是游客登录（true = 游客，false = 正常注册用户）
     );
   }
 

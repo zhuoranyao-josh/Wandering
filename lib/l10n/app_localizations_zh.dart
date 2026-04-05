@@ -115,4 +115,55 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get orText => '或';
+
+  @override
+  String get profileSetupTitle => '设置个人资料';
+
+  @override
+  String get profileNickname => '昵称';
+
+  @override
+  String get profileNicknameHint => '昵称不可与其他用户重复哦~';
+
+  @override
+  String get profileBirthday => '生日';
+
+  @override
+  String get profileGender => '性别';
+
+  @override
+  String get profileGenderMale => '男';
+
+  @override
+  String get profileGenderFemale => '女';
+
+  @override
+  String get profileGenderOther => '其他';
+
+  @override
+  String get profileCountryOptional => '地区（国家，可不填）';
+
+  @override
+  String get profileBio => '自我介绍';
+
+  @override
+  String get profileBioHint => '介绍一下自己吧~（最多100字符）';
+
+  @override
+  String get profileContinue => '继续';
+
+  @override
+  String get profileErrorNicknameEmpty => '请输入昵称';
+
+  @override
+  String get profileErrorNicknameTooLong => '昵称不能超过20个字符';
+
+  @override
+  String get profileErrorBioTooLong => '自我介绍不能超过100个字符';
+
+  @override
+  String get profileErrorNicknameTaken => '您的昵称与其他用户重复了哦~';
+
+  @override
+  String get profileErrorSaveFailed => '资料保存失败，请稍后再试';
 }

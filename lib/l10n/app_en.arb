@@ -35,5 +35,22 @@
   "errorOperationNotAllowed": "This sign-in method is not enabled.",
   "welcomeSubtitle": "Discover cities, stories, and journeys around the world.",
   "enterLoginOrRegister": "Register / Log in",
-  "orText": "or"
+  "orText": "or",
+  "profileSetupTitle": "Set up your profile",
+  "profileNickname": "Nickname",
+  "profileNicknameHint": "Nickname must be unique",
+  "profileBirthday": "Birthday",
+  "profileGender": "Gender",
+  "profileGenderMale": "Male",
+  "profileGenderFemale": "Female",
+  "profileGenderOther": "Other",
+  "profileCountryOptional": "Country (Optional)",
+  "profileBio": "Bio",
+  "profileBioHint": "Introduce yourself (max 100 characters)",
+  "profileContinue": "Continue",
+  "profileErrorNicknameEmpty": "Please enter your nickname.",
+  "profileErrorNicknameTooLong": "Nickname cannot exceed 20 characters.",
+  "profileErrorBioTooLong": "Bio cannot exceed 100 characters.",
+  "profileErrorNicknameTaken": "Your nickname is already used by another user ~",
+  "profileErrorSaveFailed": "Failed to save profile. Please try again later."
 }

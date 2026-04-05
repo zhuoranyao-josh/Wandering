@@ -115,4 +115,55 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get orText => 'or';
+
+  @override
+  String get profileSetupTitle => 'Set up your profile';
+
+  @override
+  String get profileNickname => 'Nickname';
+
+  @override
+  String get profileNicknameHint => 'Nickname must be unique';
+
+  @override
+  String get profileBirthday => 'Birthday';
+
+  @override
+  String get profileGender => 'Gender';
+
+  @override
+  String get profileGenderMale => 'Male';
+
+  @override
+  String get profileGenderFemale => 'Female';
+
+  @override
+  String get profileGenderOther => 'Other';
+
+  @override
+  String get profileCountryOptional => 'Country (Optional)';
+
+  @override
+  String get profileBio => 'Bio';
+
+  @override
+  String get profileBioHint => 'Introduce yourself (max 100 characters)';
+
+  @override
+  String get profileContinue => 'Continue';
+
+  @override
+  String get profileErrorNicknameEmpty => 'Please enter your nickname.';
+
+  @override
+  String get profileErrorNicknameTooLong => 'Nickname cannot exceed 20 characters.';
+
+  @override
+  String get profileErrorBioTooLong => 'Bio cannot exceed 100 characters.';
+
+  @override
+  String get profileErrorNicknameTaken => 'Your nickname is already used by another user ~';
+
+  @override
+  String get profileErrorSaveFailed => 'Failed to save profile. Please try again later.';
 }

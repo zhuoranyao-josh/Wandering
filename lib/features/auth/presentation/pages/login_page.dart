@@ -76,7 +76,7 @@ class _LoginPageState extends State<LoginPage> {
       );
 
       if (mounted) {
-        Navigator.pushReplacementNamed(context, AppRouter.home);
+        Navigator.pushReplacementNamed(context, AppRouter.authGate);
       }
     } on AppException catch (e) {
       setState(() {
@@ -101,7 +101,7 @@ class _LoginPageState extends State<LoginPage> {
       await _authController.signInWithGoogle();
 
       if (mounted) {
-        Navigator.pushReplacementNamed(context, AppRouter.home);
+        Navigator.pushReplacementNamed(context, AppRouter.authGate);
       }
     } on AppException catch (e) {
       setState(() {
@@ -145,8 +145,8 @@ class _LoginPageState extends State<LoginPage> {
     showDialog(context: context, builder: (_) => const ForgotPasswordDialog());
   }
 
-  void _toggleLanguage() {
-    MyApp.of(context)?.toggle();
+  Future<void> _toggleLanguage() async {
+    await MyApp.of(context)?.toggleAndSave();
   }
 
   @override
@@ -158,7 +158,11 @@ class _LoginPageState extends State<LoginPage> {
 
   @override
   Widget build(BuildContext context) {
-    final t = AppLocalizations.of(context)!;
+    final t = AppLocalizations.of(context);
+
+    if (t == null) {
+      return const Scaffold(body: Center(child: CircularProgressIndicator()));
+    }
 
     return Scaffold(
       backgroundColor: const Color(0xFFF3F3F3),
@@ -179,7 +183,7 @@ class _LoginPageState extends State<LoginPage> {
           icon: const Icon(Icons.arrow_back),
           // 点击返回 welcome page
           onPressed: () {
-            Navigator.pop(context);
+            Navigator.pushReplacementNamed(context, AppRouter.welcome);
           },
         ),
       ),

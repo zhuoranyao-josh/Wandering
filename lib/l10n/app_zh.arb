@@ -35,5 +35,22 @@
   "errorOperationNotAllowed": "该登录方式尚未启用。",
   "welcomeSubtitle": "探索世界各地的城市、故事与旅行。",
   "enterLoginOrRegister": "注册 / 登录",
-  "orText": "或"
+  "orText": "或",
+  "profileSetupTitle": "设置个人资料",
+  "profileNickname": "昵称",
+  "profileNicknameHint": "昵称不可与其他用户重复哦~",
+  "profileBirthday": "生日",
+  "profileGender": "性别",
+  "profileGenderMale": "男",
+  "profileGenderFemale": "女",
+  "profileGenderOther": "其他",
+  "profileCountryOptional": "地区（国家，可不填）",
+  "profileBio": "自我介绍",
+  "profileBioHint": "介绍一下自己吧~（最多100字符）",
+  "profileContinue": "继续",
+  "profileErrorNicknameEmpty": "请输入昵称",
+  "profileErrorNicknameTooLong": "昵称不能超过20个字符",
+  "profileErrorBioTooLong": "自我介绍不能超过100个字符",
+  "profileErrorNicknameTaken": "您的昵称与其他用户重复了哦~",
+  "profileErrorSaveFailed": "资料保存失败，请稍后再试"
 }
