@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 
-import '../../../../app/router.dart';
+import '../../../../app/app_router.dart';
 import '../../../../core/di/service_locator.dart';
 import '../../../../l10n/app_localizations.dart';
 
@@ -14,6 +15,7 @@ class HomePage extends StatelessWidget {
     if (t == null) {
       return const Scaffold(body: Center(child: CircularProgressIndicator()));
     }
+
     final user = ServiceLocator.authController.getCurrentUser();
 
     return Scaffold(
@@ -42,7 +44,7 @@ class HomePage extends StatelessWidget {
                 onPressed: () async {
                   await ServiceLocator.authController.signOut();
                   if (context.mounted) {
-                    Navigator.pushReplacementNamed(context, AppRouter.login);
+                    context.go(AppRouter.login);
                   }
                 },
                 child: Text(t.logout),

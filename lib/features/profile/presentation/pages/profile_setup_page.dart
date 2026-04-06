@@ -1,9 +1,10 @@
 import 'package:country_picker/country_picker.dart';
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:intl/intl.dart';
 
-import '../../../../app/router.dart';
+import '../../../../app/app_router.dart';
 import '../../../../core/di/service_locator.dart';
 import '../../../../core/error/app_exception.dart';
 import '../../../../core/widgets/app_button.dart';
@@ -20,38 +21,19 @@ class ProfileSetupPage extends StatefulWidget {
 }
 
 class _ProfileSetupPageState extends State<ProfileSetupPage> {
-  // 资料设置页对应的 controller
-  // 注意：这里拿的是 controller，不是 Firebase
-  // 所以仍然遵守“页面层不直接碰 Firebase”的规则
   final _controller = ServiceLocator.profileSetupController;
-
-  // 当前登录用户
-  // 如果是 Google 登录，displayName / photoUrl 往往会有值
   final AuthUser? _currentUser = ServiceLocator.authController.getCurrentUser();
 
-  // 文本输入控制器
   final _nicknameController = TextEditingController();
   final _bioController = TextEditingController();
 
-  // 用户选择的生日
   DateTime? _birthday;
-
-  // 性别默认先给 other
   String _gender = 'other';
-
-  // 国家信息是可选的
   String? _countryCode;
   String? _countryName;
   String? _countryFlag;
-
-  // 用户从相册新选择的头像本地路径
   String? _selectedAvatarPath;
-
-  // 提交时的加载状态
   bool _isSaving = false;
-
-  // 用来存错误码
-  // 页面不会直接处理 Firebase 异常，而是只处理统一的 AppException.code
   String? _errorCode;
 
   @override
@@ -65,7 +47,6 @@ class _ProfileSetupPageState extends State<ProfileSetupPage> {
     }
   }
 
-  // 把错误码翻译成当前语言的提示文本
   String _localizedError(AppLocalizations t, String code) {
     switch (code) {
       case 'nickname_empty':
@@ -83,17 +64,14 @@ class _ProfileSetupPageState extends State<ProfileSetupPage> {
     }
   }
 
-  // 选择头像
   Future<void> _pickAvatar() async {
     final picker = ImagePicker();
 
-    // 从相册选一张图片
     final XFile? file = await picker.pickImage(
       source: ImageSource.gallery,
       imageQuality: 80,
     );
 
-    // 用户取消选择时，file 会是 null
     if (file == null) return;
 
     setState(() {
@@ -101,13 +79,11 @@ class _ProfileSetupPageState extends State<ProfileSetupPage> {
     });
   }
 
-  // 选择生日
   Future<void> _pickBirthday() async {
     final now = DateTime.now();
 
     final picked = await showDatePicker(
       context: context,
-      // 默认给一个比较常见的初始年龄
       initialDate: DateTime(now.year - 20, 1, 1),
       firstDate: DateTime(1900),
       lastDate: now,
@@ -121,14 +97,11 @@ class _ProfileSetupPageState extends State<ProfileSetupPage> {
     });
   }
 
-  // 选择国家
   Future<void> _pickCountry() async {
     showCountryPicker(
       context: context,
       showPhoneCode: false,
       showSearch: true,
-
-      // 这里的 onSelect 会在用户点选某个国家后触发
       onSelect: (Country country) {
         setState(() {
           _countryCode = country.countryCode;
@@ -139,7 +112,6 @@ class _ProfileSetupPageState extends State<ProfileSetupPage> {
     );
   }
 
-  // 提交资料
   Future<void> _submit() async {
     final AuthUser? currentUser = _currentUser;
 
@@ -169,8 +141,7 @@ class _ProfileSetupPageState extends State<ProfileSetupPage> {
 
       if (!mounted) return;
 
-      // 保存成功后进入主页
-      Navigator.pushReplacementNamed(context, AppRouter.home);
+      context.go(AppRouter.home);
     } on AppException catch (e) {
       setState(() {
         _errorCode = e.code;
@@ -188,7 +159,6 @@ class _ProfileSetupPageState extends State<ProfileSetupPage> {
     }
   }
 
-  // 性别显示文本
   String _genderLabel(AppLocalizations t, String value) {
     switch (value) {
       case 'male':
@@ -215,7 +185,6 @@ class _ProfileSetupPageState extends State<ProfileSetupPage> {
       return const Scaffold(body: Center(child: CircularProgressIndicator()));
     }
 
-    // 用统一格式显示生日
     final birthdayText = _birthday == null
         ? t.profileBirthday
         : DateFormat('yyyy-MM-dd').format(_birthday!);
@@ -227,12 +196,10 @@ class _ProfileSetupPageState extends State<ProfileSetupPage> {
         centerTitle: true,
         backgroundColor: Colors.transparent,
         elevation: 0,
-
-        // 按你的要求，这里返回 login page
         leading: IconButton(
           icon: const Icon(Icons.arrow_back),
           onPressed: () {
-            Navigator.pushReplacementNamed(context, AppRouter.login);
+            context.go(AppRouter.login);
           },
         ),
       ),
@@ -242,9 +209,6 @@ class _ProfileSetupPageState extends State<ProfileSetupPage> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // 头像选择器
-              // 如果是 Google 登录，会优先显示 Google 的头像
-              // 如果用户重新选了图，则显示新图
               Center(
                 child: AvatarPicker(
                   imagePath: _selectedAvatarPath,
@@ -252,10 +216,7 @@ class _ProfileSetupPageState extends State<ProfileSetupPage> {
                   onTap: _pickAvatar,
                 ),
               ),
-
               const SizedBox(height: 24),
-
-              // 昵称
               AppTextField(
                 label: t.profileNickname,
                 controller: _nicknameController,
@@ -265,10 +226,7 @@ class _ProfileSetupPageState extends State<ProfileSetupPage> {
                 t.profileNicknameHint,
                 style: const TextStyle(color: Colors.black54, fontSize: 12),
               ),
-
               const SizedBox(height: 20),
-
-              // 生日
               GestureDetector(
                 onTap: _pickBirthday,
                 child: Container(
@@ -285,10 +243,7 @@ class _ProfileSetupPageState extends State<ProfileSetupPage> {
                   child: Text(birthdayText),
                 ),
               ),
-
               const SizedBox(height: 20),
-
-              // 性别
               DropdownButtonFormField<String>(
                 initialValue: _gender,
                 decoration: InputDecoration(
@@ -316,10 +271,7 @@ class _ProfileSetupPageState extends State<ProfileSetupPage> {
                   });
                 },
               ),
-
               const SizedBox(height: 20),
-
-              // 国家（可选）
               GestureDetector(
                 onTap: _pickCountry,
                 child: Container(
@@ -353,10 +305,7 @@ class _ProfileSetupPageState extends State<ProfileSetupPage> {
                   ),
                 ),
               ),
-
               const SizedBox(height: 20),
-
-              // 自我介绍
               TextField(
                 controller: _bioController,
                 maxLength: 100,
@@ -371,16 +320,12 @@ class _ProfileSetupPageState extends State<ProfileSetupPage> {
                   fillColor: Colors.white,
                 ),
               ),
-
               const SizedBox(height: 4),
-
-              // 当前选择信息的小提示
               if (_gender.isNotEmpty)
                 Text(
                   '${t.profileGender}: ${_genderLabel(t, _gender)}',
                   style: const TextStyle(color: Colors.black54, fontSize: 12),
                 ),
-
               if (_errorCode != null) ...[
                 const SizedBox(height: 12),
                 Text(
@@ -388,10 +333,7 @@ class _ProfileSetupPageState extends State<ProfileSetupPage> {
                   style: const TextStyle(color: Colors.red),
                 ),
               ],
-
               const SizedBox(height: 20),
-
-              // 提交按钮
               AppButton(
                 text: t.profileContinue,
                 onPressed: _submit,

@@ -59,3 +59,44 @@
 - Understood the importance of reusable components for maintaining scalable UI design
 - Learned how to structure a project for long-term maintainability and future backend migration
 
+## 2026-4-6 ~ 2026-04-06
+### 🚀 Features
+- Persistent Language Support
+  - Added local language persistence using SharedPreferences
+  - App now remembers user's last selected language (Chinese/English)
+- Profile Setup Feature
+  - Implemented ProfileSetupPage for first-time authenticated users
+- Migrated the app routing system to GoRouter
+- Added a centralized router config in lib/app/app_router.dart
+- Implemented router-level auth and profile-completion redirects
+- Enabled automatic root-path routing from / to /welcome, /profile-setup, or /home
+
+### 🐛 Bugs
+- App crashed on launch with: `Null check operator used on a null value`
+- Prevented possible exceptions when calling pop on an empty navigation stack
+- Removed UI flicker caused by rendering AuthGate before redirecting
+
+
+### 🔧 Fixes
+- Used initialRoute + routes causes Route not found → Flutter internal ! crash
+- Replaced all Navigator.pushNamed, pushReplacementNamed, and pop calls with GoRouter APIs
+- Cleaned up old router.dart usage and kept a compatibility export
+- Updated tests to match the new router-based navigation architecture
+
+### ⚡ Improvements
+- Architecture Refactor
+  - Refactored to single MaterialApp structure to avoid route errors:  
+- Moved auth and profile gating from the page layer to the router layer
+- Improved route structure for maintainability and production readiness
+- Added redirect loop prevention
+- Enabled automatic route reevaluation on auth state changes
+
+### 📚 Learnings
+- Flutter initialization is asynchronous → always handle null
+- Only one MaterialApp should exist in app
+- Route guards are a better fit than page-level gates for auth and access rules
+- GoRouter.redirect combined with an auth stream provides a cleaner app entry flow
+- Navigation refactors need careful handling of empty back stacks, test setup, and redirect loops
+
+### Future plans:
+

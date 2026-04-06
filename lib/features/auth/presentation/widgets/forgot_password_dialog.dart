@@ -1,9 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 
 import '../../../../core/di/service_locator.dart';
 import '../../../../core/error/app_exception.dart';
-import '../../../../l10n/app_localizations.dart';
 import '../../../../core/widgets/app_text_field.dart';
+import '../../../../l10n/app_localizations.dart';
 
 class ForgotPasswordDialog extends StatefulWidget {
   const ForgotPasswordDialog({super.key});
@@ -105,7 +106,13 @@ class _ForgotPasswordDialogState extends State<ForgotPasswordDialog> {
       ),
       actions: [
         TextButton(
-          onPressed: _isLoading ? null : () => Navigator.pop(context),
+          onPressed: _isLoading
+              ? null
+              : () {
+                  if (context.canPop()) {
+                    context.pop();
+                  }
+                },
           child: Text(t.cancel),
         ),
         ElevatedButton(

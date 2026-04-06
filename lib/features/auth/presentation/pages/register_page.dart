@@ -1,12 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:go_router/go_router.dart';
 
-import '../../../../app/router.dart';
+import '../../../../app/app_router.dart';
 import '../../../../core/di/service_locator.dart';
 import '../../../../core/error/app_exception.dart';
-import '../../../../l10n/app_localizations.dart';
 import '../../../../core/widgets/app_button.dart';
 import '../../../../core/widgets/app_text_field.dart';
+import '../../../../l10n/app_localizations.dart';
 
 class RegisterPage extends StatefulWidget {
   const RegisterPage({super.key});
@@ -64,7 +65,7 @@ class _RegisterPageState extends State<RegisterPage> {
       );
 
       if (mounted) {
-        Navigator.pushReplacementNamed(context, AppRouter.authGate);
+        context.go(AppRouter.authGate);
       }
     } on AppException catch (e) {
       setState(() {
@@ -98,18 +99,13 @@ class _RegisterPageState extends State<RegisterPage> {
     return Scaffold(
       backgroundColor: const Color(0xFFF3F3F3),
       extendBodyBehindAppBar: true,
-
       appBar: AppBar(
         title: Text(t.register),
         centerTitle: true,
-        // 让 AppBar 透明
         backgroundColor: Colors.transparent,
-        // 去掉阴影（否则会有一条线）
         elevation: 0,
-        // 状态栏沉浸（背景延伸到顶部）
         systemOverlayStyle: SystemUiOverlayStyle.dark,
       ),
-
       body: SafeArea(
         child: Padding(
           padding: const EdgeInsets.all(20),
@@ -117,48 +113,45 @@ class _RegisterPageState extends State<RegisterPage> {
             child: Column(
               children: [
                 const SizedBox(height: 20),
-
                 AppTextField(
                   label: t.email,
                   controller: _emailController,
                   keyboardType: TextInputType.emailAddress,
                 ),
                 const SizedBox(height: 16),
-
                 AppTextField(
                   label: t.password,
                   controller: _passwordController,
                   obscureText: true,
                 ),
                 const SizedBox(height: 16),
-
                 AppTextField(
                   label: t.confirmPassword,
                   controller: _confirmPasswordController,
                   obscureText: true,
                 ),
                 const SizedBox(height: 16),
-
                 if (_errorCode != null)
                   Text(
                     _localizedError(t, _errorCode!),
                     style: const TextStyle(color: Colors.red),
                   ),
-
                 const SizedBox(height: 16),
-
                 AppButton(
                   text: t.register,
                   onPressed: _register,
                   isLoading: _isLoading,
                   styleType: AppButtonStyleType.blackFilled,
                 ),
-
                 const SizedBox(height: 12),
-
                 TextButton(
                   onPressed: () {
-                    Navigator.pop(context);
+                    if (context.canPop()) {
+                      context.pop();
+                      return;
+                    }
+
+                    context.go(AppRouter.login);
                   },
                   child: Text(t.backToLogin),
                 ),
