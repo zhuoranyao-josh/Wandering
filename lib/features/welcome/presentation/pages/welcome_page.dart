@@ -67,6 +67,7 @@ class _WelcomePageState extends State<WelcomePage> {
       await ServiceLocator.authController.signInAnonymously();
 
       if (mounted) {
+        // 游客登录成功后直接进入首页。
         context.go(AppRouter.home);
       }
     } on AppException catch (e) {
@@ -83,6 +84,7 @@ class _WelcomePageState extends State<WelcomePage> {
   }
 
   void _goToLoginPage() {
+    // 进入登录页（使用 push，便于用户返回欢迎页）。
     context.push(AppRouter.login);
   }
 
@@ -139,12 +141,14 @@ class _WelcomePageState extends State<WelcomePage> {
                     ),
                   AppButton(
                     text: t.enterLoginOrRegister,
+                    // 主入口按钮：进入登录/注册流程。
                     onPressed: _goToLoginPage,
                     styleType: AppButtonStyleType.whiteOutlined,
                   ),
                   const SizedBox(height: 12),
                   AppButton(
                     text: t.loginAsGuest,
+                    // 游客体验按钮：不注册也可先使用应用。
                     onPressed: _continueAsGuest,
                     isLoading: _isGuestLoading,
                     styleType: AppButtonStyleType.whiteOutlined,

@@ -65,6 +65,7 @@ class _RegisterPageState extends State<RegisterPage> {
       );
 
       if (mounted) {
+        // 注册成功后进入鉴权分流页，继续后续流程。
         context.go(AppRouter.authGate);
       }
     } on AppException catch (e) {
@@ -139,18 +140,21 @@ class _RegisterPageState extends State<RegisterPage> {
                 const SizedBox(height: 16),
                 AppButton(
                   text: t.register,
+                  // 注册按钮：提交邮箱和密码创建新账号。
                   onPressed: _register,
                   isLoading: _isLoading,
                   styleType: AppButtonStyleType.blackFilled,
                 ),
                 const SizedBox(height: 12),
                 TextButton(
+                  // 返回登录入口：可返回上一页，或直接跳到登录页。
                   onPressed: () {
                     if (context.canPop()) {
                       context.pop();
                       return;
                     }
 
+                    // 当前页无法返回时，兜底跳转到登录页。
                     context.go(AppRouter.login);
                   },
                   child: Text(t.backToLogin),

@@ -166,4 +166,19 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get profileErrorSaveFailed => 'Failed to save profile. Please try again later.';
+
+  @override
+  String get defaultUserName => 'User';
+
+  @override
+  String get profileEditTitle => 'Edit Profile';
+
+  @override
+  String get save => 'Save';
+
+  @override
+  String get mapTabTitle => 'Map Tab';
+
+  @override
+  String get mapTabPlaceholder => 'Map feature placeholder';
 }

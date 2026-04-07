@@ -41,9 +41,11 @@ class HomePage extends StatelessWidget {
               Text('${t.nameLabel}: ${user?.displayName ?? "-"}'),
               const SizedBox(height: 24),
               ElevatedButton(
+                // 退出登录按钮：清除当前登录状态并返回登录页。
                 onPressed: () async {
                   await ServiceLocator.authController.signOut();
                   if (context.mounted) {
+                    // 退出后用 go 跳转，避免回退再回到已登录页面。
                     context.go(AppRouter.login);
                   }
                 },

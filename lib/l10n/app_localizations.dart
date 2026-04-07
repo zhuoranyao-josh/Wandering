@@ -412,6 +412,36 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Failed to save profile. Please try again later.'**
   String get profileErrorSaveFailed;
+
+  /// No description provided for @defaultUserName.
+  ///
+  /// In en, this message translates to:
+  /// **'User'**
+  String get defaultUserName;
+
+  /// No description provided for @profileEditTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Edit Profile'**
+  String get profileEditTitle;
+
+  /// No description provided for @save.
+  ///
+  /// In en, this message translates to:
+  /// **'Save'**
+  String get save;
+
+  /// No description provided for @mapTabTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Map Tab'**
+  String get mapTabTitle;
+
+  /// No description provided for @mapTabPlaceholder.
+  ///
+  /// In en, this message translates to:
+  /// **'Map feature placeholder'**
+  String get mapTabPlaceholder;
 }
 
 class _AppLocalizationsDelegate extends LocalizationsDelegate<AppLocalizations> {

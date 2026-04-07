@@ -59,7 +59,7 @@
 - Understood the importance of reusable components for maintaining scalable UI design
 - Learned how to structure a project for long-term maintainability and future backend migration
 
-## 2026-4-6 ~ 2026-04-06
+## 2026-04-06 ~ 2026-04-07
 ### 🚀 Features
 - Persistent Language Support
   - Added local language persistence using SharedPreferences
@@ -70,18 +70,20 @@
 - Added a centralized router config in lib/app/app_router.dart
 - Implemented router-level auth and profile-completion redirects
 - Enabled automatic root-path routing from / to /welcome, /profile-setup, or /home
+- Added a tabbed main container with custom bottom navigation.
+- Added Me page and Profile Edit page.
+- Added reusable ProfileForm for profile setup/edit flows.
 
-### 🐛 Bugs
-- App crashed on launch with: `Null check operator used on a null value`
-- Prevented possible exceptions when calling pop on an empty navigation stack
-- Removed UI flicker caused by rendering AuthGate before redirecting
-
-
-### 🔧 Fixes
-- Used initialRoute + routes causes Route not found → Flutter internal ! crash
-- Replaced all Navigator.pushNamed, pushReplacementNamed, and pop calls with GoRouter APIs
-- Cleaned up old router.dart usage and kept a compatibility export
-- Updated tests to match the new router-based navigation architecture
+### 🐛 Bug Fixes
+- Fixed app crash on launch caused by `Null check operator used on a null value` (triggered by invalid route configuration with `initialRoute + routes`)
+- Prevented potential exceptions when calling `pop` on an empty navigation stack
+- Eliminated UI flicker caused by rendering AuthGate before redirect logic executed
+- Migrated all navigation calls from `Navigator.pushNamed`, `pushReplacementNamed`, and `pop` to GoRouter APIs
+- Refactored routing structure to avoid "Route not found" issues and improve stability
+- Removed legacy `router.dart` usage while keeping a compatibility export
+- Updated tests to align with the new GoRouter-based navigation architecture
+- Replaced hardcoded user-facing strings in new pages with localization keys
+- Ensured profile-related routing can use cached profile completion state
 
 ### ⚡ Improvements
 - Architecture Refactor
@@ -90,6 +92,8 @@
 - Improved route structure for maintainability and production readiness
 - Added redirect loop prevention
 - Enabled automatic route reevaluation on auth state changes
+- Improved routing architecture with StatefulShellRoute and clearer auth/profile redirect handling.
+- Added profile cache warm-up and refresh support to reduce repeated fetches.
 
 ### 📚 Learnings
 - Flutter initialization is asynchronous → always handle null

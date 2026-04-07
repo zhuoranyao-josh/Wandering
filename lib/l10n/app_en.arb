@@ -52,5 +52,10 @@
   "profileErrorNicknameTooLong": "Nickname cannot exceed 20 characters.",
   "profileErrorBioTooLong": "Bio cannot exceed 100 characters.",
   "profileErrorNicknameTaken": "Your nickname is already used by another user ~",
-  "profileErrorSaveFailed": "Failed to save profile. Please try again later."
+  "profileErrorSaveFailed": "Failed to save profile. Please try again later.",
+  "defaultUserName": "User",
+  "profileEditTitle": "Edit Profile",
+  "save": "Save",
+  "mapTabTitle": "Map Tab",
+  "mapTabPlaceholder": "Map feature placeholder"
 }

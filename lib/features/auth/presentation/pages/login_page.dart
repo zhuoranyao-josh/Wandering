@@ -75,6 +75,7 @@ class _LoginPageState extends State<LoginPage> {
       );
 
       if (mounted) {
+        // 邮箱登录成功后，进入鉴权分流页（会继续判断是否要补全资料）。
         context.go(AppRouter.authGate);
       }
     } on AppException catch (e) {
@@ -100,6 +101,7 @@ class _LoginPageState extends State<LoginPage> {
       await _authController.signInWithGoogle();
 
       if (mounted) {
+        // Google 登录成功后，进入鉴权分流页。
         context.go(AppRouter.authGate);
       }
     } on AppException catch (e) {
@@ -125,6 +127,7 @@ class _LoginPageState extends State<LoginPage> {
       await _authController.signInAnonymously();
 
       if (mounted) {
+        // 游客模式直接进入首页，不需要账号资料。
         context.go(AppRouter.home);
       }
     } on AppException catch (e) {
@@ -174,6 +177,7 @@ class _LoginPageState extends State<LoginPage> {
         systemOverlayStyle: SystemUiOverlayStyle.dark,
         leading: IconButton(
           icon: const Icon(Icons.arrow_back),
+          // 顶部返回按钮：回到欢迎页。
           onPressed: () {
             context.go(AppRouter.welcome);
           },
@@ -206,6 +210,7 @@ class _LoginPageState extends State<LoginPage> {
                 const SizedBox(height: 16),
                 AppButton(
                   text: t.login,
+                  // 主登录按钮：使用邮箱和密码发起登录。
                   onPressed: _loginWithEmail,
                   isLoading: _isEmailLoading,
                   styleType: AppButtonStyleType.blackFilled,
@@ -215,6 +220,7 @@ class _LoginPageState extends State<LoginPage> {
                 const SizedBox(height: 18),
                 SocialLoginButton(
                   text: t.loginWithGoogle,
+                  // 第三方登录按钮：走 Google 登录流程。
                   onPressed: _loginWithGoogle,
                   isLoading: _isGoogleLoading,
                   icon: Image.asset(
@@ -226,18 +232,21 @@ class _LoginPageState extends State<LoginPage> {
                 const SizedBox(height: 12),
                 AppButton(
                   text: t.loginAsGuest,
+                  // 游客按钮：不注册账号也可先体验应用。
                   onPressed: _loginAsGuest,
                   isLoading: _isGuestLoading,
                   styleType: AppButtonStyleType.whiteOutlined,
                 ),
                 const SizedBox(height: 12),
                 TextButton(
+                  // 去注册按钮：在当前页面上方压入注册页，方便返回。
                   onPressed: () {
                     context.push(AppRouter.register);
                   },
                   child: Text(t.goToRegister),
                 ),
                 TextButton(
+                  // 忘记密码按钮：弹出重置密码对话框。
                   onPressed: _openForgotPasswordDialog,
                   child: Text(t.forgotPassword),
                 ),
@@ -248,6 +257,7 @@ class _LoginPageState extends State<LoginPage> {
       ),
       floatingActionButtonLocation: FloatingActionButtonLocation.endFloat,
       floatingActionButton: FloatingActionButton.small(
+        // 语言切换按钮：快速切换中英文界面。
         onPressed: _toggleLanguage,
         child: const Icon(Icons.language),
       ),

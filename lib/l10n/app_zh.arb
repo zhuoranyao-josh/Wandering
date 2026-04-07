@@ -1,4 +1,4 @@
-{
+﻿{
   "@@locale": "zh",
   "login": "登录",
   "register": "注册",
@@ -51,6 +51,12 @@
   "profileErrorNicknameEmpty": "请输入昵称",
   "profileErrorNicknameTooLong": "昵称不能超过20个字符",
   "profileErrorBioTooLong": "自我介绍不能超过100个字符",
-  "profileErrorNicknameTaken": "您的昵称与其他用户重复了哦~",
-  "profileErrorSaveFailed": "资料保存失败，请稍后再试"
+  "profileErrorNicknameTaken": "您的昵称与其他用户重复了哦！",
+  "profileErrorSaveFailed": "资料保存失败，请稍后再试",
+  "defaultUserName": "用户",
+  "profileEditTitle": "编辑资料",
+  "save": "保存",
+  "mapTabTitle": "地图页",
+  "mapTabPlaceholder": "地图功能占位"
 }
+

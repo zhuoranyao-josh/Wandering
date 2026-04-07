@@ -162,8 +162,23 @@ class AppLocalizationsZh extends AppLocalizations {
   String get profileErrorBioTooLong => '自我介绍不能超过100个字符';
 
   @override
-  String get profileErrorNicknameTaken => '您的昵称与其他用户重复了哦~';
+  String get profileErrorNicknameTaken => '您的昵称与其他用户重复了哦！';
 
   @override
   String get profileErrorSaveFailed => '资料保存失败，请稍后再试';
+
+  @override
+  String get defaultUserName => '用户';
+
+  @override
+  String get profileEditTitle => '编辑资料';
+
+  @override
+  String get save => '保存';
+
+  @override
+  String get mapTabTitle => '地图页';
+
+  @override
+  String get mapTabPlaceholder => '地图功能占位';
 }
