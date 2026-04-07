@@ -3,46 +3,30 @@ import 'package:go_router/go_router.dart';
 
 class MainContainerPage extends StatelessWidget {
   final StatefulNavigationShell navigationShell;
-
-  // 底部导航栏整体高度。
   final double navBarHeight;
-
-  // 底部导航栏左右内边距。
   final double navBarHorizontalPadding;
-
-  // 普通导航按钮可点击范围（命中区域）大小。
   final double itemTapTargetSize;
-
-  // 中间按钮可点击范围（命中区域）大小。
   final double centerTapTargetSize;
-
-  // 普通导航按钮图标视觉大小。
   final double iconVisualSize;
-
-  // 中间按钮图标视觉大小。
   final double centerIconVisualSize;
-
-  // 中间按钮视觉大小（圆角方块本身）。
   final double centerButtonVisualSize;
-
-  // 中间按钮圆角大小。
   final double centerButtonBorderRadius;
 
-  // 底部文案字号。
-  final double labelFontSize;
+  // 调试开关：true 时高亮显示点击热区，方便观察范围。
+  final bool showTapLayerDebug;
 
   const MainContainerPage({
     super.key,
     required this.navigationShell,
     this.navBarHeight = 76,
     this.navBarHorizontalPadding = 14,
-    this.itemTapTargetSize = 76,
-    this.centerTapTargetSize = 76,
+    this.itemTapTargetSize = 48,
+    this.centerTapTargetSize = 78,
     this.iconVisualSize = 28,
     this.centerIconVisualSize = 30,
     this.centerButtonVisualSize = 58,
     this.centerButtonBorderRadius = 18,
-    this.labelFontSize = 11,
+    this.showTapLayerDebug = false,
   });
 
   void _onTapTab(int index) {
@@ -57,57 +41,135 @@ class MainContainerPage extends StatelessWidget {
     final selectedColor = Theme.of(context).colorScheme.primary;
     const unselectedColor = Colors.black45;
 
-    Widget buildIconButton({
+    Widget buildVisualIcon({
       required int index,
       required IconData icon,
-      required String label,
       bool isCenter = false,
     }) {
       final isSelected = navigationShell.currentIndex == index;
       final color = isSelected ? selectedColor : unselectedColor;
 
       if (isCenter) {
-        return SizedBox(
-          height: centerTapTargetSize,
-          child: GestureDetector(
-            behavior: HitTestBehavior.opaque,
-            onTap: () => _onTapTab(index),
-            child: Center(
-              child: Container(
-                width: centerButtonVisualSize,
-                height: centerButtonVisualSize,
-                decoration: BoxDecoration(
-                  color: isSelected ? selectedColor : Colors.white,
-                  borderRadius: BorderRadius.circular(centerButtonBorderRadius),
-                  border: Border.all(color: color.withValues(alpha: 0.5)),
-                  boxShadow: const [
-                    BoxShadow(
-                      color: Color(0x22000000),
-                      blurRadius: 14,
-                      offset: Offset(0, 4),
-                    ),
-                  ],
+        return Center(
+          child: Container(
+            width: centerButtonVisualSize,
+            height: centerButtonVisualSize,
+            decoration: BoxDecoration(
+              color: isSelected ? selectedColor : Colors.white,
+              borderRadius: BorderRadius.circular(centerButtonBorderRadius),
+              border: Border.all(color: color.withValues(alpha: 0.5)),
+              boxShadow: const [
+                BoxShadow(
+                  color: Color(0x22000000),
+                  blurRadius: 14,
+                  offset: Offset(0, 4),
                 ),
-                child: Icon(
-                  icon,
-                  color: isSelected ? Colors.white : color,
-                  size: centerIconVisualSize,
-                ),
-              ),
+              ],
+            ),
+            child: Icon(
+              icon,
+              color: isSelected ? Colors.white : color,
+              size: centerIconVisualSize,
             ),
           ),
         );
       }
 
-      return SizedBox(
-        height: itemTapTargetSize,
-        child: GestureDetector(
-          behavior: HitTestBehavior.opaque,
-          onTap: () => _onTapTab(index),
-          child: Center(
-            child: Icon(icon, color: color, size: iconVisualSize),
+      return Center(
+        child: Icon(icon, color: color, size: iconVisualSize),
+      );
+    }
+
+    Widget buildTapTarget({required int index, required double size}) {
+      return Center(
+        child: SizedBox(
+          width: size,
+          height: size,
+          // 点击层只负责命中测试和 onTap，不负责视觉图标展示。
+          child: GestureDetector(
+            behavior: HitTestBehavior.opaque,
+            onTap: () => _onTapTab(index),
+            child: DecoratedBox(
+              decoration: showTapLayerDebug
+                  ? BoxDecoration(
+                      color: Colors.blue.withValues(alpha: 0.12),
+                      border: Border.all(
+                        color: Colors.blue.withValues(alpha: 0.6),
+                        width: 1,
+                      ),
+                      borderRadius: BorderRadius.circular(8),
+                    )
+                  : const BoxDecoration(),
+              child: const SizedBox.expand(),
+            ),
           ),
         ),
+      );
+    }
+
+    Widget buildVisualLayer() {
+      // 视觉层：保持 Spacer 留白和图标位置，只管“看起来”。
+      return IgnorePointer(
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.center,
+          children: [
+            Expanded(
+              child: Row(
+                children: [
+                  const Spacer(flex: 2),
+                  buildVisualIcon(index: 0, icon: Icons.home_outlined),
+                  const Spacer(flex: 3),
+                  buildVisualIcon(index: 1, icon: Icons.grid_view_rounded),
+                  const Spacer(flex: 3),
+                ],
+              ),
+            ),
+            buildVisualIcon(index: 2, icon: Icons.map_rounded, isCenter: true),
+            Expanded(
+              child: Row(
+                children: [
+                  const Spacer(flex: 3),
+                  buildVisualIcon(index: 3, icon: Icons.chat_bubble_outline),
+                  const Spacer(flex: 3),
+                  buildVisualIcon(index: 4, icon: Icons.person_outline),
+                  const Spacer(flex: 2),
+                ],
+              ),
+            ),
+          ],
+        ),
+      );
+    }
+
+    Widget buildTapLayer() {
+      // 点击层：按同样结构叠一层透明热区，扩大可点击范围。
+      return Row(
+        crossAxisAlignment: CrossAxisAlignment.center,
+        children: [
+          Expanded(
+            child: Row(
+              children: [
+                const Spacer(flex: 2),
+                buildTapTarget(index: 0, size: itemTapTargetSize),
+                const Spacer(flex: 3),
+                buildTapTarget(index: 1, size: itemTapTargetSize),
+                const Spacer(flex: 3),
+              ],
+            ),
+          ),
+          buildTapTarget(index: 2, size: centerTapTargetSize),
+          Expanded(
+            child: Row(
+              children: [
+                const Spacer(flex: 3),
+                buildTapTarget(index: 3, size: itemTapTargetSize),
+                const Spacer(flex: 3),
+                buildTapTarget(index: 4, size: itemTapTargetSize),
+                const Spacer(flex: 2),
+              ],
+            ),
+          ),
+        ],
       );
     }
 
@@ -128,54 +190,9 @@ class MainContainerPage extends StatelessWidget {
               ),
             ],
           ),
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.center,
-            children: [
-              Expanded(
-                child: Row(
-                  children: [
-                    const Spacer(flex: 2),
-                    buildIconButton(
-                      index: 0,
-                      icon: Icons.home_outlined,
-                      label: '',
-                    ),
-                    const Spacer(flex: 3),
-                    buildIconButton(
-                      index: 1,
-                      icon: Icons.grid_view_rounded,
-                      label: '',
-                    ),
-                    const Spacer(flex: 3),
-                  ],
-                ),
-              ),
-              buildIconButton(
-                index: 2,
-                icon: Icons.map_rounded,
-                label: '',
-                isCenter: true,
-              ),
-              Expanded(
-                child: Row(
-                  children: [
-                    const Spacer(flex: 3),
-                    buildIconButton(
-                      index: 3,
-                      icon: Icons.chat_bubble_outline,
-                      label: '',
-                    ),
-                    const Spacer(flex: 3),
-                    buildIconButton(
-                      index: 4,
-                      icon: Icons.person_outline,
-                      label: '',
-                    ),
-                    const Spacer(flex: 2),
-                  ],
-                ),
-              ),
-            ],
+          child: Stack(
+            fit: StackFit.expand,
+            children: [buildVisualLayer(), buildTapLayer()],
           ),
         ),
       ),
