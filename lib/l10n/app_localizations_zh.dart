@@ -181,4 +181,37 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get mapTabPlaceholder => '地图功能占位';
+
+  @override
+  String get mapHomeLoadingTitle => '正在加载地球';
+
+  @override
+  String get mapHomeLoadingMessage => '地图资源初始化中，请稍候。';
+
+  @override
+  String get mapHomeLoadFailedTitle => '地图加载失败';
+
+  @override
+  String get mapHomeLoadFailedMessage => '当前无法完成地图初始化，请稍后重试。';
+
+  @override
+  String get mapHomeRetry => '重新加载';
+
+  @override
+  String get mapHomeMissingTokenTitle => '缺少 Mapbox 配置';
+
+  @override
+  String get mapHomeMissingTokenMessage => '请通过 dart-define 注入 Mapbox access token 后再运行应用。';
+
+  @override
+  String get mapHomeUnsupportedTitle => '当前平台暂不支持地图';
+
+  @override
+  String get mapHomeUnsupportedMessage => 'Mapbox Flutter SDK 目前仅支持 Android 和 iOS。';
+
+  @override
+  String get mapHomeSwitchToDay => '切换到白天模式';
+
+  @override
+  String get mapHomeSwitchToNight => '切换到夜晚模式';
 }

@@ -50,6 +50,7 @@ dependencies:
 
   intl: any
   shared_preferences: ^2.5.5
+  mapbox_maps_flutter: 2.19.1
 
 dev_dependencies:
   flutter_test:

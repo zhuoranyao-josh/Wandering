@@ -181,4 +181,37 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get mapTabPlaceholder => 'Map feature placeholder';
+
+  @override
+  String get mapHomeLoadingTitle => 'Loading globe';
+
+  @override
+  String get mapHomeLoadingMessage => 'Initializing map resources. Please wait.';
+
+  @override
+  String get mapHomeLoadFailedTitle => 'Map failed to load';
+
+  @override
+  String get mapHomeLoadFailedMessage => 'The map could not be initialized right now. Please try again.';
+
+  @override
+  String get mapHomeRetry => 'Retry';
+
+  @override
+  String get mapHomeMissingTokenTitle => 'Missing Mapbox configuration';
+
+  @override
+  String get mapHomeMissingTokenMessage => 'Inject a Mapbox access token with dart-define before running the app.';
+
+  @override
+  String get mapHomeUnsupportedTitle => 'Map is not supported on this platform';
+
+  @override
+  String get mapHomeUnsupportedMessage => 'The Mapbox Flutter SDK currently supports Android and iOS only.';
+
+  @override
+  String get mapHomeSwitchToDay => 'Switch to day mode';
+
+  @override
+  String get mapHomeSwitchToNight => 'Switch to night mode';
 }

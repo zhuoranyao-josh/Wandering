@@ -442,6 +442,72 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Map feature placeholder'**
   String get mapTabPlaceholder;
+
+  /// No description provided for @mapHomeLoadingTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Loading globe'**
+  String get mapHomeLoadingTitle;
+
+  /// No description provided for @mapHomeLoadingMessage.
+  ///
+  /// In en, this message translates to:
+  /// **'Initializing map resources. Please wait.'**
+  String get mapHomeLoadingMessage;
+
+  /// No description provided for @mapHomeLoadFailedTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Map failed to load'**
+  String get mapHomeLoadFailedTitle;
+
+  /// No description provided for @mapHomeLoadFailedMessage.
+  ///
+  /// In en, this message translates to:
+  /// **'The map could not be initialized right now. Please try again.'**
+  String get mapHomeLoadFailedMessage;
+
+  /// No description provided for @mapHomeRetry.
+  ///
+  /// In en, this message translates to:
+  /// **'Retry'**
+  String get mapHomeRetry;
+
+  /// No description provided for @mapHomeMissingTokenTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Missing Mapbox configuration'**
+  String get mapHomeMissingTokenTitle;
+
+  /// No description provided for @mapHomeMissingTokenMessage.
+  ///
+  /// In en, this message translates to:
+  /// **'Inject a Mapbox access token with dart-define before running the app.'**
+  String get mapHomeMissingTokenMessage;
+
+  /// No description provided for @mapHomeUnsupportedTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Map is not supported on this platform'**
+  String get mapHomeUnsupportedTitle;
+
+  /// No description provided for @mapHomeUnsupportedMessage.
+  ///
+  /// In en, this message translates to:
+  /// **'The Mapbox Flutter SDK currently supports Android and iOS only.'**
+  String get mapHomeUnsupportedMessage;
+
+  /// No description provided for @mapHomeSwitchToDay.
+  ///
+  /// In en, this message translates to:
+  /// **'Switch to day mode'**
+  String get mapHomeSwitchToDay;
+
+  /// No description provided for @mapHomeSwitchToNight.
+  ///
+  /// In en, this message translates to:
+  /// **'Switch to night mode'**
+  String get mapHomeSwitchToNight;
 }
 
 class _AppLocalizationsDelegate extends LocalizationsDelegate<AppLocalizations> {

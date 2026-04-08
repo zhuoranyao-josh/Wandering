@@ -73,6 +73,10 @@
 - Added a tabbed main container with custom bottom navigation.
 - Added Me page and Profile Edit page.
 - Added reusable ProfileForm for profile setup/edit flows.
+- Added first version of Mapbox 3D globe home page.
+- Added day/night style toggle on the map page.
+- Added locale-driven map label language switching (Chinese/English).
+- Added map initialization/loading/error fallback UI.
 
 ### 🐛 Bug Fixes
 - Fixed app crash on launch caused by `Null check operator used on a null value` (triggered by invalid route configuration with `initialRoute + routes`)
@@ -84,6 +88,7 @@
 - Updated tests to align with the new GoRouter-based navigation architecture
 - Replaced hardcoded user-facing strings in new pages with localization keys
 - Ensured profile-related routing can use cached profile completion state
+- Fixed issue where Chinese app locale still showed English map labels in China region by syncing basemap language on locale change and re-initializing the map when needed.
 
 ### ⚡ Improvements
 - Architecture Refactor
@@ -94,6 +99,7 @@
 - Enabled automatic route reevaluation on auth state changes
 - Improved routing architecture with StatefulShellRoute and clearer auth/profile redirect handling.
 - Added profile cache warm-up and refresh support to reduce repeated fetches.
+- Refactored map logic into a dedicated map_home feature with clearer page/controller separation.
 
 ### 📚 Learnings
 - Flutter initialization is asynchronous → always handle null
@@ -101,6 +107,7 @@
 - Route guards are a better fit than page-level gates for auth and access rules
 - GoRouter.redirect combined with an auth stream provides a cleaner app entry flow
 - Navigation refactors need careful handling of empty back stacks, test setup, and redirect loops
+- Learned how to import an earth model into an application
 
 ### Future plans:
 

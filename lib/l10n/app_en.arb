@@ -57,5 +57,16 @@
   "profileEditTitle": "Edit Profile",
   "save": "Save",
   "mapTabTitle": "Map Tab",
-  "mapTabPlaceholder": "Map feature placeholder"
+  "mapTabPlaceholder": "Map feature placeholder",
+  "mapHomeLoadingTitle": "Loading globe",
+  "mapHomeLoadingMessage": "Initializing map resources. Please wait.",
+  "mapHomeLoadFailedTitle": "Map failed to load",
+  "mapHomeLoadFailedMessage": "The map could not be initialized right now. Please try again.",
+  "mapHomeRetry": "Retry",
+  "mapHomeMissingTokenTitle": "Missing Mapbox configuration",
+  "mapHomeMissingTokenMessage": "Inject a Mapbox access token with dart-define before running the app.",
+  "mapHomeUnsupportedTitle": "Map is not supported on this platform",
+  "mapHomeUnsupportedMessage": "The Mapbox Flutter SDK currently supports Android and iOS only.",
+  "mapHomeSwitchToDay": "Switch to day mode",
+  "mapHomeSwitchToNight": "Switch to night mode"
 }
