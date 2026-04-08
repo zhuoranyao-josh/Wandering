@@ -68,6 +68,9 @@
   "mapHomeUnsupportedTitle": "当前平台暂不支持地图",
   "mapHomeUnsupportedMessage": "Mapbox Flutter SDK 目前仅支持 Android 和 iOS。",
   "mapHomeSwitchToDay": "切换到白天模式",
-  "mapHomeSwitchToNight": "切换到夜晚模式"
+  "mapHomeSwitchToNight": "切换到夜晚模式",
+  "mapPlaceTokyoName": "东京",
+  "mapPlaceTokyoDescription": "这是一座用于验证地球光点、相机飞行动画与底部悬浮卡片的测试城市。",
+  "viewDetails": "查看详情"
 }
 

@@ -68,5 +68,8 @@
   "mapHomeUnsupportedTitle": "Map is not supported on this platform",
   "mapHomeUnsupportedMessage": "The Mapbox Flutter SDK currently supports Android and iOS only.",
   "mapHomeSwitchToDay": "Switch to day mode",
-  "mapHomeSwitchToNight": "Switch to night mode"
+  "mapHomeSwitchToNight": "Switch to night mode",
+  "mapPlaceTokyoName": "Tokyo",
+  "mapPlaceTokyoDescription": "A neon-lit test city used to validate globe markers, camera transitions, and the floating preview card.",
+  "viewDetails": "View details"
 }

@@ -77,6 +77,8 @@
 - Added day/night style toggle on the map page.
 - Added locale-driven map label language switching (Chinese/English).
 - Added map initialization/loading/error fallback UI.
+- Added Tokyo test marker with fly-to interaction and a floating place preview card.
+- Added extensible local mock place/marker models for future multi-city and mixed marker support.
 
 ### 🐛 Bug Fixes
 - Fixed app crash on launch caused by `Null check operator used on a null value` (triggered by invalid route configuration with `initialRoute + routes`)

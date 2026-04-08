@@ -7,8 +7,10 @@ import '../../../../core/config/mapbox_config.dart';
 import '../../../../core/widgets/app_button.dart';
 import '../../../../l10n/app_localizations.dart';
 import '../controllers/map_home_controller.dart';
+import '../support/place_localizations.dart';
 import '../widgets/map_home_status_panel.dart';
 import '../widgets/map_mode_toggle_button.dart';
+import '../widgets/place_preview_card.dart';
 
 class MapHomePage extends StatefulWidget {
   const MapHomePage({super.key});
@@ -23,6 +25,7 @@ class _MapHomePageState extends State<MapHomePage> {
   static const double _topActionSize = 52;
   static const double _topActionToCompassGap = 10;
   static const double _ornamentBottomMargin = 8;
+  static const double _floatingInset = 16;
 
   final MapHomeController _controller = MapHomeController();
   Locale? _lastLocale;
@@ -105,6 +108,7 @@ class _MapHomePageState extends State<MapHomePage> {
               _buildMapWidget(),
               _buildFutureOverlaySlots(),
               _buildTopRightAction(t),
+              if (_controller.selectedPlace != null) _buildPlacePreviewCard(t),
               if (_controller.isLoading) _buildLoadingOverlay(t),
               if (_controller.hasError) _buildErrorOverlay(t),
             ],
@@ -183,13 +187,46 @@ class _MapHomePageState extends State<MapHomePage> {
   Widget _buildFutureOverlaySlots() {
     return IgnorePointer(
       child: SafeArea(
-        minimum: const EdgeInsets.fromLTRB(16, 16, 16, 32),
+        minimum: const EdgeInsets.fromLTRB(
+          _floatingInset,
+          _floatingInset,
+          _floatingInset,
+          32,
+        ),
         child: Column(
           children: const [
             SizedBox(height: 68),
             Spacer(),
             SizedBox(height: 140),
           ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildPlacePreviewCard(AppLocalizations t) {
+    final place = _controller.selectedPlace;
+    if (place == null) {
+      return const SizedBox.shrink();
+    }
+
+    final copy = place.localizedCopy(t);
+
+    return SafeArea(
+      minimum: const EdgeInsets.fromLTRB(
+        _floatingInset,
+        _floatingInset,
+        _floatingInset,
+        _floatingInset,
+      ),
+      child: Align(
+        alignment: Alignment.bottomCenter,
+        child: PlacePreviewCard(
+          title: copy.name,
+          description: copy.description,
+          imageAssetPath: place.previewAssetPath,
+          buttonText: t.viewDetails,
+          onPressed: () {},
         ),
       ),
     );

@@ -201,17 +201,28 @@ class AppLocalizationsZh extends AppLocalizations {
   String get mapHomeMissingTokenTitle => '缺少 Mapbox 配置';
 
   @override
-  String get mapHomeMissingTokenMessage => '请通过 dart-define 注入 Mapbox access token 后再运行应用。';
+  String get mapHomeMissingTokenMessage =>
+      '请通过 dart-define 注入 Mapbox access token 后再运行应用。';
 
   @override
   String get mapHomeUnsupportedTitle => '当前平台暂不支持地图';
 
   @override
-  String get mapHomeUnsupportedMessage => 'Mapbox Flutter SDK 目前仅支持 Android 和 iOS。';
+  String get mapHomeUnsupportedMessage =>
+      'Mapbox Flutter SDK 目前仅支持 Android 和 iOS。';
 
   @override
   String get mapHomeSwitchToDay => '切换到白天模式';
 
   @override
   String get mapHomeSwitchToNight => '切换到夜晚模式';
+
+  @override
+  String get mapPlaceTokyoName => '东京';
+
+  @override
+  String get mapPlaceTokyoDescription => '这是一座用于验证地球光点、相机飞行动画与底部悬浮卡片的测试城市。';
+
+  @override
+  String get viewDetails => '查看详情';
 }
