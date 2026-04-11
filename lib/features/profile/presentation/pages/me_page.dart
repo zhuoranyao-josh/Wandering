@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../../../app/app.dart';
 import '../../../../app/app_router.dart';
+import '../../../../app/language_controller.dart';
 import '../../../../core/di/service_locator.dart';
 import '../../../../l10n/app_localizations.dart';
 import '../../../auth/domain/entities/auth_user.dart';
@@ -58,6 +60,84 @@ class _MePageState extends State<MePage> {
     return t.defaultUserName;
   }
 
+  String _languageLabel(AppLocalizations t, Locale locale) {
+    if (locale.languageCode == 'zh') {
+      return t.languageChinese;
+    }
+    return t.languageEnglish;
+  }
+
+  // 语言选择弹窗：展示当前支持语言，并对当前项做高亮标记。
+  Future<void> _showLanguageDialog(AppLocalizations t) async {
+    final languageController = MyApp.of(context);
+    if (languageController == null) {
+      return;
+    }
+
+    final currentLocale = languageController.locale;
+
+    await showDialog<void>(
+      context: context,
+      builder: (dialogContext) {
+        return AlertDialog(
+          title: Text(t.language),
+          contentPadding: const EdgeInsets.fromLTRB(8, 12, 8, 8),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              _buildLanguageOption(
+                dialogContext: dialogContext,
+                controller: languageController,
+                locale: const Locale('zh'),
+                currentLocale: currentLocale,
+                label: t.languageChinese,
+              ),
+              _buildLanguageOption(
+                dialogContext: dialogContext,
+                controller: languageController,
+                locale: const Locale('en'),
+                currentLocale: currentLocale,
+                label: t.languageEnglish,
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildLanguageOption({
+    required BuildContext dialogContext,
+    required LanguageController controller,
+    required Locale locale,
+    required Locale currentLocale,
+    required String label,
+  }) {
+    final isSelected = currentLocale.languageCode == locale.languageCode;
+
+    return ListTile(
+      contentPadding: const EdgeInsets.symmetric(horizontal: 8),
+      leading: Icon(
+        isSelected ? Icons.check_circle : Icons.radio_button_unchecked,
+        color: isSelected ? const Color(0xFF2563EB) : const Color(0xFF9CA3AF),
+      ),
+      title: Text(
+        label,
+        style: TextStyle(
+          fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
+        ),
+      ),
+      onTap: () async {
+        // 切换后立即生效，并由现有 languageController 完成本地持久化。
+        if (!isSelected) {
+          await controller.setLocaleAndSave(locale);
+        }
+        if (!dialogContext.mounted) return;
+        Navigator.of(dialogContext).pop();
+      },
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final t = AppLocalizations.of(context);
@@ -67,6 +147,8 @@ class _MePageState extends State<MePage> {
 
     final user = ServiceLocator.authController.getCurrentUser();
     final avatarUrl = _profile?.avatarUrl ?? user?.photoUrl;
+    final languageController = MyApp.of(context);
+    final currentLocale = languageController?.locale ?? const Locale('en');
 
     return Scaffold(
       backgroundColor: const Color(0xFFF6F7FB),
@@ -75,7 +157,7 @@ class _MePageState extends State<MePage> {
           padding: const EdgeInsets.all(16),
           child: Column(
             children: [
-              // 个人信息卡片：展示头像、昵称和编辑入口。
+              // 个人信息卡片：展示头像、昵称和资料编辑入口。
               Container(
                 padding: const EdgeInsets.symmetric(
                   horizontal: 14,
@@ -123,6 +205,33 @@ class _MePageState extends State<MePage> {
                       splashRadius: 20,
                     ),
                   ],
+                ),
+              ),
+              const SizedBox(height: 16),
+              // 语言设置入口：保持现有卡片风格，仅插入一个轻量操作项。
+              Container(
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(16),
+                ),
+                child: ListTile(
+                  leading: const Icon(Icons.language_rounded),
+                  title: Text(t.language),
+                  trailing: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        _languageLabel(t, currentLocale),
+                        style: const TextStyle(
+                          color: Color(0xFF6B7280),
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                      const SizedBox(width: 6),
+                      const Icon(Icons.chevron_right),
+                    ],
+                  ),
+                  onTap: () => _showLanguageDialog(t),
                 ),
               ),
               const SizedBox(height: 16),

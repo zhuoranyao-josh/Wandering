@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
@@ -6,6 +8,7 @@ import '../../../../app/app.dart';
 import '../../../../app/app_router.dart';
 import '../../../../core/di/service_locator.dart';
 import '../../../../core/error/app_exception.dart';
+import '../../../../core/system_ui/app_system_ui.dart';
 import '../../../../core/widgets/app_button.dart';
 import '../../../../core/widgets/app_divider_with_text.dart';
 import '../../../../core/widgets/app_text_field.dart';
@@ -30,6 +33,13 @@ class _LoginPageState extends State<LoginPage> {
   bool _isGoogleLoading = false;
   bool _isGuestLoading = false;
   String? _errorCode;
+
+  @override
+  void initState() {
+    super.initState();
+    // 登录页一出现就恢复默认系统栏，避免从欢迎页切换时出现底部栏闪动。
+    unawaited(AppSystemUi.applyDefaultSystemUi());
+  }
 
   String _localizedError(AppLocalizations t, String code) {
     switch (code) {
@@ -179,6 +189,7 @@ class _LoginPageState extends State<LoginPage> {
           icon: const Icon(Icons.arrow_back),
           // 顶部返回按钮：回到欢迎页。
           onPressed: () {
+            unawaited(AppSystemUi.applyWelcomeSystemUi());
             context.go(AppRouter.welcome);
           },
         ),

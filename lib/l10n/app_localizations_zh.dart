@@ -171,6 +171,15 @@ class AppLocalizationsZh extends AppLocalizations {
   String get defaultUserName => '用户';
 
   @override
+  String get language => '语言';
+
+  @override
+  String get languageChinese => '中文';
+
+  @override
+  String get languageEnglish => 'English';
+
+  @override
   String get profileEditTitle => '编辑资料';
 
   @override
@@ -201,15 +210,13 @@ class AppLocalizationsZh extends AppLocalizations {
   String get mapHomeMissingTokenTitle => '缺少 Mapbox 配置';
 
   @override
-  String get mapHomeMissingTokenMessage =>
-      '请通过 dart-define 注入 Mapbox access token 后再运行应用。';
+  String get mapHomeMissingTokenMessage => '请通过 dart-define 注入 Mapbox access token 后再运行应用。';
 
   @override
   String get mapHomeUnsupportedTitle => '当前平台暂不支持地图';
 
   @override
-  String get mapHomeUnsupportedMessage =>
-      'Mapbox Flutter SDK 目前仅支持 Android 和 iOS。';
+  String get mapHomeUnsupportedMessage => 'Mapbox Flutter SDK 目前仅支持 Android 和 iOS。';
 
   @override
   String get mapHomeSwitchToDay => '切换到白天模式';

@@ -42,6 +42,7 @@ class MapHomeController extends ChangeNotifier {
   String? _errorDetails;
   int _mapWidgetVersion = 0;
   bool _isApplyingStyle = false;
+  bool _isScaleBarVisible = true;
   PlaceEntity? _selectedPlace;
   String? _selectedMarkerId;
   final Map<String, PlaceEntity> _placesById = <String, PlaceEntity>{
@@ -95,6 +96,7 @@ class MapHomeController extends ChangeNotifier {
         includeProjection: true,
       );
       await _syncMarkers();
+      await _refreshMarkerVisuals();
       _status = MapHomeViewStatus.ready;
       _errorDetails = null;
     } catch (error) {
@@ -121,6 +123,7 @@ class MapHomeController extends ChangeNotifier {
         lightPreset: nextPreset,
         basemapLanguage: _basemapLanguage,
       );
+      await _refreshMarkerVisuals();
       _lightPreset = nextPreset;
       _status = MapHomeViewStatus.ready;
       _errorDetails = null;
@@ -217,21 +220,51 @@ class MapHomeController extends ChangeNotifier {
 
     final mapboxMap = _mapboxMap;
     if (mapboxMap != null) {
+      final cameraState = await mapboxMap.getCameraState();
       await mapboxMap.flyTo(
         CameraOptions(
           center: Point(
             coordinates: Position(marker.longitude, marker.latitude),
           ),
           zoom: place.flyToZoom,
-          pitch: place.flyToPitch,
-          bearing: place.flyToBearing,
+          pitch: cameraState.pitch,
+          bearing: cameraState.bearing,
         ),
         MapAnimationOptions(duration: 1800),
       );
     }
 
+    await _setMarkerHidden(markerId, true);
     _selectedPlace = place;
     notifyListeners();
+  }
+
+  Future<void> clearSelectedPlace() async {
+    final markerId = _selectedMarkerId;
+    if (markerId != null) {
+      await _setMarkerHidden(markerId, false);
+      await _updateMarkerSelection(markerId, keepSelectedState: false);
+    }
+
+    _selectedPlace = null;
+    notifyListeners();
+  }
+
+  Future<void> updateScaleBarVisibility(bool isVisible) async {
+    if (_isScaleBarVisible == isVisible) {
+      return;
+    }
+
+    _isScaleBarVisible = isVisible;
+
+    final mapboxMap = _mapboxMap;
+    if (mapboxMap == null) {
+      return;
+    }
+
+    await mapboxMap.scaleBar.updateSettings(
+      ScaleBarSettings(enabled: isVisible),
+    );
   }
 
   Future<void> _syncMarkers() async {
@@ -279,23 +312,49 @@ class MapHomeController extends ChangeNotifier {
     }
   }
 
+  Future<void> _refreshMarkerVisuals() async {
+    final markerManager = _markerManager;
+    if (markerManager == null) {
+      return;
+    }
+
+    for (final marker in _markers) {
+      final annotation = _markerAnnotationsById[marker.id];
+      if (annotation == null) {
+        continue;
+      }
+
+      final isCurrentMarker = _selectedMarkerId == marker.id;
+      _applyMarkerVisual(
+        annotation,
+        marker: marker,
+        isSelected: isCurrentMarker && _selectedPlace == null,
+        isHidden: isCurrentMarker && _selectedPlace != null,
+      );
+      await markerManager.update(annotation);
+    }
+  }
+
   CircleAnnotationOptions _buildMarkerOptions(GlobeMarkerEntity marker) {
     return CircleAnnotationOptions(
       geometry: Point(coordinates: Position(marker.longitude, marker.latitude)),
       circleColor: _markerColor(marker.type).toARGB32(),
-      circleRadius: 10.0,
-      circleBlur: 0.3,
-      circleOpacity: 0.95,
-      circleStrokeColor: const Color(0xCCFFFFFF).toARGB32(),
-      circleStrokeOpacity: 0.95,
-      circleStrokeWidth: 2.0,
+      circleRadius: 6.4,
+      circleBlur: 0.5,
+      circleOpacity: 0.92,
+      circleStrokeColor: const Color(0xFFFFF0C2).toARGB32(),
+      circleStrokeOpacity: 0.88,
+      circleStrokeWidth: 1.2,
     );
   }
 
-  Future<void> _updateMarkerSelection(String markerId) async {
+  Future<void> _updateMarkerSelection(
+    String markerId, {
+    bool keepSelectedState = true,
+  }) async {
     final markerManager = _markerManager;
     if (markerManager == null) {
-      _selectedMarkerId = markerId;
+      _selectedMarkerId = keepSelectedState ? markerId : null;
       return;
     }
 
@@ -316,38 +375,68 @@ class MapHomeController extends ChangeNotifier {
     final nextAnnotation = _markerAnnotationsById[markerId];
     final nextMarker = _markersById[markerId];
     if (nextAnnotation != null && nextMarker != null) {
-      _applyMarkerVisual(nextAnnotation, marker: nextMarker, isSelected: true);
+      _applyMarkerVisual(
+        nextAnnotation,
+        marker: nextMarker,
+        isSelected: keepSelectedState,
+      );
       await markerManager.update(nextAnnotation);
     }
 
-    _selectedMarkerId = markerId;
+    _selectedMarkerId = keepSelectedState ? markerId : null;
     notifyListeners();
+  }
+
+  Future<void> _setMarkerHidden(String markerId, bool isHidden) async {
+    final markerManager = _markerManager;
+    final annotation = _markerAnnotationsById[markerId];
+    final marker = _markersById[markerId];
+    if (markerManager == null || annotation == null || marker == null) {
+      return;
+    }
+
+    _applyMarkerVisual(
+      annotation,
+      marker: marker,
+      isSelected: false,
+      isHidden: isHidden,
+    );
+    await markerManager.update(annotation);
   }
 
   void _applyMarkerVisual(
     CircleAnnotation annotation, {
     required GlobeMarkerEntity marker,
     required bool isSelected,
+    bool isHidden = false,
   }) {
+    if (isHidden) {
+      annotation.circleOpacity = 0.0;
+      annotation.circleStrokeOpacity = 0.0;
+      annotation.circleRadius = 0.1;
+      annotation.circleStrokeWidth = 0.0;
+      return;
+    }
+
     annotation.circleColor = isSelected
-        ? const Color(0xFFFFA94D).toARGB32()
+        ? const Color(0xFFFFC36B).toARGB32()
         : _markerColor(marker.type).toARGB32();
-    annotation.circleRadius = isSelected ? 14.0 : 10.0;
-    annotation.circleBlur = isSelected ? 0.15 : 0.3;
-    annotation.circleStrokeColor = const Color(0xFFFFFFFF).toARGB32();
-    annotation.circleStrokeOpacity = 1.0;
-    annotation.circleStrokeWidth = isSelected ? 4.0 : 2.0;
-    annotation.circleOpacity = 1.0;
+    annotation.circleRadius = isSelected ? 7.8 : 6.4;
+    annotation.circleBlur = isSelected ? 0.42 : 0.5;
+    annotation.circleStrokeColor = const Color(0xFFFFF3D6).toARGB32();
+    annotation.circleStrokeOpacity = isSelected ? 0.96 : 0.88;
+    annotation.circleStrokeWidth = isSelected ? 1.6 : 1.2;
+    annotation.circleOpacity = isSelected ? 0.98 : 0.92;
   }
 
   Color _markerColor(GlobeMarkerType type) {
     switch (type) {
       case GlobeMarkerType.official:
-        return const Color(0xFF4FD1C5);
+        return const Color(0xFFFFB347);
       case GlobeMarkerType.community:
-        return const Color(0xFF60A5FA);
+        return const Color(0xFFFFC46A);
       case GlobeMarkerType.mixed:
-        return const Color(0xFFF59E0B);
+        return const Color(0xFFFFA94D);
     }
   }
 }

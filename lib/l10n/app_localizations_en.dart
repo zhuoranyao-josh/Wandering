@@ -90,12 +90,10 @@ class AppLocalizationsEn extends AppLocalizations {
   String get sendResetEmail => 'Send reset email';
 
   @override
-  String get resetPasswordHint =>
-      'Enter your email and we will send you a password reset email.';
+  String get resetPasswordHint => 'Enter your email and we will send you a password reset email.';
 
   @override
-  String get resetPasswordEmailSent =>
-      'Password reset email sent. Please check your inbox.';
+  String get resetPasswordEmailSent => 'Password reset email sent. Please check your inbox.';
 
   @override
   String get cancel => 'Cancel';
@@ -104,15 +102,13 @@ class AppLocalizationsEn extends AppLocalizations {
   String get errorMissingEmail => 'Please enter your email address.';
 
   @override
-  String get errorTooManyRequests =>
-      'Too many attempts. Please try again later.';
+  String get errorTooManyRequests => 'Too many attempts. Please try again later.';
 
   @override
   String get errorOperationNotAllowed => 'This sign-in method is not enabled.';
 
   @override
-  String get welcomeSubtitle =>
-      'Discover cities, stories, and journeys around the world.';
+  String get welcomeSubtitle => 'Discover cities, stories, and journeys around the world.';
 
   @override
   String get enterLoginOrRegister => 'Register / Log in';
@@ -160,22 +156,28 @@ class AppLocalizationsEn extends AppLocalizations {
   String get profileErrorNicknameEmpty => 'Please enter your nickname.';
 
   @override
-  String get profileErrorNicknameTooLong =>
-      'Nickname cannot exceed 20 characters.';
+  String get profileErrorNicknameTooLong => 'Nickname cannot exceed 20 characters.';
 
   @override
   String get profileErrorBioTooLong => 'Bio cannot exceed 100 characters.';
 
   @override
-  String get profileErrorNicknameTaken =>
-      'Your nickname is already used by another user ~';
+  String get profileErrorNicknameTaken => 'Your nickname is already used by another user ~';
 
   @override
-  String get profileErrorSaveFailed =>
-      'Failed to save profile. Please try again later.';
+  String get profileErrorSaveFailed => 'Failed to save profile. Please try again later.';
 
   @override
   String get defaultUserName => 'User';
+
+  @override
+  String get language => 'Language';
+
+  @override
+  String get languageChinese => 'Chinese';
+
+  @override
+  String get languageEnglish => 'English';
 
   @override
   String get profileEditTitle => 'Edit Profile';
@@ -193,15 +195,13 @@ class AppLocalizationsEn extends AppLocalizations {
   String get mapHomeLoadingTitle => 'Loading globe';
 
   @override
-  String get mapHomeLoadingMessage =>
-      'Initializing map resources. Please wait.';
+  String get mapHomeLoadingMessage => 'Initializing map resources. Please wait.';
 
   @override
   String get mapHomeLoadFailedTitle => 'Map failed to load';
 
   @override
-  String get mapHomeLoadFailedMessage =>
-      'The map could not be initialized right now. Please try again.';
+  String get mapHomeLoadFailedMessage => 'The map could not be initialized right now. Please try again.';
 
   @override
   String get mapHomeRetry => 'Retry';
@@ -210,15 +210,13 @@ class AppLocalizationsEn extends AppLocalizations {
   String get mapHomeMissingTokenTitle => 'Missing Mapbox configuration';
 
   @override
-  String get mapHomeMissingTokenMessage =>
-      'Inject a Mapbox access token with dart-define before running the app.';
+  String get mapHomeMissingTokenMessage => 'Inject a Mapbox access token with dart-define before running the app.';
 
   @override
   String get mapHomeUnsupportedTitle => 'Map is not supported on this platform';
 
   @override
-  String get mapHomeUnsupportedMessage =>
-      'The Mapbox Flutter SDK currently supports Android and iOS only.';
+  String get mapHomeUnsupportedMessage => 'The Mapbox Flutter SDK currently supports Android and iOS only.';
 
   @override
   String get mapHomeSwitchToDay => 'Switch to day mode';
@@ -230,8 +228,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get mapPlaceTokyoName => 'Tokyo';
 
   @override
-  String get mapPlaceTokyoDescription =>
-      'A neon-lit test city used to validate globe markers, camera transitions, and the floating preview card.';
+  String get mapPlaceTokyoDescription => 'A neon-lit test city used to validate globe markers, camera transitions, and the floating preview card.';
 
   @override
   String get viewDetails => 'View details';

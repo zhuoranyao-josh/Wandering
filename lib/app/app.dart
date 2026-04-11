@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
+import 'package:flutter/services.dart';
 
+import '../core/system_ui/app_system_ui.dart';
 import '../l10n/app_localizations.dart';
 import '../l10n/l10n.dart';
 import 'app_router.dart';
@@ -62,6 +64,13 @@ class _MyAppState extends State<MyApp> {
         GlobalWidgetsLocalizations.delegate,
         GlobalCupertinoLocalizations.delegate,
       ],
+      builder: (context, child) {
+        // 全局默认系统栏样式：状态栏透明常驻，普通页面使用深色图标。
+        return AnnotatedRegion<SystemUiOverlayStyle>(
+          value: AppSystemUi.defaultOverlayStyle,
+          child: child ?? const SizedBox.shrink(),
+        );
+      },
       routerConfig: AppRouter.router,
     );
   }

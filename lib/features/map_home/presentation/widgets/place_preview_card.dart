@@ -9,6 +9,7 @@ class PlacePreviewCard extends StatelessWidget {
     required this.description,
     required this.imageAssetPath,
     required this.buttonText,
+    required this.onClose,
     required this.onPressed,
   });
 
@@ -16,6 +17,7 @@ class PlacePreviewCard extends StatelessWidget {
   final String description;
   final String imageAssetPath;
   final String buttonText;
+  final VoidCallback onClose;
   final VoidCallback onPressed;
 
   @override
@@ -38,13 +40,41 @@ class PlacePreviewCard extends StatelessWidget {
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(
-              title,
-              style: const TextStyle(
-                fontSize: 22,
-                fontWeight: FontWeight.w700,
-                color: Color(0xFF111827),
-              ),
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Expanded(
+                  child: Text(
+                    title,
+                    style: const TextStyle(
+                      fontSize: 22,
+                      fontWeight: FontWeight.w700,
+                      color: Color(0xFF111827),
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Material(
+                  color: Colors.transparent,
+                  child: InkWell(
+                    borderRadius: BorderRadius.circular(14),
+                    onTap: onClose,
+                    child: Container(
+                      width: 32,
+                      height: 32,
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFF3F4F6),
+                        borderRadius: BorderRadius.circular(14),
+                      ),
+                      child: const Icon(
+                        Icons.close,
+                        size: 18,
+                        color: Color(0xFF374151),
+                      ),
+                    ),
+                  ),
+                ),
+              ],
             ),
             const SizedBox(height: 8),
             Text(

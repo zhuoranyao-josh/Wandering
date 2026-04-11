@@ -168,43 +168,43 @@ class _ProfileSetupPageState extends State<ProfileSetupPage> {
       return const Scaffold(body: Center(child: CircularProgressIndicator()));
     }
 
-    return Scaffold(
-      backgroundColor: const Color(0xFFF3F3F3),
-      appBar: AppBar(
-        title: Text(t.profileSetupTitle),
-        centerTitle: true,
-        backgroundColor: Colors.transparent,
-        elevation: 0,
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back),
-          // 返回按钮：放弃当前资料填写并回到登录页。
-          onPressed: () {
-            context.go(AppRouter.login);
-          },
+    return PopScope(
+      // 首次资料页禁用返回，避免误触返回导致重新走登录流程。
+      canPop: false,
+      child: Scaffold(
+        backgroundColor: const Color(0xFFF3F3F3),
+        appBar: AppBar(
+          title: Text(t.profileSetupTitle),
+          centerTitle: true,
+          backgroundColor: Colors.transparent,
+          elevation: 0,
+          automaticallyImplyLeading: false,
         ),
-      ),
-      body: SafeArea(
-        child: ProfileForm(
-          currentUser: _currentUser,
-          nicknameController: _nicknameController,
-          bioController: _bioController,
-          birthday: _birthday,
-          gender: _gender,
-          countryName: _countryName,
-          countryFlag: _countryFlag,
-          selectedAvatarPath: _selectedAvatarPath,
-          errorText: _errorCode == null ? null : _localizedError(t, _errorCode!),
-          isSaving: _isSaving,
-          submitText: t.profileContinue,
-          onPickAvatar: _pickAvatar,
-          onPickBirthday: _pickBirthday,
-          onPickCountry: _pickCountry,
-          onGenderChanged: (value) {
-            setState(() {
-              _gender = value;
-            });
-          },
-          onSubmit: _submit,
+        body: SafeArea(
+          child: ProfileForm(
+            currentUser: _currentUser,
+            nicknameController: _nicknameController,
+            bioController: _bioController,
+            birthday: _birthday,
+            gender: _gender,
+            countryName: _countryName,
+            countryFlag: _countryFlag,
+            selectedAvatarPath: _selectedAvatarPath,
+            errorText: _errorCode == null
+                ? null
+                : _localizedError(t, _errorCode!),
+            isSaving: _isSaving,
+            submitText: t.profileContinue,
+            onPickAvatar: _pickAvatar,
+            onPickBirthday: _pickBirthday,
+            onPickCountry: _pickCountry,
+            onGenderChanged: (value) {
+              setState(() {
+                _gender = value;
+              });
+            },
+            onSubmit: _submit,
+          ),
         ),
       ),
     );

@@ -1,4 +1,4 @@
-﻿import 'dart:async';
+import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
@@ -16,6 +16,9 @@ import '../features/profile/presentation/pages/profile_setup_page.dart';
 import '../features/welcome/presentation/pages/welcome_page.dart';
 
 class AppRouter {
+  static final RouteObserver<PageRoute<dynamic>> routeObserver =
+      RouteObserver<PageRoute<dynamic>>();
+
   static const String authGate = '/';
   static const String welcome = '/welcome';
   static const String login = '/login';
@@ -45,6 +48,7 @@ class AppRouter {
 
   static final GoRouter router = GoRouter(
     initialLocation: authGate,
+    observers: <NavigatorObserver>[routeObserver],
     refreshListenable: AppRouterRefreshListenable(
       authChanges: ServiceLocator.authController.authStateChanges(),
       profileController: ServiceLocator.profileSetupController,
@@ -259,4 +263,3 @@ class _RouteResolverPageState extends State<_RouteResolverPage> {
     return const Scaffold(body: Center(child: CircularProgressIndicator()));
   }
 }
-

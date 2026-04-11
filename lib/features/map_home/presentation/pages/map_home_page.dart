@@ -1,9 +1,11 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:mapbox_maps_flutter/mapbox_maps_flutter.dart';
 
 import '../../../../core/config/mapbox_config.dart';
+import '../../../../core/system_ui/app_system_ui.dart';
 import '../../../../core/widgets/app_button.dart';
 import '../../../../l10n/app_localizations.dart';
 import '../controllers/map_home_controller.dart';
@@ -29,6 +31,7 @@ class _MapHomePageState extends State<MapHomePage> {
 
   final MapHomeController _controller = MapHomeController();
   Locale? _lastLocale;
+  bool? _lastHasSelectedPlace;
 
   CameraOptions get _initialCameraOptions => CameraOptions(
     center: Point(coordinates: Position(105.0, 30.0)),
@@ -97,23 +100,37 @@ class _MapHomePageState extends State<MapHomePage> {
       );
     }
 
-    return Scaffold(
-      backgroundColor: Colors.black,
-      body: AnimatedBuilder(
-        animation: _controller,
-        builder: (context, child) {
-          return Stack(
-            fit: StackFit.expand,
-            children: [
-              _buildMapWidget(),
-              _buildFutureOverlaySlots(),
-              _buildTopRightAction(t),
-              if (_controller.selectedPlace != null) _buildPlacePreviewCard(t),
-              if (_controller.isLoading) _buildLoadingOverlay(t),
-              if (_controller.hasError) _buildErrorOverlay(t),
-            ],
-          );
-        },
+    return AnnotatedRegion<SystemUiOverlayStyle>(
+      value: AppSystemUi.lightOverlayStyle,
+      child: Scaffold(
+        backgroundColor: Colors.black,
+        body: AnimatedBuilder(
+          animation: _controller,
+          builder: (context, child) {
+            final hasSelectedPlace = _controller.selectedPlace != null;
+            if (_lastHasSelectedPlace != hasSelectedPlace) {
+              _lastHasSelectedPlace = hasSelectedPlace;
+              WidgetsBinding.instance.addPostFrameCallback((_) {
+                unawaited(
+                  _controller.updateScaleBarVisibility(!hasSelectedPlace),
+                );
+              });
+            }
+
+            return Stack(
+              fit: StackFit.expand,
+              children: [
+                _buildMapWidget(),
+                _buildFutureOverlaySlots(),
+                _buildTopRightAction(t),
+                if (_controller.selectedPlace != null)
+                  _buildPlacePreviewCard(t),
+                if (_controller.isLoading) _buildLoadingOverlay(t),
+                if (_controller.hasError) _buildErrorOverlay(t),
+              ],
+            );
+          },
+        ),
       ),
     );
   }
@@ -147,6 +164,7 @@ class _MapHomePageState extends State<MapHomePage> {
 
     await mapboxMap.scaleBar.updateSettings(
       ScaleBarSettings(
+        enabled: _controller.selectedPlace == null,
         position: OrnamentPosition.BOTTOM_RIGHT,
         marginRight: _topActionHorizontalMargin,
         marginBottom: _ornamentBottomMargin,
@@ -226,6 +244,7 @@ class _MapHomePageState extends State<MapHomePage> {
           description: copy.description,
           imageAssetPath: place.previewAssetPath,
           buttonText: t.viewDetails,
+          onClose: _controller.clearSelectedPlace,
           onPressed: () {},
         ),
       ),
