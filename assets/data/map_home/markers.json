@@ -1,0 +1,198 @@
+[
+  {
+    "id": "marker_tokyo",
+    "placeId": "tokyo",
+    "type": "official",
+    "latitude": 35.6762,
+    "longitude": 139.6503
+  },
+  {
+    "id": "marker_new_york",
+    "placeId": "new_york",
+    "type": "community",
+    "latitude": 40.7128,
+    "longitude": -74.006
+  },
+  {
+    "id": "marker_los_angeles",
+    "placeId": "los_angeles",
+    "type": "mixed",
+    "latitude": 34.0522,
+    "longitude": -118.2437
+  },
+  {
+    "id": "marker_moscow",
+    "placeId": "moscow",
+    "type": "official",
+    "latitude": 55.7558,
+    "longitude": 37.6173
+  },
+  {
+    "id": "marker_saint_petersburg",
+    "placeId": "saint_petersburg",
+    "type": "community",
+    "latitude": 59.9311,
+    "longitude": 30.3609
+  },
+  {
+    "id": "marker_yokohama",
+    "placeId": "yokohama",
+    "type": "mixed",
+    "latitude": 35.4437,
+    "longitude": 139.638
+  },
+  {
+    "id": "marker_osaka",
+    "placeId": "osaka",
+    "type": "official",
+    "latitude": 34.6937,
+    "longitude": 135.5023
+  },
+  {
+    "id": "marker_beijing",
+    "placeId": "beijing",
+    "type": "community",
+    "latitude": 39.9042,
+    "longitude": 116.4074
+  },
+  {
+    "id": "marker_shanghai",
+    "placeId": "shanghai",
+    "type": "mixed",
+    "latitude": 31.2304,
+    "longitude": 121.4737
+  },
+  {
+    "id": "marker_guangzhou",
+    "placeId": "guangzhou",
+    "type": "official",
+    "latitude": 23.1291,
+    "longitude": 113.2644
+  },
+  {
+    "id": "marker_tianjin",
+    "placeId": "tianjin",
+    "type": "community",
+    "latitude": 39.3434,
+    "longitude": 117.3616
+  },
+  {
+    "id": "marker_lhasa",
+    "placeId": "lhasa",
+    "type": "mixed",
+    "latitude": 29.652,
+    "longitude": 91.1721
+  },
+  {
+    "id": "marker_suzhou",
+    "placeId": "suzhou",
+    "type": "official",
+    "latitude": 31.2989,
+    "longitude": 120.5853
+  },
+  {
+    "id": "marker_munich",
+    "placeId": "munich",
+    "type": "community",
+    "latitude": 48.1351,
+    "longitude": 11.582
+  },
+  {
+    "id": "marker_berlin",
+    "placeId": "berlin",
+    "type": "mixed",
+    "latitude": 52.52,
+    "longitude": 13.405
+  },
+  {
+    "id": "marker_frankfurt",
+    "placeId": "frankfurt",
+    "type": "official",
+    "latitude": 50.1109,
+    "longitude": 8.6821
+  },
+  {
+    "id": "marker_istanbul",
+    "placeId": "istanbul",
+    "type": "community",
+    "latitude": 41.0082,
+    "longitude": 28.9784
+  },
+  {
+    "id": "marker_toronto",
+    "placeId": "toronto",
+    "type": "mixed",
+    "latitude": 43.6532,
+    "longitude": -79.3832
+  },
+  {
+    "id": "marker_buenos_aires",
+    "placeId": "buenos_aires",
+    "type": "official",
+    "latitude": -34.6037,
+    "longitude": -58.3816
+  },
+  {
+    "id": "marker_sao_paulo",
+    "placeId": "sao_paulo",
+    "type": "community",
+    "latitude": -23.5505,
+    "longitude": -46.6333
+  },
+  {
+    "id": "marker_cairo",
+    "placeId": "cairo",
+    "type": "mixed",
+    "latitude": 30.0444,
+    "longitude": 31.2357
+  },
+  {
+    "id": "marker_cape_town",
+    "placeId": "cape_town",
+    "type": "official",
+    "latitude": -33.9249,
+    "longitude": 18.4241
+  },
+  {
+    "id": "marker_sydney",
+    "placeId": "sydney",
+    "type": "community",
+    "latitude": -33.8688,
+    "longitude": 151.2093
+  },
+  {
+    "id": "marker_melbourne",
+    "placeId": "melbourne",
+    "type": "mixed",
+    "latitude": -37.8136,
+    "longitude": 144.9631
+  },
+  {
+    "id": "marker_wellington",
+    "placeId": "wellington",
+    "type": "official",
+    "latitude": -41.2866,
+    "longitude": 174.7762
+  },
+  {
+    "id": "marker_hong_kong",
+    "placeId": "hong_kong",
+    "type": "community",
+    "latitude": 22.3193,
+    "longitude": 114.1694
+  },
+  {
+    "id": "marker_paris",
+    "placeId": "paris",
+    "type": "mixed",
+    "latitude": 48.8566,
+    "longitude": 2.3522
+  },
+  {
+    "id": "marker_london",
+    "placeId": "london",
+    "type": "official",
+    "latitude": 51.5072,
+    "longitude": -0.1276
+  }
+]

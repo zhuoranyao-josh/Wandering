@@ -22,6 +22,7 @@ class MapHomePage extends StatefulWidget {
 }
 
 class _MapHomePageState extends State<MapHomePage> {
+  static const double _initialMapZoom = 1.45;
   static const double _topActionHorizontalMargin = 16;
   static const double _topActionTopMargin = 12;
   static const double _topActionSize = 52;
@@ -29,13 +30,15 @@ class _MapHomePageState extends State<MapHomePage> {
   static const double _ornamentBottomMargin = 8;
   static const double _floatingInset = 16;
 
-  final MapHomeController _controller = MapHomeController();
+  final MapHomeController _controller = MapHomeController(
+    initialMarkerZoom: _initialMapZoom,
+  );
   Locale? _lastLocale;
   bool? _lastHasSelectedPlace;
 
   CameraOptions get _initialCameraOptions => CameraOptions(
     center: Point(coordinates: Position(105.0, 30.0)),
-    zoom: 1.45,
+    zoom: _initialMapZoom,
     bearing: 0.0,
     pitch: 0.0,
   );
@@ -148,6 +151,8 @@ class _MapHomePageState extends State<MapHomePage> {
       onStyleLoadedListener: (_) {
         _controller.onStyleLoaded();
       },
+      onCameraChangeListener: _controller.onCameraChanged,
+      onTapListener: _controller.onMapTap,
       onMapLoadErrorListener: (event) {
         _controller.onMapLoadError(event.message);
       },

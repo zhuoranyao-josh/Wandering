@@ -1,3 +1,6 @@
+import 'dart:async';
+import 'dart:convert';
+
 import 'package:flutter/material.dart';
 import 'package:mapbox_maps_flutter/mapbox_maps_flutter.dart';
 
@@ -31,30 +34,143 @@ enum MapHomeBasemapLanguage {
 
 class MapHomeController extends ChangeNotifier {
   static const String _basemapImportId = 'basemap';
+  static const String _overviewSourceId = 'map-home-overview-source';
+  static const String _overviewCircleLayerId = 'map-home-overview-circle-layer';
+  static const String _overviewCountLayerId = 'map-home-overview-count-layer';
+  static const String _citySourceId = 'map-home-city-source';
+  static const String _clusterCircleLayerId = 'map-home-cluster-circle-layer';
+  static const String _clusterCountLayerId = 'map-home-cluster-count-layer';
+  static const String _cityPointLayerId = 'map-home-city-point-layer';
+  static const double _clusterRadius = 38;
+  static const double _clusterMaxZoom = 10;
+  static const double _overviewMaxZoom = 3.2;
+  static const double _cityMinZoom = 3.2;
+  static const double _markerVisibilityHysteresis = 0.08;
+
+  static const List<_OverviewRegionConfig> _overviewRegionConfigs =
+      <_OverviewRegionConfig>[
+        _OverviewRegionConfig(
+          id: 'japan_kanto',
+          placeIds: <String>['tokyo', 'yokohama'],
+          focusZoom: 5.1,
+        ),
+        _OverviewRegionConfig(
+          id: 'japan_kansai',
+          placeIds: <String>['osaka'],
+          focusZoom: 5.1,
+        ),
+        _OverviewRegionConfig(
+          id: 'china_north',
+          placeIds: <String>['beijing', 'tianjin'],
+          focusZoom: 4.8,
+        ),
+        _OverviewRegionConfig(
+          id: 'china_east',
+          placeIds: <String>['shanghai', 'suzhou'],
+          focusZoom: 4.9,
+        ),
+        _OverviewRegionConfig(
+          id: 'china_south',
+          placeIds: <String>['guangzhou', 'hong_kong'],
+          focusZoom: 4.8,
+        ),
+        _OverviewRegionConfig(
+          id: 'china_west',
+          placeIds: <String>['lhasa'],
+          focusZoom: 4.8,
+        ),
+        _OverviewRegionConfig(
+          id: 'usa_east',
+          placeIds: <String>['new_york'],
+          focusZoom: 4.8,
+        ),
+        _OverviewRegionConfig(
+          id: 'usa_west',
+          placeIds: <String>['los_angeles'],
+          focusZoom: 4.8,
+        ),
+        _OverviewRegionConfig(
+          id: 'russia_northwest',
+          placeIds: <String>['moscow', 'saint_petersburg'],
+          focusZoom: 4.6,
+        ),
+        _OverviewRegionConfig(
+          id: 'germany',
+          placeIds: <String>['berlin', 'frankfurt', 'munich'],
+          focusZoom: 4.8,
+        ),
+        _OverviewRegionConfig(
+          id: 'france',
+          placeIds: <String>['paris'],
+          focusZoom: 4.8,
+        ),
+        _OverviewRegionConfig(
+          id: 'united_kingdom',
+          placeIds: <String>['london'],
+          focusZoom: 4.8,
+        ),
+        _OverviewRegionConfig(
+          id: 'turkey',
+          placeIds: <String>['istanbul'],
+          focusZoom: 4.9,
+        ),
+        _OverviewRegionConfig(
+          id: 'canada',
+          placeIds: <String>['toronto'],
+          focusZoom: 4.8,
+        ),
+        _OverviewRegionConfig(
+          id: 'argentina',
+          placeIds: <String>['buenos_aires'],
+          focusZoom: 4.8,
+        ),
+        _OverviewRegionConfig(
+          id: 'brazil',
+          placeIds: <String>['sao_paulo'],
+          focusZoom: 4.8,
+        ),
+        _OverviewRegionConfig(
+          id: 'egypt',
+          placeIds: <String>['cairo'],
+          focusZoom: 4.9,
+        ),
+        _OverviewRegionConfig(
+          id: 'south_africa',
+          placeIds: <String>['cape_town'],
+          focusZoom: 4.8,
+        ),
+        _OverviewRegionConfig(
+          id: 'australia_east',
+          placeIds: <String>['sydney', 'melbourne'],
+          focusZoom: 4.9,
+        ),
+        _OverviewRegionConfig(
+          id: 'new_zealand',
+          placeIds: <String>['wellington'],
+          focusZoom: 5.0,
+        ),
+      ];
 
   MapHomeViewStatus _status = MapHomeViewStatus.loading;
+  final double _initialMarkerZoom;
   MapHomeLightPreset _lightPreset = MapHomeLightPreset.day;
   MapHomeBasemapLanguage _basemapLanguage = MapHomeBasemapLanguage.en;
-  final List<GlobeMarkerEntity> _markers = MapHomeMockData.markers;
+  List<GlobeMarkerEntity> _markers = <GlobeMarkerEntity>[];
+  GeoJsonSource? _overviewSource;
+  GeoJsonSource? _citySource;
   MapboxMap? _mapboxMap;
-  CircleAnnotationManager? _markerManager;
-  Cancelable? _markerTapCancelable;
   String? _errorDetails;
   int _mapWidgetVersion = 0;
   bool _isApplyingStyle = false;
+  bool _areMarkersVisible = true;
   bool _isScaleBarVisible = true;
   PlaceEntity? _selectedPlace;
   String? _selectedMarkerId;
-  final Map<String, PlaceEntity> _placesById = <String, PlaceEntity>{
-    for (final place in MapHomeMockData.places) place.id: place,
-  };
+  final Map<String, PlaceEntity> _placesById = <String, PlaceEntity>{};
   final Map<String, GlobeMarkerEntity> _markersById =
-      <String, GlobeMarkerEntity>{
-        for (final marker in MapHomeMockData.markers) marker.id: marker,
-      };
-  final Map<String, String> _annotationIdToMarkerId = <String, String>{};
-  final Map<String, CircleAnnotation> _markerAnnotationsById =
-      <String, CircleAnnotation>{};
+      <String, GlobeMarkerEntity>{};
+  final Map<String, GlobeMarkerEntity> _markersByPlaceId =
+      <String, GlobeMarkerEntity>{};
 
   MapHomeViewStatus get status => _status;
   MapHomeLightPreset get lightPreset => _lightPreset;
@@ -69,16 +185,25 @@ class MapHomeController extends ChangeNotifier {
   bool get canToggleLightPreset =>
       isReady && _mapboxMap != null && !_isApplyingStyle;
 
+  MapHomeController({required double initialMarkerZoom})
+    : _initialMarkerZoom = initialMarkerZoom;
+
   void onMapCreated(MapboxMap mapboxMap) {
-    _markerTapCancelable?.cancel();
-    _markerTapCancelable = null;
-    _markerManager = null;
-    _annotationIdToMarkerId.clear();
-    _markerAnnotationsById.clear();
+    _overviewSource = null;
+    _citySource = null;
     _mapboxMap = mapboxMap;
+    _areMarkersVisible = true;
     _status = MapHomeViewStatus.loading;
     _errorDetails = null;
     notifyListeners();
+  }
+
+  void onMapTap(MapContentGestureContext context) {
+    unawaited(_handleMapTap(context));
+  }
+
+  void onCameraChanged(CameraChangedEventData event) {
+    unawaited(_syncMarkerVisibilityWithZoom(event.cameraState.zoom));
   }
 
   Future<void> onStyleLoaded() async {
@@ -89,6 +214,7 @@ class MapHomeController extends ChangeNotifier {
 
     try {
       _isApplyingStyle = true;
+      await _loadMapData();
       await _applyMapStyle(
         mapboxMap,
         lightPreset: _lightPreset,
@@ -97,6 +223,7 @@ class MapHomeController extends ChangeNotifier {
       );
       await _syncMarkers();
       await _refreshMarkerVisuals();
+      await _applyMarkerLayerVisibility(_areMarkersVisible);
       _status = MapHomeViewStatus.ready;
       _errorDetails = null;
     } catch (error) {
@@ -162,13 +289,11 @@ class MapHomeController extends ChangeNotifier {
   }
 
   void retry() {
-    _markerTapCancelable?.cancel();
-    _markerTapCancelable = null;
-    _markerManager = null;
-    _annotationIdToMarkerId.clear();
-    _markerAnnotationsById.clear();
+    _overviewSource = null;
+    _citySource = null;
     _mapWidgetVersion += 1;
     _mapboxMap = null;
+    _areMarkersVisible = true;
     _status = MapHomeViewStatus.loading;
     _errorDetails = null;
     _isApplyingStyle = false;
@@ -205,6 +330,22 @@ class MapHomeController extends ChangeNotifier {
     _errorDetails = error.toString();
   }
 
+  Future<void> _loadMapData() async {
+    final data = await MapHomeMockData.load();
+    _markers = data.markers;
+    _placesById
+      ..clear()
+      ..addEntries(data.places.map((place) => MapEntry(place.id, place)));
+    _markersById
+      ..clear()
+      ..addEntries(data.markers.map((marker) => MapEntry(marker.id, marker)));
+    _markersByPlaceId
+      ..clear()
+      ..addEntries(
+        data.markers.map((marker) => MapEntry(marker.placeId, marker)),
+      );
+  }
+
   Future<void> selectMarkerById(String markerId) async {
     final marker = _markersById[markerId];
     if (marker == null) {
@@ -216,7 +357,9 @@ class MapHomeController extends ChangeNotifier {
       return;
     }
 
-    await _updateMarkerSelection(markerId);
+    // 先显示选中态，再执行飞行动画，让交互反馈更直接。
+    _selectedMarkerId = markerId;
+    await _refreshMarkerVisuals();
 
     final mapboxMap = _mapboxMap;
     if (mapboxMap != null) {
@@ -234,19 +377,16 @@ class MapHomeController extends ChangeNotifier {
       );
     }
 
-    await _setMarkerHidden(markerId, true);
+    // 卡片显示后隐藏当前城市点，避免主焦点重复。
     _selectedPlace = place;
+    await _refreshMarkerVisuals();
     notifyListeners();
   }
 
   Future<void> clearSelectedPlace() async {
-    final markerId = _selectedMarkerId;
-    if (markerId != null) {
-      await _setMarkerHidden(markerId, false);
-      await _updateMarkerSelection(markerId, keepSelectedState: false);
-    }
-
     _selectedPlace = null;
+    _selectedMarkerId = null;
+    await _refreshMarkerVisuals();
     notifyListeners();
   }
 
@@ -273,170 +413,675 @@ class MapHomeController extends ChangeNotifier {
       return;
     }
 
-    _markerTapCancelable?.cancel();
-    _markerTapCancelable = null;
-    _annotationIdToMarkerId.clear();
-    _markerAnnotationsById.clear();
+    await _removeMarkerLayersIfNeeded(mapboxMap);
+    await _removeMarkerSourcesIfNeeded(mapboxMap);
 
-    final markerManager = await mapboxMap.annotations
-        .createCircleAnnotationManager();
-    _markerManager = markerManager;
-
-    final createdAnnotations = await markerManager.createMulti(
-      _markers.map(_buildMarkerOptions).toList(),
+    // 全球视角先显示“区域层”，避免跨大区域的自动 clustering 把空间结构压扁。
+    final overviewSource = GeoJsonSource(
+      id: _overviewSourceId,
+      data: _buildOverviewFeatureCollection(),
     );
+    await mapboxMap.style.addSource(overviewSource);
+    _overviewSource = overviewSource;
 
-    for (var i = 0; i < createdAnnotations.length; i++) {
-      final annotation = createdAnnotations[i];
-      if (annotation == null) {
-        continue;
-      }
+    final citySource = GeoJsonSource(
+      id: _citySourceId,
+      data: _buildMarkerFeatureCollection(),
+      cluster: true,
+      clusterRadius: _clusterRadius,
+      clusterMaxZoom: _clusterMaxZoom,
+      clusterMinPoints: 2,
+    );
+    await mapboxMap.style.addSource(citySource);
+    _citySource = citySource;
 
-      final marker = _markers[i];
-      _annotationIdToMarkerId[annotation.id] = marker.id;
-      _markerAnnotationsById[marker.id] = annotation;
+    await mapboxMap.style.addLayer(_buildOverviewCircleLayer());
+    await mapboxMap.style.addLayer(_buildOverviewCountLayer());
+    await mapboxMap.style.addLayer(_buildClusterCircleLayer());
+    await mapboxMap.style.addLayer(_buildClusterCountLayer());
+    await mapboxMap.style.addLayer(_buildCityPointLayer());
+  }
+
+  Future<void> _syncMarkerVisibilityWithZoom(double zoom) async {
+    final shouldShowMarkers = _shouldShowMarkersForZoom(zoom);
+    if (shouldShowMarkers == _areMarkersVisible) {
+      return;
     }
 
-    _markerTapCancelable = markerManager.tapEvents(
-      onTap: (annotation) {
-        final markerId = _annotationIdToMarkerId[annotation.id];
-        if (markerId == null) {
-          return;
-        }
-        selectMarkerById(markerId);
-      },
-    );
+    _areMarkersVisible = shouldShowMarkers;
+    await _applyMarkerLayerVisibility(shouldShowMarkers);
+  }
 
-    if (_selectedMarkerId != null) {
-      await _updateMarkerSelection(_selectedMarkerId!);
+  bool _shouldShowMarkersForZoom(double zoom) {
+    if (_areMarkersVisible) {
+      return zoom >= (_initialMarkerZoom - _markerVisibilityHysteresis);
+    }
+    return zoom >= _initialMarkerZoom;
+  }
+
+  Future<void> _applyMarkerLayerVisibility(bool isVisible) async {
+    final mapboxMap = _mapboxMap;
+    if (mapboxMap == null) {
+      return;
+    }
+
+    final visibilityValue = isVisible ? 'visible' : 'none';
+    for (final layerId in <String>[
+      _overviewCircleLayerId,
+      _overviewCountLayerId,
+      _clusterCircleLayerId,
+      _clusterCountLayerId,
+      _cityPointLayerId,
+    ]) {
+      if (await mapboxMap.style.styleLayerExists(layerId)) {
+        await mapboxMap.style.setStyleLayerProperty(
+          layerId,
+          'visibility',
+          visibilityValue,
+        );
+      }
     }
   }
 
   Future<void> _refreshMarkerVisuals() async {
-    final markerManager = _markerManager;
-    if (markerManager == null) {
+    await _overviewSource?.updateGeoJSON(_buildOverviewFeatureCollection());
+    await _citySource?.updateGeoJSON(_buildMarkerFeatureCollection());
+  }
+
+  Future<void> _handleMapTap(MapContentGestureContext context) async {
+    final mapboxMap = _mapboxMap;
+    if (mapboxMap == null || !isReady || _isApplyingStyle) {
       return;
     }
 
-    for (final marker in _markers) {
-      final annotation = _markerAnnotationsById[marker.id];
-      if (annotation == null) {
-        continue;
+    try {
+      final features = await mapboxMap.queryRenderedFeatures(
+        RenderedQueryGeometry.fromScreenCoordinate(context.touchPosition),
+        RenderedQueryOptions(
+          layerIds: <String>[
+            _overviewCircleLayerId,
+            _overviewCountLayerId,
+            _clusterCircleLayerId,
+            _clusterCountLayerId,
+            _cityPointLayerId,
+          ],
+        ),
+      );
+
+      QueriedRenderedFeature? tappedFeature;
+      for (final feature in features) {
+        if (feature == null) {
+          continue;
+        }
+        tappedFeature = feature;
+        break;
       }
 
-      final isCurrentMarker = _selectedMarkerId == marker.id;
-      _applyMarkerVisual(
-        annotation,
-        marker: marker,
-        isSelected: isCurrentMarker && _selectedPlace == null,
-        isHidden: isCurrentMarker && _selectedPlace != null,
-      );
-      await markerManager.update(annotation);
+      if (tappedFeature == null) {
+        return;
+      }
+
+      final sourceId = tappedFeature.queriedFeature.source;
+      final featureMap = tappedFeature.queriedFeature.feature;
+      final properties = _readFeatureProperties(featureMap);
+
+      if (sourceId == _overviewSourceId) {
+        await _zoomIntoOverviewRegion(featureMap, properties);
+        return;
+      }
+
+      if (_isClusterFeature(properties)) {
+        await _zoomIntoCluster(featureMap);
+        return;
+      }
+
+      final markerId = _readStringProperty(properties, 'markerId');
+      if (markerId == null) {
+        return;
+      }
+
+      await selectMarkerById(markerId);
+    } catch (_) {
+      // 点击未命中要保持地图可继续浏览，不打断主交互。
     }
   }
 
-  CircleAnnotationOptions _buildMarkerOptions(GlobeMarkerEntity marker) {
-    return CircleAnnotationOptions(
-      geometry: Point(coordinates: Position(marker.longitude, marker.latitude)),
-      circleColor: _markerColor(marker.type).toARGB32(),
-      circleRadius: 6.4,
-      circleBlur: 0.5,
-      circleOpacity: 0.92,
-      circleStrokeColor: const Color(0xFFFFF0C2).toARGB32(),
-      circleStrokeOpacity: 0.88,
-      circleStrokeWidth: 1.2,
+  Future<void> _zoomIntoOverviewRegion(
+    Map<String?, Object?> feature,
+    Map<String, Object?> properties,
+  ) async {
+    final mapboxMap = _mapboxMap;
+    if (mapboxMap == null) {
+      return;
+    }
+
+    final coordinates = _readCoordinates(feature);
+    if (coordinates == null) {
+      return;
+    }
+
+    final currentCamera = await mapboxMap.getCameraState();
+    final focusZoom = _toDouble(properties['focusZoom']) ?? 4.8;
+
+    await mapboxMap.easeTo(
+      CameraOptions(
+        center: Point(coordinates: Position(coordinates.$1, coordinates.$2)),
+        zoom: focusZoom,
+        pitch: currentCamera.pitch,
+        bearing: currentCamera.bearing,
+      ),
+      MapAnimationOptions(duration: 900),
     );
   }
 
-  Future<void> _updateMarkerSelection(
-    String markerId, {
-    bool keepSelectedState = true,
-  }) async {
-    final markerManager = _markerManager;
-    if (markerManager == null) {
-      _selectedMarkerId = keepSelectedState ? markerId : null;
+  Future<void> _zoomIntoCluster(Map<String?, Object?> feature) async {
+    final mapboxMap = _mapboxMap;
+    if (mapboxMap == null) {
       return;
     }
 
-    final previousMarkerId = _selectedMarkerId;
-    if (previousMarkerId != null && previousMarkerId != markerId) {
-      final previousAnnotation = _markerAnnotationsById[previousMarkerId];
-      final previousMarker = _markersById[previousMarkerId];
-      if (previousAnnotation != null && previousMarker != null) {
-        _applyMarkerVisual(
-          previousAnnotation,
-          marker: previousMarker,
-          isSelected: false,
-        );
-        await markerManager.update(previousAnnotation);
+    final expansionZoomValue = await mapboxMap.getGeoJsonClusterExpansionZoom(
+      _citySourceId,
+      feature,
+    );
+    final coordinates = _readCoordinates(feature);
+    if (coordinates == null) {
+      return;
+    }
+
+    final currentCamera = await mapboxMap.getCameraState();
+    final expansionZoom =
+        _parseDouble(expansionZoomValue.value) ?? currentCamera.zoom + 1.5;
+
+    await mapboxMap.easeTo(
+      CameraOptions(
+        center: Point(coordinates: Position(coordinates.$1, coordinates.$2)),
+        zoom: expansionZoom + 0.35,
+        pitch: currentCamera.pitch,
+        bearing: currentCamera.bearing,
+      ),
+      MapAnimationOptions(duration: 950),
+    );
+  }
+
+  Future<void> _removeMarkerLayersIfNeeded(MapboxMap mapboxMap) async {
+    for (final layerId in <String>[
+      _overviewCountLayerId,
+      _overviewCircleLayerId,
+      _clusterCountLayerId,
+      _clusterCircleLayerId,
+      _cityPointLayerId,
+    ]) {
+      if (await mapboxMap.style.styleLayerExists(layerId)) {
+        await mapboxMap.style.removeStyleLayer(layerId);
       }
     }
-
-    final nextAnnotation = _markerAnnotationsById[markerId];
-    final nextMarker = _markersById[markerId];
-    if (nextAnnotation != null && nextMarker != null) {
-      _applyMarkerVisual(
-        nextAnnotation,
-        marker: nextMarker,
-        isSelected: keepSelectedState,
-      );
-      await markerManager.update(nextAnnotation);
-    }
-
-    _selectedMarkerId = keepSelectedState ? markerId : null;
-    notifyListeners();
   }
 
-  Future<void> _setMarkerHidden(String markerId, bool isHidden) async {
-    final markerManager = _markerManager;
-    final annotation = _markerAnnotationsById[markerId];
-    final marker = _markersById[markerId];
-    if (markerManager == null || annotation == null || marker == null) {
-      return;
+  Future<void> _removeMarkerSourcesIfNeeded(MapboxMap mapboxMap) async {
+    for (final sourceId in <String>[_overviewSourceId, _citySourceId]) {
+      if (await mapboxMap.style.styleSourceExists(sourceId)) {
+        await mapboxMap.style.removeStyleSource(sourceId);
+      }
+    }
+  }
+
+  String _buildOverviewFeatureCollection() {
+    final features = _overviewRegionConfigs
+        .map(_buildOverviewFeature)
+        .whereType<Map<String, Object>>()
+        .toList(growable: false);
+
+    return jsonEncode(<String, Object>{
+      'type': 'FeatureCollection',
+      'features': features,
+    });
+  }
+
+  Map<String, Object>? _buildOverviewFeature(_OverviewRegionConfig config) {
+    final memberMarkers = config.placeIds
+        .map((placeId) => _markersByPlaceId[placeId])
+        .whereType<GlobeMarkerEntity>()
+        .toList(growable: false);
+    if (memberMarkers.isEmpty) {
+      return null;
     }
 
-    _applyMarkerVisual(
-      annotation,
-      marker: marker,
-      isSelected: false,
-      isHidden: isHidden,
+    final center = _computeCenter(memberMarkers);
+    if (center == null) {
+      return null;
+    }
+    final isSelectedRegion =
+        _selectedMarkerId != null &&
+        memberMarkers.any((marker) => marker.id == _selectedMarkerId);
+
+    return <String, Object>{
+      'type': 'Feature',
+      'geometry': <String, Object>{
+        'type': 'Point',
+        'coordinates': <double>[center.$1, center.$2],
+      },
+      'properties': <String, Object>{
+        'regionId': config.id,
+        'pointCount': memberMarkers.length,
+        'focusZoom': config.focusZoom,
+        'isSelected': isSelectedRegion,
+      },
+    };
+  }
+
+  String _buildMarkerFeatureCollection() {
+    final features = _markers.map(_buildMarkerFeature).toList(growable: false);
+    return jsonEncode(<String, Object>{
+      'type': 'FeatureCollection',
+      'features': features,
+    });
+  }
+
+  Map<String, Object> _buildMarkerFeature(GlobeMarkerEntity marker) {
+    final isSelectedMarker = _selectedMarkerId == marker.id;
+    final isHiddenMarker = isSelectedMarker && _selectedPlace != null;
+
+    return <String, Object>{
+      'type': 'Feature',
+      'geometry': <String, Object>{
+        'type': 'Point',
+        'coordinates': <double>[marker.longitude, marker.latitude],
+      },
+      'properties': <String, Object>{
+        'markerId': marker.id,
+        'placeId': marker.placeId,
+        'markerType': _markerTypePropertyValue(marker.type),
+        'isSelected': isSelectedMarker,
+        'isHidden': isHiddenMarker,
+      },
+    };
+  }
+
+  CircleLayer _buildOverviewCircleLayer() {
+    return CircleLayer(
+      id: _overviewCircleLayerId,
+      slot: 'top',
+      sourceId: _overviewSourceId,
+      maxZoom: _overviewMaxZoom,
+      circleColorExpression: <Object>[
+        'case',
+        <Object>[
+          'boolean',
+          <Object>['get', 'isSelected'],
+          false,
+        ],
+        '#FFC36B',
+        '#FFB347',
+      ],
+      circleRadiusExpression: <Object>[
+        'interpolate',
+        <Object>['linear'],
+        <Object>['zoom'],
+        0.5,
+        8.6,
+        _overviewMaxZoom,
+        12.8,
+      ],
+      circleBlur: 0.1,
+      circleOpacity: 0.96,
+      circleStrokeColor: const Color(0xFFFFF3D6).toARGB32(),
+      circleStrokeOpacity: 0.92,
+      circleStrokeWidth: 1.6,
+      circleEmissiveStrength: 1.0,
     );
-    await markerManager.update(annotation);
   }
 
-  void _applyMarkerVisual(
-    CircleAnnotation annotation, {
-    required GlobeMarkerEntity marker,
-    required bool isSelected,
-    bool isHidden = false,
-  }) {
-    if (isHidden) {
-      annotation.circleOpacity = 0.0;
-      annotation.circleStrokeOpacity = 0.0;
-      annotation.circleRadius = 0.1;
-      annotation.circleStrokeWidth = 0.0;
-      return;
+  SymbolLayer _buildOverviewCountLayer() {
+    return SymbolLayer(
+      id: _overviewCountLayerId,
+      slot: 'top',
+      sourceId: _overviewSourceId,
+      maxZoom: _overviewMaxZoom,
+      textFieldExpression: <Object>[
+        'to-string',
+        <Object>['get', 'pointCount'],
+      ],
+      textSize: 13,
+      textColor: const Color(0xFFFFFBF2).toARGB32(),
+      textHaloColor: const Color(0xFF7A4010).toARGB32(),
+      textHaloBlur: 0.5,
+      textHaloWidth: 0.8,
+      textAllowOverlap: true,
+      textIgnorePlacement: true,
+    );
+  }
+
+  CircleLayer _buildClusterCircleLayer() {
+    return CircleLayer(
+      id: _clusterCircleLayerId,
+      slot: 'top',
+      sourceId: _citySourceId,
+      minZoom: _cityMinZoom,
+      filter: <Object>['has', 'point_count'],
+      circleColorExpression: <Object>[
+        'step',
+        <Object>['get', 'point_count'],
+        '#FFB347',
+        6,
+        '#FFA14A',
+        16,
+        '#FF8E36',
+      ],
+      circleRadiusExpression: <Object>[
+        'interpolate',
+        <Object>['linear'],
+        <Object>['zoom'],
+        _cityMinZoom,
+        8.8,
+        4.5,
+        10.8,
+        8.0,
+        15.2,
+      ],
+      circleBlur: 0.12,
+      circleOpacity: 0.96,
+      circleStrokeColor: const Color(0xFFFFF3D6).toARGB32(),
+      circleStrokeOpacity: 0.92,
+      circleStrokeWidth: 1.6,
+      circleEmissiveStrength: 1.0,
+    );
+  }
+
+  SymbolLayer _buildClusterCountLayer() {
+    return SymbolLayer(
+      id: _clusterCountLayerId,
+      slot: 'top',
+      sourceId: _citySourceId,
+      minZoom: _cityMinZoom,
+      filter: <Object>['has', 'point_count'],
+      textFieldExpression: <Object>['get', 'point_count_abbreviated'],
+      textSize: 13,
+      textColor: const Color(0xFFFFFBF2).toARGB32(),
+      textHaloColor: const Color(0xFF7A4010).toARGB32(),
+      textHaloBlur: 0.5,
+      textHaloWidth: 0.8,
+      textAllowOverlap: true,
+      textIgnorePlacement: true,
+    );
+  }
+
+  CircleLayer _buildCityPointLayer() {
+    return CircleLayer(
+      id: _cityPointLayerId,
+      slot: 'top',
+      sourceId: _citySourceId,
+      minZoom: _cityMinZoom,
+      filter: <Object>[
+        '!',
+        <Object>['has', 'point_count'],
+      ],
+      circleColorExpression: <Object>[
+        'case',
+        <Object>[
+          'boolean',
+          <Object>['get', 'isSelected'],
+          false,
+        ],
+        '#FFC36B',
+        <Object>[
+          'match',
+          <Object>['get', 'markerType'],
+          'community',
+          '#FFC46A',
+          'mixed',
+          '#FFA94D',
+          '#FFB347',
+        ],
+      ],
+      circleRadiusExpression: <Object>[
+        'interpolate',
+        <Object>['linear'],
+        <Object>['zoom'],
+        _cityMinZoom,
+        <Object>[
+          'case',
+          <Object>[
+            'boolean',
+            <Object>['get', 'isHidden'],
+            false,
+          ],
+          0.1,
+          <Object>[
+            'boolean',
+            <Object>['get', 'isSelected'],
+            false,
+          ],
+          5.0,
+          3.6,
+        ],
+        4.5,
+        <Object>[
+          'case',
+          <Object>[
+            'boolean',
+            <Object>['get', 'isHidden'],
+            false,
+          ],
+          0.1,
+          <Object>[
+            'boolean',
+            <Object>['get', 'isSelected'],
+            false,
+          ],
+          8.2,
+          6.3,
+        ],
+        8.0,
+        <Object>[
+          'case',
+          <Object>[
+            'boolean',
+            <Object>['get', 'isHidden'],
+            false,
+          ],
+          0.1,
+          <Object>[
+            'boolean',
+            <Object>['get', 'isSelected'],
+            false,
+          ],
+          12.0,
+          9.6,
+        ],
+        11.0,
+        <Object>[
+          'case',
+          <Object>[
+            'boolean',
+            <Object>['get', 'isHidden'],
+            false,
+          ],
+          0.1,
+          <Object>[
+            'boolean',
+            <Object>['get', 'isSelected'],
+            false,
+          ],
+          16.0,
+          12.8,
+        ],
+        13.0,
+        <Object>[
+          'case',
+          <Object>[
+            'boolean',
+            <Object>['get', 'isHidden'],
+            false,
+          ],
+          0.1,
+          <Object>[
+            'boolean',
+            <Object>['get', 'isSelected'],
+            false,
+          ],
+          18.4,
+          14.8,
+        ],
+      ],
+      circleBlurExpression: <Object>[
+        'case',
+        <Object>[
+          'boolean',
+          <Object>['get', 'isHidden'],
+          false,
+        ],
+        0.0,
+        <Object>[
+          'boolean',
+          <Object>['get', 'isSelected'],
+          false,
+        ],
+        0.42,
+        0.5,
+      ],
+      circleOpacityExpression: <Object>[
+        'case',
+        <Object>[
+          'boolean',
+          <Object>['get', 'isHidden'],
+          false,
+        ],
+        0.0,
+        <Object>[
+          'boolean',
+          <Object>['get', 'isSelected'],
+          false,
+        ],
+        0.98,
+        0.92,
+      ],
+      circleStrokeColor: const Color(0xFFFFF3D6).toARGB32(),
+      circleStrokeOpacityExpression: <Object>[
+        'case',
+        <Object>[
+          'boolean',
+          <Object>['get', 'isHidden'],
+          false,
+        ],
+        0.0,
+        <Object>[
+          'boolean',
+          <Object>['get', 'isSelected'],
+          false,
+        ],
+        0.96,
+        0.88,
+      ],
+      circleStrokeWidthExpression: <Object>[
+        'case',
+        <Object>[
+          'boolean',
+          <Object>['get', 'isHidden'],
+          false,
+        ],
+        0.0,
+        <Object>[
+          'boolean',
+          <Object>['get', 'isSelected'],
+          false,
+        ],
+        1.6,
+        1.2,
+      ],
+      circleEmissiveStrength: 1.0,
+    );
+  }
+
+  Map<String, Object?> _readFeatureProperties(Map<String?, Object?> feature) {
+    final rawProperties = feature['properties'];
+    if (rawProperties is Map) {
+      return rawProperties.cast<String, Object?>();
+    }
+    return const <String, Object?>{};
+  }
+
+  bool _isClusterFeature(Map<String, Object?> properties) {
+    return properties['cluster'] == true || properties['point_count'] != null;
+  }
+
+  (double, double)? _computeCenter(List<GlobeMarkerEntity> markers) {
+    if (markers.isEmpty) {
+      return null;
     }
 
-    annotation.circleColor = isSelected
-        ? const Color(0xFFFFC36B).toARGB32()
-        : _markerColor(marker.type).toARGB32();
-    annotation.circleRadius = isSelected ? 7.8 : 6.4;
-    annotation.circleBlur = isSelected ? 0.42 : 0.5;
-    annotation.circleStrokeColor = const Color(0xFFFFF3D6).toARGB32();
-    annotation.circleStrokeOpacity = isSelected ? 0.96 : 0.88;
-    annotation.circleStrokeWidth = isSelected ? 1.6 : 1.2;
-    annotation.circleOpacity = isSelected ? 0.98 : 0.92;
+    var longitudeSum = 0.0;
+    var latitudeSum = 0.0;
+    for (final marker in markers) {
+      longitudeSum += marker.longitude;
+      latitudeSum += marker.latitude;
+    }
+
+    return (longitudeSum / markers.length, latitudeSum / markers.length);
   }
 
-  Color _markerColor(GlobeMarkerType type) {
+  (double, double)? _readCoordinates(Map<String?, Object?> feature) {
+    final geometry = feature['geometry'];
+    if (geometry is! Map) {
+      return null;
+    }
+
+    final rawCoordinates = geometry['coordinates'];
+    if (rawCoordinates is! List || rawCoordinates.length < 2) {
+      return null;
+    }
+
+    final longitude = _toDouble(rawCoordinates[0]);
+    final latitude = _toDouble(rawCoordinates[1]);
+    if (longitude == null || latitude == null) {
+      return null;
+    }
+
+    return (longitude, latitude);
+  }
+
+  String? _readStringProperty(Map<String, Object?> properties, String key) {
+    final value = properties[key];
+    if (value is String && value.isNotEmpty) {
+      return value;
+    }
+    return null;
+  }
+
+  String _markerTypePropertyValue(GlobeMarkerType type) {
     switch (type) {
       case GlobeMarkerType.official:
-        return const Color(0xFFFFB347);
+        return 'official';
       case GlobeMarkerType.community:
-        return const Color(0xFFFFC46A);
+        return 'community';
       case GlobeMarkerType.mixed:
-        return const Color(0xFFFFA94D);
+        return 'mixed';
     }
   }
+
+  double? _parseDouble(String? value) {
+    if (value == null) {
+      return null;
+    }
+    return double.tryParse(value);
+  }
+
+  double? _toDouble(Object? value) {
+    if (value is num) {
+      return value.toDouble();
+    }
+    return null;
+  }
+}
+
+class _OverviewRegionConfig {
+  const _OverviewRegionConfig({
+    required this.id,
+    required this.placeIds,
+    required this.focusZoom,
+  });
+
+  final String id;
+  final List<String> placeIds;
+  final double focusZoom;
 }

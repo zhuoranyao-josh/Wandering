@@ -231,5 +231,167 @@ class AppLocalizationsEn extends AppLocalizations {
   String get mapPlaceTokyoDescription => 'A neon-lit test city used to validate globe markers, camera transitions, and the floating preview card.';
 
   @override
+  String get mapPlaceNewYorkName => 'New York';
+
+  @override
+  String get mapPlaceNewYorkDescription => 'A test city used to validate globe markers, camera transitions, and the floating preview card.';
+
+  @override
+  String get mapPlaceLosAngelesName => 'Los Angeles';
+
+  @override
+  String get mapPlaceLosAngelesDescription => 'A test city used to validate globe markers, camera transitions, and the floating preview card.';
+
+  @override
+  String get mapPlaceMoscowName => 'Moscow';
+
+  @override
+  String get mapPlaceMoscowDescription => 'A test city used to validate globe markers, camera transitions, and the floating preview card.';
+
+  @override
+  String get mapPlaceSaintPetersburgName => 'Saint Petersburg';
+
+  @override
+  String get mapPlaceSaintPetersburgDescription => 'A test city used to validate globe markers, camera transitions, and the floating preview card.';
+
+  @override
+  String get mapPlaceYokohamaName => 'Yokohama';
+
+  @override
+  String get mapPlaceYokohamaDescription => 'A test city used to validate globe markers, camera transitions, and the floating preview card.';
+
+  @override
+  String get mapPlaceOsakaName => 'Osaka';
+
+  @override
+  String get mapPlaceOsakaDescription => 'A test city used to validate globe markers, camera transitions, and the floating preview card.';
+
+  @override
+  String get mapPlaceBeijingName => 'Beijing';
+
+  @override
+  String get mapPlaceBeijingDescription => 'A test city used to validate globe markers, camera transitions, and the floating preview card.';
+
+  @override
+  String get mapPlaceShanghaiName => 'Shanghai';
+
+  @override
+  String get mapPlaceShanghaiDescription => 'A test city used to validate globe markers, camera transitions, and the floating preview card.';
+
+  @override
+  String get mapPlaceGuangzhouName => 'Guangzhou';
+
+  @override
+  String get mapPlaceGuangzhouDescription => 'A test city used to validate globe markers, camera transitions, and the floating preview card.';
+
+  @override
+  String get mapPlaceTianjinName => 'Tianjin';
+
+  @override
+  String get mapPlaceTianjinDescription => 'A test city used to validate globe markers, camera transitions, and the floating preview card.';
+
+  @override
+  String get mapPlaceLhasaName => 'Lhasa';
+
+  @override
+  String get mapPlaceLhasaDescription => 'A test city used to validate globe markers, camera transitions, and the floating preview card.';
+
+  @override
+  String get mapPlaceSuzhouName => 'Suzhou';
+
+  @override
+  String get mapPlaceSuzhouDescription => 'A test city used to validate globe markers, camera transitions, and the floating preview card.';
+
+  @override
+  String get mapPlaceMunichName => 'Munich';
+
+  @override
+  String get mapPlaceMunichDescription => 'A test city used to validate globe markers, camera transitions, and the floating preview card.';
+
+  @override
+  String get mapPlaceBerlinName => 'Berlin';
+
+  @override
+  String get mapPlaceBerlinDescription => 'A test city used to validate globe markers, camera transitions, and the floating preview card.';
+
+  @override
+  String get mapPlaceFrankfurtName => 'Frankfurt';
+
+  @override
+  String get mapPlaceFrankfurtDescription => 'A test city used to validate globe markers, camera transitions, and the floating preview card.';
+
+  @override
+  String get mapPlaceIstanbulName => 'Istanbul';
+
+  @override
+  String get mapPlaceIstanbulDescription => 'A test city used to validate globe markers, camera transitions, and the floating preview card.';
+
+  @override
+  String get mapPlaceTorontoName => 'Toronto';
+
+  @override
+  String get mapPlaceTorontoDescription => 'A test city used to validate globe markers, camera transitions, and the floating preview card.';
+
+  @override
+  String get mapPlaceBuenosAiresName => 'Buenos Aires';
+
+  @override
+  String get mapPlaceBuenosAiresDescription => 'A test city used to validate globe markers, camera transitions, and the floating preview card.';
+
+  @override
+  String get mapPlaceSaoPauloName => 'Sao Paulo';
+
+  @override
+  String get mapPlaceSaoPauloDescription => 'A test city used to validate globe markers, camera transitions, and the floating preview card.';
+
+  @override
+  String get mapPlaceCairoName => 'Cairo';
+
+  @override
+  String get mapPlaceCairoDescription => 'A test city used to validate globe markers, camera transitions, and the floating preview card.';
+
+  @override
+  String get mapPlaceCapeTownName => 'Cape Town';
+
+  @override
+  String get mapPlaceCapeTownDescription => 'A test city used to validate globe markers, camera transitions, and the floating preview card.';
+
+  @override
+  String get mapPlaceSydneyName => 'Sydney';
+
+  @override
+  String get mapPlaceSydneyDescription => 'A test city used to validate globe markers, camera transitions, and the floating preview card.';
+
+  @override
+  String get mapPlaceMelbourneName => 'Melbourne';
+
+  @override
+  String get mapPlaceMelbourneDescription => 'A test city used to validate globe markers, camera transitions, and the floating preview card.';
+
+  @override
+  String get mapPlaceWellingtonName => 'Wellington';
+
+  @override
+  String get mapPlaceWellingtonDescription => 'A test city used to validate globe markers, camera transitions, and the floating preview card.';
+
+  @override
+  String get mapPlaceHongKongName => 'Hong Kong';
+
+  @override
+  String get mapPlaceHongKongDescription => 'A test city used to validate globe markers, camera transitions, and the floating preview card.';
+
+  @override
+  String get mapPlaceParisName => 'Paris';
+
+  @override
+  String get mapPlaceParisDescription => 'A test city used to validate globe markers, camera transitions, and the floating preview card.';
+
+  @override
+  String get mapPlaceLondonName => 'London';
+
+  @override
+  String get mapPlaceLondonDescription => 'A test city used to validate globe markers, camera transitions, and the floating preview card.';
+
+  @override
   String get viewDetails => 'View details';
 }

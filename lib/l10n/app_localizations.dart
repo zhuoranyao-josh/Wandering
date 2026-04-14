@@ -539,6 +539,330 @@ abstract class AppLocalizations {
   /// **'A neon-lit test city used to validate globe markers, camera transitions, and the floating preview card.'**
   String get mapPlaceTokyoDescription;
 
+  /// No description provided for @mapPlaceNewYorkName.
+  ///
+  /// In en, this message translates to:
+  /// **'New York'**
+  String get mapPlaceNewYorkName;
+
+  /// No description provided for @mapPlaceNewYorkDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'A test city used to validate globe markers, camera transitions, and the floating preview card.'**
+  String get mapPlaceNewYorkDescription;
+
+  /// No description provided for @mapPlaceLosAngelesName.
+  ///
+  /// In en, this message translates to:
+  /// **'Los Angeles'**
+  String get mapPlaceLosAngelesName;
+
+  /// No description provided for @mapPlaceLosAngelesDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'A test city used to validate globe markers, camera transitions, and the floating preview card.'**
+  String get mapPlaceLosAngelesDescription;
+
+  /// No description provided for @mapPlaceMoscowName.
+  ///
+  /// In en, this message translates to:
+  /// **'Moscow'**
+  String get mapPlaceMoscowName;
+
+  /// No description provided for @mapPlaceMoscowDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'A test city used to validate globe markers, camera transitions, and the floating preview card.'**
+  String get mapPlaceMoscowDescription;
+
+  /// No description provided for @mapPlaceSaintPetersburgName.
+  ///
+  /// In en, this message translates to:
+  /// **'Saint Petersburg'**
+  String get mapPlaceSaintPetersburgName;
+
+  /// No description provided for @mapPlaceSaintPetersburgDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'A test city used to validate globe markers, camera transitions, and the floating preview card.'**
+  String get mapPlaceSaintPetersburgDescription;
+
+  /// No description provided for @mapPlaceYokohamaName.
+  ///
+  /// In en, this message translates to:
+  /// **'Yokohama'**
+  String get mapPlaceYokohamaName;
+
+  /// No description provided for @mapPlaceYokohamaDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'A test city used to validate globe markers, camera transitions, and the floating preview card.'**
+  String get mapPlaceYokohamaDescription;
+
+  /// No description provided for @mapPlaceOsakaName.
+  ///
+  /// In en, this message translates to:
+  /// **'Osaka'**
+  String get mapPlaceOsakaName;
+
+  /// No description provided for @mapPlaceOsakaDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'A test city used to validate globe markers, camera transitions, and the floating preview card.'**
+  String get mapPlaceOsakaDescription;
+
+  /// No description provided for @mapPlaceBeijingName.
+  ///
+  /// In en, this message translates to:
+  /// **'Beijing'**
+  String get mapPlaceBeijingName;
+
+  /// No description provided for @mapPlaceBeijingDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'A test city used to validate globe markers, camera transitions, and the floating preview card.'**
+  String get mapPlaceBeijingDescription;
+
+  /// No description provided for @mapPlaceShanghaiName.
+  ///
+  /// In en, this message translates to:
+  /// **'Shanghai'**
+  String get mapPlaceShanghaiName;
+
+  /// No description provided for @mapPlaceShanghaiDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'A test city used to validate globe markers, camera transitions, and the floating preview card.'**
+  String get mapPlaceShanghaiDescription;
+
+  /// No description provided for @mapPlaceGuangzhouName.
+  ///
+  /// In en, this message translates to:
+  /// **'Guangzhou'**
+  String get mapPlaceGuangzhouName;
+
+  /// No description provided for @mapPlaceGuangzhouDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'A test city used to validate globe markers, camera transitions, and the floating preview card.'**
+  String get mapPlaceGuangzhouDescription;
+
+  /// No description provided for @mapPlaceTianjinName.
+  ///
+  /// In en, this message translates to:
+  /// **'Tianjin'**
+  String get mapPlaceTianjinName;
+
+  /// No description provided for @mapPlaceTianjinDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'A test city used to validate globe markers, camera transitions, and the floating preview card.'**
+  String get mapPlaceTianjinDescription;
+
+  /// No description provided for @mapPlaceLhasaName.
+  ///
+  /// In en, this message translates to:
+  /// **'Lhasa'**
+  String get mapPlaceLhasaName;
+
+  /// No description provided for @mapPlaceLhasaDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'A test city used to validate globe markers, camera transitions, and the floating preview card.'**
+  String get mapPlaceLhasaDescription;
+
+  /// No description provided for @mapPlaceSuzhouName.
+  ///
+  /// In en, this message translates to:
+  /// **'Suzhou'**
+  String get mapPlaceSuzhouName;
+
+  /// No description provided for @mapPlaceSuzhouDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'A test city used to validate globe markers, camera transitions, and the floating preview card.'**
+  String get mapPlaceSuzhouDescription;
+
+  /// No description provided for @mapPlaceMunichName.
+  ///
+  /// In en, this message translates to:
+  /// **'Munich'**
+  String get mapPlaceMunichName;
+
+  /// No description provided for @mapPlaceMunichDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'A test city used to validate globe markers, camera transitions, and the floating preview card.'**
+  String get mapPlaceMunichDescription;
+
+  /// No description provided for @mapPlaceBerlinName.
+  ///
+  /// In en, this message translates to:
+  /// **'Berlin'**
+  String get mapPlaceBerlinName;
+
+  /// No description provided for @mapPlaceBerlinDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'A test city used to validate globe markers, camera transitions, and the floating preview card.'**
+  String get mapPlaceBerlinDescription;
+
+  /// No description provided for @mapPlaceFrankfurtName.
+  ///
+  /// In en, this message translates to:
+  /// **'Frankfurt'**
+  String get mapPlaceFrankfurtName;
+
+  /// No description provided for @mapPlaceFrankfurtDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'A test city used to validate globe markers, camera transitions, and the floating preview card.'**
+  String get mapPlaceFrankfurtDescription;
+
+  /// No description provided for @mapPlaceIstanbulName.
+  ///
+  /// In en, this message translates to:
+  /// **'Istanbul'**
+  String get mapPlaceIstanbulName;
+
+  /// No description provided for @mapPlaceIstanbulDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'A test city used to validate globe markers, camera transitions, and the floating preview card.'**
+  String get mapPlaceIstanbulDescription;
+
+  /// No description provided for @mapPlaceTorontoName.
+  ///
+  /// In en, this message translates to:
+  /// **'Toronto'**
+  String get mapPlaceTorontoName;
+
+  /// No description provided for @mapPlaceTorontoDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'A test city used to validate globe markers, camera transitions, and the floating preview card.'**
+  String get mapPlaceTorontoDescription;
+
+  /// No description provided for @mapPlaceBuenosAiresName.
+  ///
+  /// In en, this message translates to:
+  /// **'Buenos Aires'**
+  String get mapPlaceBuenosAiresName;
+
+  /// No description provided for @mapPlaceBuenosAiresDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'A test city used to validate globe markers, camera transitions, and the floating preview card.'**
+  String get mapPlaceBuenosAiresDescription;
+
+  /// No description provided for @mapPlaceSaoPauloName.
+  ///
+  /// In en, this message translates to:
+  /// **'Sao Paulo'**
+  String get mapPlaceSaoPauloName;
+
+  /// No description provided for @mapPlaceSaoPauloDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'A test city used to validate globe markers, camera transitions, and the floating preview card.'**
+  String get mapPlaceSaoPauloDescription;
+
+  /// No description provided for @mapPlaceCairoName.
+  ///
+  /// In en, this message translates to:
+  /// **'Cairo'**
+  String get mapPlaceCairoName;
+
+  /// No description provided for @mapPlaceCairoDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'A test city used to validate globe markers, camera transitions, and the floating preview card.'**
+  String get mapPlaceCairoDescription;
+
+  /// No description provided for @mapPlaceCapeTownName.
+  ///
+  /// In en, this message translates to:
+  /// **'Cape Town'**
+  String get mapPlaceCapeTownName;
+
+  /// No description provided for @mapPlaceCapeTownDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'A test city used to validate globe markers, camera transitions, and the floating preview card.'**
+  String get mapPlaceCapeTownDescription;
+
+  /// No description provided for @mapPlaceSydneyName.
+  ///
+  /// In en, this message translates to:
+  /// **'Sydney'**
+  String get mapPlaceSydneyName;
+
+  /// No description provided for @mapPlaceSydneyDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'A test city used to validate globe markers, camera transitions, and the floating preview card.'**
+  String get mapPlaceSydneyDescription;
+
+  /// No description provided for @mapPlaceMelbourneName.
+  ///
+  /// In en, this message translates to:
+  /// **'Melbourne'**
+  String get mapPlaceMelbourneName;
+
+  /// No description provided for @mapPlaceMelbourneDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'A test city used to validate globe markers, camera transitions, and the floating preview card.'**
+  String get mapPlaceMelbourneDescription;
+
+  /// No description provided for @mapPlaceWellingtonName.
+  ///
+  /// In en, this message translates to:
+  /// **'Wellington'**
+  String get mapPlaceWellingtonName;
+
+  /// No description provided for @mapPlaceWellingtonDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'A test city used to validate globe markers, camera transitions, and the floating preview card.'**
+  String get mapPlaceWellingtonDescription;
+
+  /// No description provided for @mapPlaceHongKongName.
+  ///
+  /// In en, this message translates to:
+  /// **'Hong Kong'**
+  String get mapPlaceHongKongName;
+
+  /// No description provided for @mapPlaceHongKongDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'A test city used to validate globe markers, camera transitions, and the floating preview card.'**
+  String get mapPlaceHongKongDescription;
+
+  /// No description provided for @mapPlaceParisName.
+  ///
+  /// In en, this message translates to:
+  /// **'Paris'**
+  String get mapPlaceParisName;
+
+  /// No description provided for @mapPlaceParisDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'A test city used to validate globe markers, camera transitions, and the floating preview card.'**
+  String get mapPlaceParisDescription;
+
+  /// No description provided for @mapPlaceLondonName.
+  ///
+  /// In en, this message translates to:
+  /// **'London'**
+  String get mapPlaceLondonName;
+
+  /// No description provided for @mapPlaceLondonDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'A test city used to validate globe markers, camera transitions, and the floating preview card.'**
+  String get mapPlaceLondonDescription;
+
   /// No description provided for @viewDetails.
   ///
   /// In en, this message translates to:

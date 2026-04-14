@@ -1,0 +1,254 @@
+[
+  {
+    "id": "tokyo",
+    "previewAssetPath": "assets/images/tokyo_preview.png",
+    "latitude": 35.6762,
+    "longitude": 139.6503,
+    "flyToZoom": 10.8,
+    "flyToPitch": 48.0,
+    "flyToBearing": 12.0
+  },
+  {
+    "id": "new_york",
+    "previewAssetPath": "assets/images/tokyo_preview.png",
+    "latitude": 40.7128,
+    "longitude": -74.006,
+    "flyToZoom": 10.8,
+    "flyToPitch": 48.0,
+    "flyToBearing": 12.0
+  },
+  {
+    "id": "los_angeles",
+    "previewAssetPath": "assets/images/tokyo_preview.png",
+    "latitude": 34.0522,
+    "longitude": -118.2437,
+    "flyToZoom": 10.8,
+    "flyToPitch": 48.0,
+    "flyToBearing": 12.0
+  },
+  {
+    "id": "moscow",
+    "previewAssetPath": "assets/images/tokyo_preview.png",
+    "latitude": 55.7558,
+    "longitude": 37.6173,
+    "flyToZoom": 10.8,
+    "flyToPitch": 48.0,
+    "flyToBearing": 12.0
+  },
+  {
+    "id": "saint_petersburg",
+    "previewAssetPath": "assets/images/tokyo_preview.png",
+    "latitude": 59.9311,
+    "longitude": 30.3609,
+    "flyToZoom": 10.8,
+    "flyToPitch": 48.0,
+    "flyToBearing": 12.0
+  },
+  {
+    "id": "yokohama",
+    "previewAssetPath": "assets/images/tokyo_preview.png",
+    "latitude": 35.4437,
+    "longitude": 139.638,
+    "flyToZoom": 10.8,
+    "flyToPitch": 48.0,
+    "flyToBearing": 12.0
+  },
+  {
+    "id": "osaka",
+    "previewAssetPath": "assets/images/tokyo_preview.png",
+    "latitude": 34.6937,
+    "longitude": 135.5023,
+    "flyToZoom": 10.8,
+    "flyToPitch": 48.0,
+    "flyToBearing": 12.0
+  },
+  {
+    "id": "beijing",
+    "previewAssetPath": "assets/images/tokyo_preview.png",
+    "latitude": 39.9042,
+    "longitude": 116.4074,
+    "flyToZoom": 10.8,
+    "flyToPitch": 48.0,
+    "flyToBearing": 12.0
+  },
+  {
+    "id": "shanghai",
+    "previewAssetPath": "assets/images/tokyo_preview.png",
+    "latitude": 31.2304,
+    "longitude": 121.4737,
+    "flyToZoom": 10.8,
+    "flyToPitch": 48.0,
+    "flyToBearing": 12.0
+  },
+  {
+    "id": "guangzhou",
+    "previewAssetPath": "assets/images/tokyo_preview.png",
+    "latitude": 23.1291,
+    "longitude": 113.2644,
+    "flyToZoom": 10.8,
+    "flyToPitch": 48.0,
+    "flyToBearing": 12.0
+  },
+  {
+    "id": "tianjin",
+    "previewAssetPath": "assets/images/tokyo_preview.png",
+    "latitude": 39.3434,
+    "longitude": 117.3616,
+    "flyToZoom": 10.8,
+    "flyToPitch": 48.0,
+    "flyToBearing": 12.0
+  },
+  {
+    "id": "lhasa",
+    "previewAssetPath": "assets/images/tokyo_preview.png",
+    "latitude": 29.652,
+    "longitude": 91.1721,
+    "flyToZoom": 10.8,
+    "flyToPitch": 48.0,
+    "flyToBearing": 12.0
+  },
+  {
+    "id": "suzhou",
+    "previewAssetPath": "assets/images/tokyo_preview.png",
+    "latitude": 31.2989,
+    "longitude": 120.5853,
+    "flyToZoom": 10.8,
+    "flyToPitch": 48.0,
+    "flyToBearing": 12.0
+  },
+  {
+    "id": "munich",
+    "previewAssetPath": "assets/images/tokyo_preview.png",
+    "latitude": 48.1351,
+    "longitude": 11.582,
+    "flyToZoom": 10.8,
+    "flyToPitch": 48.0,
+    "flyToBearing": 12.0
+  },
+  {
+    "id": "berlin",
+    "previewAssetPath": "assets/images/tokyo_preview.png",
+    "latitude": 52.52,
+    "longitude": 13.405,
+    "flyToZoom": 10.8,
+    "flyToPitch": 48.0,
+    "flyToBearing": 12.0
+  },
+  {
+    "id": "frankfurt",
+    "previewAssetPath": "assets/images/tokyo_preview.png",
+    "latitude": 50.1109,
+    "longitude": 8.6821,
+    "flyToZoom": 10.8,
+    "flyToPitch": 48.0,
+    "flyToBearing": 12.0
+  },
+  {
+    "id": "istanbul",
+    "previewAssetPath": "assets/images/tokyo_preview.png",
+    "latitude": 41.0082,
+    "longitude": 28.9784,
+    "flyToZoom": 10.8,
+    "flyToPitch": 48.0,
+    "flyToBearing": 12.0
+  },
+  {
+    "id": "toronto",
+    "previewAssetPath": "assets/images/tokyo_preview.png",
+    "latitude": 43.6532,
+    "longitude": -79.3832,
+    "flyToZoom": 10.8,
+    "flyToPitch": 48.0,
+    "flyToBearing": 12.0
+  },
+  {
+    "id": "buenos_aires",
+    "previewAssetPath": "assets/images/tokyo_preview.png",
+    "latitude": -34.6037,
+    "longitude": -58.3816,
+    "flyToZoom": 10.8,
+    "flyToPitch": 48.0,
+    "flyToBearing": 12.0
+  },
+  {
+    "id": "sao_paulo",
+    "previewAssetPath": "assets/images/tokyo_preview.png",
+    "latitude": -23.5505,
+    "longitude": -46.6333,
+    "flyToZoom": 10.8,
+    "flyToPitch": 48.0,
+    "flyToBearing": 12.0
+  },
+  {
+    "id": "cairo",
+    "previewAssetPath": "assets/images/tokyo_preview.png",
+    "latitude": 30.0444,
+    "longitude": 31.2357,
+    "flyToZoom": 10.8,
+    "flyToPitch": 48.0,
+    "flyToBearing": 12.0
+  },
+  {
+    "id": "cape_town",
+    "previewAssetPath": "assets/images/tokyo_preview.png",
+    "latitude": -33.9249,
+    "longitude": 18.4241,
+    "flyToZoom": 10.8,
+    "flyToPitch": 48.0,
+    "flyToBearing": 12.0
+  },
+  {
+    "id": "sydney",
+    "previewAssetPath": "assets/images/tokyo_preview.png",
+    "latitude": -33.8688,
+    "longitude": 151.2093,
+    "flyToZoom": 10.8,
+    "flyToPitch": 48.0,
+    "flyToBearing": 12.0
+  },
+  {
+    "id": "melbourne",
+    "previewAssetPath": "assets/images/tokyo_preview.png",
+    "latitude": -37.8136,
+    "longitude": 144.9631,
+    "flyToZoom": 10.8,
+    "flyToPitch": 48.0,
+    "flyToBearing": 12.0
+  },
+  {
+    "id": "wellington",
+    "previewAssetPath": "assets/images/tokyo_preview.png",
+    "latitude": -41.2866,
+    "longitude": 174.7762,
+    "flyToZoom": 10.8,
+    "flyToPitch": 48.0,
+    "flyToBearing": 12.0
+  },
+  {
+    "id": "hong_kong",
+    "previewAssetPath": "assets/images/tokyo_preview.png",
+    "latitude": 22.3193,
+    "longitude": 114.1694,
+    "flyToZoom": 10.8,
+    "flyToPitch": 48.0,
+    "flyToBearing": 12.0
+  },
+  {
+    "id": "paris",
+    "previewAssetPath": "assets/images/tokyo_preview.png",
+    "latitude": 48.8566,
+    "longitude": 2.3522,
+    "flyToZoom": 10.8,
+    "flyToPitch": 48.0,
+    "flyToBearing": 12.0
+  },
+  {
+    "id": "london",
+    "previewAssetPath": "assets/images/tokyo_preview.png",
+    "latitude": 51.5072,
+    "longitude": -0.1276,
+    "flyToZoom": 10.8,
+    "flyToPitch": 48.0,
+    "flyToBearing": 12.0
+  }
+]

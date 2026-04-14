@@ -1,27 +1,51 @@
+import 'dart:convert';
+
+import 'package:flutter/services.dart';
+
 import '../../domain/entities/globe_marker_entity.dart';
 import '../../domain/entities/place_entity.dart';
 
+class MapHomeDataBundle {
+  const MapHomeDataBundle({required this.places, required this.markers});
+
+  final List<PlaceEntity> places;
+  final List<GlobeMarkerEntity> markers;
+}
+
 abstract final class MapHomeMockData {
-  static const PlaceEntity tokyoPlace = PlaceEntity(
-    id: 'tokyo',
-    previewAssetPath: 'assets/images/tokyo_preview.png',
-    latitude: 35.6762,
-    longitude: 139.6503,
-    flyToZoom: 10.8,
-    flyToPitch: 48.0,
-    flyToBearing: 12.0,
-  );
+  static const String _placesAssetPath = 'assets/data/map_home/places.json';
+  static const String _markersAssetPath = 'assets/data/map_home/markers.json';
 
-  static const GlobeMarkerEntity tokyoMarker = GlobeMarkerEntity(
-    id: 'marker_tokyo',
-    placeId: 'tokyo',
-    type: GlobeMarkerType.official,
-    latitude: 35.6762,
-    longitude: 139.6503,
-  );
+  static MapHomeDataBundle? _cachedBundle;
 
-  static const List<PlaceEntity> places = <PlaceEntity>[tokyoPlace];
-  static const List<GlobeMarkerEntity> markers = <GlobeMarkerEntity>[
-    tokyoMarker,
-  ];
+  static Future<MapHomeDataBundle> load() async {
+    final cachedBundle = _cachedBundle;
+    if (cachedBundle != null) {
+      return cachedBundle;
+    }
+
+    final places = await _loadPlaces();
+    final markers = await _loadMarkers();
+    final bundle = MapHomeDataBundle(places: places, markers: markers);
+    _cachedBundle = bundle;
+    return bundle;
+  }
+
+  static Future<List<PlaceEntity>> _loadPlaces() async {
+    final raw = await rootBundle.loadString(_placesAssetPath);
+    final decoded = jsonDecode(raw) as List<dynamic>;
+    return decoded
+        .map((item) => PlaceEntity.fromJson(Map<String, dynamic>.from(item)))
+        .toList(growable: false);
+  }
+
+  static Future<List<GlobeMarkerEntity>> _loadMarkers() async {
+    final raw = await rootBundle.loadString(_markersAssetPath);
+    final decoded = jsonDecode(raw) as List<dynamic>;
+    return decoded
+        .map(
+          (item) => GlobeMarkerEntity.fromJson(Map<String, dynamic>.from(item)),
+        )
+        .toList(growable: false);
+  }
 }

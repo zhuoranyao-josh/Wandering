@@ -231,5 +231,167 @@ class AppLocalizationsZh extends AppLocalizations {
   String get mapPlaceTokyoDescription => '这是一座用于验证地球光点、相机飞行动画与底部悬浮卡片的测试城市。';
 
   @override
+  String get mapPlaceNewYorkName => '纽约';
+
+  @override
+  String get mapPlaceNewYorkDescription => '用于验证地球光点、相机飞行动画与底部悬浮卡片的测试城市。';
+
+  @override
+  String get mapPlaceLosAngelesName => '洛杉矶';
+
+  @override
+  String get mapPlaceLosAngelesDescription => '用于验证地球光点、相机飞行动画与底部悬浮卡片的测试城市。';
+
+  @override
+  String get mapPlaceMoscowName => '莫斯科';
+
+  @override
+  String get mapPlaceMoscowDescription => '用于验证地球光点、相机飞行动画与底部悬浮卡片的测试城市。';
+
+  @override
+  String get mapPlaceSaintPetersburgName => '圣彼得堡';
+
+  @override
+  String get mapPlaceSaintPetersburgDescription => '用于验证地球光点、相机飞行动画与底部悬浮卡片的测试城市。';
+
+  @override
+  String get mapPlaceYokohamaName => '横滨';
+
+  @override
+  String get mapPlaceYokohamaDescription => '用于验证地球光点、相机飞行动画与底部悬浮卡片的测试城市。';
+
+  @override
+  String get mapPlaceOsakaName => '大阪';
+
+  @override
+  String get mapPlaceOsakaDescription => '用于验证地球光点、相机飞行动画与底部悬浮卡片的测试城市。';
+
+  @override
+  String get mapPlaceBeijingName => '北京';
+
+  @override
+  String get mapPlaceBeijingDescription => '用于验证地球光点、相机飞行动画与底部悬浮卡片的测试城市。';
+
+  @override
+  String get mapPlaceShanghaiName => '上海';
+
+  @override
+  String get mapPlaceShanghaiDescription => '用于验证地球光点、相机飞行动画与底部悬浮卡片的测试城市。';
+
+  @override
+  String get mapPlaceGuangzhouName => '广州';
+
+  @override
+  String get mapPlaceGuangzhouDescription => '用于验证地球光点、相机飞行动画与底部悬浮卡片的测试城市。';
+
+  @override
+  String get mapPlaceTianjinName => '天津';
+
+  @override
+  String get mapPlaceTianjinDescription => '用于验证地球光点、相机飞行动画与底部悬浮卡片的测试城市。';
+
+  @override
+  String get mapPlaceLhasaName => '拉萨';
+
+  @override
+  String get mapPlaceLhasaDescription => '用于验证地球光点、相机飞行动画与底部悬浮卡片的测试城市。';
+
+  @override
+  String get mapPlaceSuzhouName => '苏州';
+
+  @override
+  String get mapPlaceSuzhouDescription => '用于验证地球光点、相机飞行动画与底部悬浮卡片的测试城市。';
+
+  @override
+  String get mapPlaceMunichName => '慕尼黑';
+
+  @override
+  String get mapPlaceMunichDescription => '用于验证地球光点、相机飞行动画与底部悬浮卡片的测试城市。';
+
+  @override
+  String get mapPlaceBerlinName => '柏林';
+
+  @override
+  String get mapPlaceBerlinDescription => '用于验证地球光点、相机飞行动画与底部悬浮卡片的测试城市。';
+
+  @override
+  String get mapPlaceFrankfurtName => '法兰克福';
+
+  @override
+  String get mapPlaceFrankfurtDescription => '用于验证地球光点、相机飞行动画与底部悬浮卡片的测试城市。';
+
+  @override
+  String get mapPlaceIstanbulName => '伊斯坦布尔';
+
+  @override
+  String get mapPlaceIstanbulDescription => '用于验证地球光点、相机飞行动画与底部悬浮卡片的测试城市。';
+
+  @override
+  String get mapPlaceTorontoName => '多伦多';
+
+  @override
+  String get mapPlaceTorontoDescription => '用于验证地球光点、相机飞行动画与底部悬浮卡片的测试城市。';
+
+  @override
+  String get mapPlaceBuenosAiresName => '布宜诺斯艾利斯';
+
+  @override
+  String get mapPlaceBuenosAiresDescription => '用于验证地球光点、相机飞行动画与底部悬浮卡片的测试城市。';
+
+  @override
+  String get mapPlaceSaoPauloName => '圣保罗';
+
+  @override
+  String get mapPlaceSaoPauloDescription => '用于验证地球光点、相机飞行动画与底部悬浮卡片的测试城市。';
+
+  @override
+  String get mapPlaceCairoName => '开罗';
+
+  @override
+  String get mapPlaceCairoDescription => '用于验证地球光点、相机飞行动画与底部悬浮卡片的测试城市。';
+
+  @override
+  String get mapPlaceCapeTownName => '开普敦';
+
+  @override
+  String get mapPlaceCapeTownDescription => '用于验证地球光点、相机飞行动画与底部悬浮卡片的测试城市。';
+
+  @override
+  String get mapPlaceSydneyName => '悉尼';
+
+  @override
+  String get mapPlaceSydneyDescription => '用于验证地球光点、相机飞行动画与底部悬浮卡片的测试城市。';
+
+  @override
+  String get mapPlaceMelbourneName => '墨尔本';
+
+  @override
+  String get mapPlaceMelbourneDescription => '用于验证地球光点、相机飞行动画与底部悬浮卡片的测试城市。';
+
+  @override
+  String get mapPlaceWellingtonName => '惠灵顿';
+
+  @override
+  String get mapPlaceWellingtonDescription => '用于验证地球光点、相机飞行动画与底部悬浮卡片的测试城市。';
+
+  @override
+  String get mapPlaceHongKongName => '香港';
+
+  @override
+  String get mapPlaceHongKongDescription => '用于验证地球光点、相机飞行动画与底部悬浮卡片的测试城市。';
+
+  @override
+  String get mapPlaceParisName => '巴黎';
+
+  @override
+  String get mapPlaceParisDescription => '用于验证地球光点、相机飞行动画与底部悬浮卡片的测试城市。';
+
+  @override
+  String get mapPlaceLondonName => '伦敦';
+
+  @override
+  String get mapPlaceLondonDescription => '用于验证地球光点、相机飞行动画与底部悬浮卡片的测试城市。';
+
+  @override
   String get viewDetails => '查看详情';
 }
