@@ -8,6 +8,11 @@ import '../../features/auth/data/datasources/firebase_auth_remote_data_source.da
 import '../../features/auth/data/repositories/auth_repository_impl.dart';
 import '../../features/auth/domain/repositories/auth_repository.dart';
 import '../../features/auth/presentation/controllers/auth_controller.dart';
+import '../../features/activity/data/datasources/activity_remote_data_source.dart';
+import '../../features/activity/data/datasources/firebase_activity_remote_data_source.dart';
+import '../../features/activity/data/repositories/activity_repository_impl.dart';
+import '../../features/activity/domain/repositories/activity_repository.dart';
+import '../../features/activity/presentation/controllers/activity_controller.dart';
 import '../../features/profile/data/datasources/firebase_profile_remote_data_source.dart';
 import '../../features/profile/data/datasources/profile_remote_data_source.dart';
 import '../../features/profile/data/repositories/profile_repository_impl.dart';
@@ -16,6 +21,7 @@ import '../../features/profile/presentation/controllers/profile_setup_controller
 
 class ServiceLocator {
   static late final AuthController authController;
+  static late final ActivityController activityController;
   static late final ProfileSetupController profileSetupController;
 
   static void setup() {
@@ -37,6 +43,15 @@ class ServiceLocator {
 
     // 控制器
     authController = AuthController(authRepository);
+
+    final ActivityRemoteDataSource activityRemoteDataSource =
+        FirebaseActivityRemoteDataSource(firestore: firestore);
+
+    final ActivityRepository activityRepository = ActivityRepositoryImpl(
+      activityRemoteDataSource,
+    );
+
+    activityController = ActivityController(activityRepository);
 
     // Profile 模块
     // 数据源：只有这里会真正碰 Firestore / Storage

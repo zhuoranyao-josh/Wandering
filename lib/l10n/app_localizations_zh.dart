@@ -393,5 +393,75 @@ class AppLocalizationsZh extends AppLocalizations {
   String get mapPlaceLondonDescription => '用于验证地球光点、相机飞行动画与底部悬浮卡片的测试城市。';
 
   @override
+  String get activitySearchHint => '搜索活动名称或城市';
+
+  @override
+  String get activityUpcomingTitle => '即将开始：';
+
+  @override
+  String get activityLoadFailed => '活动加载失败，请稍后再试。';
+
+  @override
+  String get activityRetry => '重新加载';
+
+  @override
+  String get activityEmptyDefault => '暂时还没有已发布活动。';
+
+  @override
+  String get activityEmptyFiltered => '没有找到符合当前筛选条件的活动。';
+
+  @override
+  String get activitySelectDateRange => '选择日期或日期范围';
+
+  @override
+  String get activityClearDateFilter => '清除日期筛选';
+
+  @override
+  String get activityDateFilterLabel => '日期';
+
+  @override
+  String get activityCategoryAll => '全部';
+
+  @override
+  String get activityCategoryTraditionalFestival => '传统节日';
+
+  @override
+  String get activityCategoryMusic => '音乐';
+
+  @override
+  String get activityCategoryExhibition => '展览';
+
+  @override
+  String get activityCategoryEntertainment => '娱乐';
+
+  @override
+  String get activityCategoryNature => '自然';
+
+  @override
+  String get activityDetailTitle => '活动详情';
+
+  @override
+  String get activityDetailEmpty => '详细内容正在整理中，敬请期待。';
+
+  @override
+  String get activityDetailNotFound => '未找到该活动。';
+
+  @override
+  String get activityBack => '返回';
+
+  @override
+  String get activityAlwaysOpen => '长期开放';
+
+  @override
+  String activityLongTermOpenFrom(Object date) {
+    return '自 $date 起长期开放';
+  }
+
+  @override
+  String activityOpenUntil(Object date) {
+    return '开放至 $date';
+  }
+
+  @override
   String get viewDetails => '查看详情';
 }

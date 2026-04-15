@@ -59,7 +59,7 @@
 - Understood the importance of reusable components for maintaining scalable UI design
 - Learned how to structure a project for long-term maintainability and future backend migration
 
-## 2026-04-06 ~ 2026-04-07
+## 2026-04-06 ~ 2026-04-15
 ### 🚀 Features
 - Persistent Language Support
   - Added local language persistence using SharedPreferences
@@ -78,7 +78,7 @@
 - Added locale-driven map label language switching (Chinese/English).
 - Added map initialization/loading/error fallback UI.
 - Added Tokyo test marker with fly-to interaction and a floating place preview card.
-- Added extensible local mock place/marker models for future multi-city and mixed marker support.
+- Added extensible local mock place/marker models for future multi-city and  mixed marker support.
 
 ### 🐛 Bug Fixes
 - Fixed app crash on launch caused by `Null check operator used on a null value` (triggered by invalid route configuration with `initialRoute + routes`)
@@ -102,6 +102,7 @@
 - Improved routing architecture with StatefulShellRoute and clearer auth/profile redirect handling.
 - Added profile cache warm-up and refresh support to reduce repeated fetches.
 - Refactored map logic into a dedicated map_home feature with clearer page/controller separation.
+- Refined app-wide system UI behavior for transparent, always-visible status bar support
 
 ### 📚 Learnings
 - Flutter initialization is asynchronous → always handle null
@@ -111,5 +112,14 @@
 - Navigation refactors need careful handling of empty back stacks, test setup, and redirect loops
 - Learned how to import an earth model into an application
 
-### Future plans:
+## 2026-04-15 ~ 2026-04-07
+### 🚀 Features
+- Added the Activity module with Firestore-backed event loading, bottom-tab entry, search, category filters, date/date-range filters, and a lightweight ActivityDetailPage placeholder.
 
+### 🐛 Bug Fixes
+- Fixed activity detail taps being redirected to the globe/map page
+
+### ⚡ Improvements
+- improved event loading/filtering so activities with nullable `startAt` / `endAt` can still be displayed correctly.
+
+### 📚 Learnings

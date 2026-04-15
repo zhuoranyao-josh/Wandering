@@ -393,5 +393,75 @@ class AppLocalizationsEn extends AppLocalizations {
   String get mapPlaceLondonDescription => 'A test city used to validate globe markers, camera transitions, and the floating preview card.';
 
   @override
+  String get activitySearchHint => 'Search by event title or city';
+
+  @override
+  String get activityUpcomingTitle => 'Coming soon:';
+
+  @override
+  String get activityLoadFailed => 'Failed to load events. Please try again later.';
+
+  @override
+  String get activityRetry => 'Retry';
+
+  @override
+  String get activityEmptyDefault => 'No published events yet.';
+
+  @override
+  String get activityEmptyFiltered => 'No events match the current filters.';
+
+  @override
+  String get activitySelectDateRange => 'Select date or date range';
+
+  @override
+  String get activityClearDateFilter => 'Clear date filter';
+
+  @override
+  String get activityDateFilterLabel => 'Date';
+
+  @override
+  String get activityCategoryAll => 'All';
+
+  @override
+  String get activityCategoryTraditionalFestival => 'Traditional Festival';
+
+  @override
+  String get activityCategoryMusic => 'Music';
+
+  @override
+  String get activityCategoryExhibition => 'Exhibition';
+
+  @override
+  String get activityCategoryEntertainment => 'Entertainment';
+
+  @override
+  String get activityCategoryNature => 'Nature';
+
+  @override
+  String get activityDetailTitle => 'Event details';
+
+  @override
+  String get activityDetailEmpty => 'Detailed information will be available soon.';
+
+  @override
+  String get activityDetailNotFound => 'This event could not be found.';
+
+  @override
+  String get activityBack => 'Back';
+
+  @override
+  String get activityAlwaysOpen => 'Always open';
+
+  @override
+  String activityLongTermOpenFrom(Object date) {
+    return 'Open from $date';
+  }
+
+  @override
+  String activityOpenUntil(Object date) {
+    return 'Open until $date';
+  }
+
+  @override
   String get viewDetails => 'View details';
 }

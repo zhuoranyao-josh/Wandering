@@ -128,6 +128,38 @@
   "mapPlaceParisDescription": "用于验证地球光点、相机飞行动画与底部悬浮卡片的测试城市。",
   "mapPlaceLondonName": "伦敦",
   "mapPlaceLondonDescription": "用于验证地球光点、相机飞行动画与底部悬浮卡片的测试城市。",
+  "activitySearchHint": "搜索活动名称或城市",
+  "activityUpcomingTitle": "即将开始：",
+  "activityLoadFailed": "活动加载失败，请稍后再试。",
+  "activityRetry": "重新加载",
+  "activityEmptyDefault": "暂时还没有已发布活动。",
+  "activityEmptyFiltered": "没有找到符合当前筛选条件的活动。",
+  "activitySelectDateRange": "选择日期或日期范围",
+  "activityClearDateFilter": "清除日期筛选",
+  "activityDateFilterLabel": "日期",
+  "activityCategoryAll": "全部",
+  "activityCategoryTraditionalFestival": "传统节日",
+  "activityCategoryMusic": "音乐",
+  "activityCategoryExhibition": "展览",
+  "activityCategoryEntertainment": "娱乐",
+  "activityCategoryNature": "自然",
+  "activityDetailTitle": "活动详情",
+  "activityDetailEmpty": "详细内容正在整理中，敬请期待。",
+  "activityDetailNotFound": "未找到该活动。",
+  "activityBack": "返回",
+  "activityAlwaysOpen": "长期开放",
+  "activityLongTermOpenFrom": "自 {date} 起长期开放",
+  "@activityLongTermOpenFrom": {
+    "placeholders": {
+      "date": {}
+    }
+  },
+  "activityOpenUntil": "开放至 {date}",
+  "@activityOpenUntil": {
+    "placeholders": {
+      "date": {}
+    }
+  },
   "viewDetails": "查看详情"
 }
 

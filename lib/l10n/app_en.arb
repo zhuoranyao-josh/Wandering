@@ -128,5 +128,37 @@
   "mapPlaceParisDescription": "A test city used to validate globe markers, camera transitions, and the floating preview card.",
   "mapPlaceLondonName": "London",
   "mapPlaceLondonDescription": "A test city used to validate globe markers, camera transitions, and the floating preview card.",
+  "activitySearchHint": "Search by event title or city",
+  "activityUpcomingTitle": "Coming soon:",
+  "activityLoadFailed": "Failed to load events. Please try again later.",
+  "activityRetry": "Retry",
+  "activityEmptyDefault": "No published events yet.",
+  "activityEmptyFiltered": "No events match the current filters.",
+  "activitySelectDateRange": "Select date or date range",
+  "activityClearDateFilter": "Clear date filter",
+  "activityDateFilterLabel": "Date",
+  "activityCategoryAll": "All",
+  "activityCategoryTraditionalFestival": "Traditional Festival",
+  "activityCategoryMusic": "Music",
+  "activityCategoryExhibition": "Exhibition",
+  "activityCategoryEntertainment": "Entertainment",
+  "activityCategoryNature": "Nature",
+  "activityDetailTitle": "Event details",
+  "activityDetailEmpty": "Detailed information will be available soon.",
+  "activityDetailNotFound": "This event could not be found.",
+  "activityBack": "Back",
+  "activityAlwaysOpen": "Always open",
+  "activityLongTermOpenFrom": "Open from {date}",
+  "@activityLongTermOpenFrom": {
+    "placeholders": {
+      "date": {}
+    }
+  },
+  "activityOpenUntil": "Open until {date}",
+  "@activityOpenUntil": {
+    "placeholders": {
+      "date": {}
+    }
+  },
   "viewDetails": "View details"
 }

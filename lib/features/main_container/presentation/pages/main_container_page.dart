@@ -119,7 +119,10 @@ class MainContainerPage extends StatelessWidget {
                   const Spacer(flex: 2),
                   buildVisualIcon(index: 0, icon: Icons.home_outlined),
                   const Spacer(flex: 3),
-                  buildVisualIcon(index: 1, icon: Icons.grid_view_rounded),
+                  buildVisualIcon(
+                    index: 1,
+                    icon: Icons.local_activity_outlined,
+                  ),
                   const Spacer(flex: 3),
                 ],
               ),

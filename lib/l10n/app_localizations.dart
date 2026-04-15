@@ -863,6 +863,138 @@ abstract class AppLocalizations {
   /// **'A test city used to validate globe markers, camera transitions, and the floating preview card.'**
   String get mapPlaceLondonDescription;
 
+  /// No description provided for @activitySearchHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Search by event title or city'**
+  String get activitySearchHint;
+
+  /// No description provided for @activityUpcomingTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Coming soon:'**
+  String get activityUpcomingTitle;
+
+  /// No description provided for @activityLoadFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Failed to load events. Please try again later.'**
+  String get activityLoadFailed;
+
+  /// No description provided for @activityRetry.
+  ///
+  /// In en, this message translates to:
+  /// **'Retry'**
+  String get activityRetry;
+
+  /// No description provided for @activityEmptyDefault.
+  ///
+  /// In en, this message translates to:
+  /// **'No published events yet.'**
+  String get activityEmptyDefault;
+
+  /// No description provided for @activityEmptyFiltered.
+  ///
+  /// In en, this message translates to:
+  /// **'No events match the current filters.'**
+  String get activityEmptyFiltered;
+
+  /// No description provided for @activitySelectDateRange.
+  ///
+  /// In en, this message translates to:
+  /// **'Select date or date range'**
+  String get activitySelectDateRange;
+
+  /// No description provided for @activityClearDateFilter.
+  ///
+  /// In en, this message translates to:
+  /// **'Clear date filter'**
+  String get activityClearDateFilter;
+
+  /// No description provided for @activityDateFilterLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Date'**
+  String get activityDateFilterLabel;
+
+  /// No description provided for @activityCategoryAll.
+  ///
+  /// In en, this message translates to:
+  /// **'All'**
+  String get activityCategoryAll;
+
+  /// No description provided for @activityCategoryTraditionalFestival.
+  ///
+  /// In en, this message translates to:
+  /// **'Traditional Festival'**
+  String get activityCategoryTraditionalFestival;
+
+  /// No description provided for @activityCategoryMusic.
+  ///
+  /// In en, this message translates to:
+  /// **'Music'**
+  String get activityCategoryMusic;
+
+  /// No description provided for @activityCategoryExhibition.
+  ///
+  /// In en, this message translates to:
+  /// **'Exhibition'**
+  String get activityCategoryExhibition;
+
+  /// No description provided for @activityCategoryEntertainment.
+  ///
+  /// In en, this message translates to:
+  /// **'Entertainment'**
+  String get activityCategoryEntertainment;
+
+  /// No description provided for @activityCategoryNature.
+  ///
+  /// In en, this message translates to:
+  /// **'Nature'**
+  String get activityCategoryNature;
+
+  /// No description provided for @activityDetailTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Event details'**
+  String get activityDetailTitle;
+
+  /// No description provided for @activityDetailEmpty.
+  ///
+  /// In en, this message translates to:
+  /// **'Detailed information will be available soon.'**
+  String get activityDetailEmpty;
+
+  /// No description provided for @activityDetailNotFound.
+  ///
+  /// In en, this message translates to:
+  /// **'This event could not be found.'**
+  String get activityDetailNotFound;
+
+  /// No description provided for @activityBack.
+  ///
+  /// In en, this message translates to:
+  /// **'Back'**
+  String get activityBack;
+
+  /// No description provided for @activityAlwaysOpen.
+  ///
+  /// In en, this message translates to:
+  /// **'Always open'**
+  String get activityAlwaysOpen;
+
+  /// No description provided for @activityLongTermOpenFrom.
+  ///
+  /// In en, this message translates to:
+  /// **'Open from {date}'**
+  String activityLongTermOpenFrom(Object date);
+
+  /// No description provided for @activityOpenUntil.
+  ///
+  /// In en, this message translates to:
+  /// **'Open until {date}'**
+  String activityOpenUntil(Object date);
+
   /// No description provided for @viewDetails.
   ///
   /// In en, this message translates to:

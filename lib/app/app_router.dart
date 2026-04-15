@@ -4,6 +4,9 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
 import '../core/di/service_locator.dart';
+import '../features/activity/domain/entities/activity_event.dart';
+import '../features/activity/presentation/pages/activity_detail_page.dart';
+import '../features/activity/presentation/pages/activity_page.dart';
 import '../features/auth/domain/entities/auth_user.dart';
 import '../features/auth/presentation/pages/login_page.dart';
 import '../features/auth/presentation/pages/register_page.dart';
@@ -26,9 +29,11 @@ class AppRouter {
   static const String home = '/home';
   static const String profileSetup = '/profile-setup';
   static const String profileEdit = '/profile-edit';
+  static const String activities = '/activities';
+  static const String activityDetailPath = 'detail/:eventId';
 
   static const String tabOne = '/tab-1';
-  static const String tabTwo = '/tab-2';
+  static const String tabTwo = activities;
   static const String tabThree = home;
   static const String tabFour = '/tab-4';
   static const String tabMe = '/me';
@@ -45,6 +50,10 @@ class AppRouter {
     tabFour,
     tabMe,
   };
+
+  static String activityDetail(String eventId) {
+    return '$activities/detail/$eventId';
+  }
 
   static final GoRouter router = GoRouter(
     initialLocation: authGate,
@@ -117,8 +126,20 @@ class AppRouter {
             routes: <RouteBase>[
               GoRoute(
                 path: tabTwo,
-                builder: (context, state) =>
-                    const PlaceholderTabPage(title: 'Tab 2'),
+                builder: (context, state) => const ActivityPage(),
+                routes: <RouteBase>[
+                  GoRoute(
+                    path: activityDetailPath,
+                    builder: (context, state) {
+                      final initialEvent = state.extra as ActivityEvent?;
+                      final eventId = state.pathParameters['eventId'] ?? '';
+                      return ActivityDetailPage(
+                        eventId: eventId,
+                        initialEvent: initialEvent,
+                      );
+                    },
+                  ),
+                ],
               ),
             ],
           ),
@@ -202,7 +223,8 @@ class AppRouter {
 
     final bool canStayInAuthenticatedArea =
         _authenticatedExactRoutes.contains(location) ||
-        location.startsWith('/me/');
+        location.startsWith('/me/') ||
+        location.startsWith('$activities/');
     if (canStayInAuthenticatedArea) {
       return null;
     }
