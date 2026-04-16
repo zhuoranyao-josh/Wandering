@@ -571,6 +571,33 @@ class AppLocalizationsZh extends AppLocalizations {
   String get communityFollowAction => '关注';
 
   @override
+  String get communityUnfollowAction => '取消关注';
+
+  @override
+  String get communityFollowFailed => '关注状态更新失败，请稍后再试。';
+
+  @override
+  String get communityLikeFailed => '点赞状态更新失败，请稍后再试。';
+
+  @override
+  String get communityStatPosts => '帖子';
+
+  @override
+  String get communityStatFollowers => '粉丝';
+
+  @override
+  String get communityStatFollowing => '关注';
+
+  @override
+  String get communityStatLikesReceived => '获赞';
+
+  @override
+  String get communityFollowingListTitle => '关注列表';
+
+  @override
+  String get communityFollowingListEmpty => 'TA 还没有关注任何人。';
+
+  @override
   String get communityUserPostsTitle => '发布的帖子';
 
   @override

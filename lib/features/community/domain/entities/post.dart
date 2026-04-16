@@ -1,29 +1,32 @@
 import 'post_image.dart';
 
+const Object _postSentinel = Object();
+
 class Post {
   final String id;
 
-  /// 作者信息单独平铺，方便列表页直接展示，后续也能平滑过渡到 summary 实体。
+  /// 作者信息单独平铺，方便列表页和详情页直接展示。
   final String authorId;
   final String authorName;
   final String? authorAvatarUrl;
 
-  /// 标题允许为空，适配“只有正文”的轻量帖子。
+  /// 标题允许为空，兼容轻量帖子。
   final String? title;
   final String content;
 
-  /// 图片预留为列表，便于从单图扩展到多图。
+  /// 图片保留为数组，便于后续扩展多图布局。
   final List<PostImage> images;
 
-  /// 地点信息可为空，附近帖子等功能可按需使用经纬度。
+  /// 地点信息可为空，当前仅用于展示。
   final String? placeName;
   final double? latitude;
   final double? longitude;
 
-  /// 互动计数与创建时间是社区列表、详情页的基础展示字段。
+  /// 点赞、评论计数与当前用户点赞状态用于社区列表和详情页。
   final int likeCount;
   final int commentCount;
   final DateTime createdAt;
+  final bool isLikedByCurrentUser;
 
   const Post({
     required this.id,
@@ -39,6 +42,7 @@ class Post {
     required this.likeCount,
     required this.commentCount,
     required this.createdAt,
+    this.isLikedByCurrentUser = false,
   });
 
   bool get hasTitle => title != null && title!.trim().isNotEmpty;
@@ -58,4 +62,42 @@ class Post {
 
   bool get hasLocation =>
       placeName != null || latitude != null || longitude != null;
+
+  Post copyWith({
+    String? id,
+    String? authorId,
+    String? authorName,
+    String? authorAvatarUrl,
+    Object? title = _postSentinel,
+    String? content,
+    List<PostImage>? images,
+    Object? placeName = _postSentinel,
+    Object? latitude = _postSentinel,
+    Object? longitude = _postSentinel,
+    int? likeCount,
+    int? commentCount,
+    DateTime? createdAt,
+    bool? isLikedByCurrentUser,
+  }) {
+    return Post(
+      id: id ?? this.id,
+      authorId: authorId ?? this.authorId,
+      authorName: authorName ?? this.authorName,
+      authorAvatarUrl: authorAvatarUrl ?? this.authorAvatarUrl,
+      title: title == _postSentinel ? this.title : title as String?,
+      content: content ?? this.content,
+      images: images ?? this.images,
+      placeName: placeName == _postSentinel
+          ? this.placeName
+          : placeName as String?,
+      latitude: latitude == _postSentinel ? this.latitude : latitude as double?,
+      longitude: longitude == _postSentinel
+          ? this.longitude
+          : longitude as double?,
+      likeCount: likeCount ?? this.likeCount,
+      commentCount: commentCount ?? this.commentCount,
+      createdAt: createdAt ?? this.createdAt,
+      isLikedByCurrentUser: isLikedByCurrentUser ?? this.isLikedByCurrentUser,
+    );
+  }
 }

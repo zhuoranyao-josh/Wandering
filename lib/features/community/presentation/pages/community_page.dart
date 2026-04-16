@@ -4,6 +4,7 @@ import 'package:intl/intl.dart';
 
 import '../../../../app/app_router.dart';
 import '../../../../core/di/service_locator.dart';
+import '../../../../core/error/app_exception.dart';
 import '../../../../l10n/app_localizations.dart';
 import '../../domain/entities/post.dart';
 import '../controllers/community_controller.dart';
@@ -44,7 +45,6 @@ class _CommunityPageState extends State<CommunityPage> {
       t.communityTabFollowing,
       t.communityTabLatest,
       t.communityTabPopular,
-      t.communityTabNearby,
     ];
 
     return DefaultTabController(
@@ -59,7 +59,7 @@ class _CommunityPageState extends State<CommunityPage> {
         body: SafeArea(
           child: Column(
             children: [
-              // 顶部先保留社区 tabs 与搜索入口，本次仅“最新”接真实逻辑。
+              // 顶部保留三个真实 feed 和搜索入口，搜索继续只保留 UI。
               Padding(
                 padding: const EdgeInsets.fromLTRB(16, 12, 12, 12),
                 child: Row(
@@ -95,9 +95,11 @@ class _CommunityPageState extends State<CommunityPage> {
               ),
               Expanded(
                 child: TabBarView(
-                  children: List<Widget>.generate(tabLabels.length, (_) {
-                    return _LatestPostList(controller: _controller);
-                  }),
+                  children: const <Widget>[
+                    _FeedPostList(type: CommunityFeedType.following),
+                    _FeedPostList(type: CommunityFeedType.latest),
+                    _FeedPostList(type: CommunityFeedType.trending),
+                  ],
                 ),
               ),
             ],
@@ -108,13 +110,14 @@ class _CommunityPageState extends State<CommunityPage> {
   }
 }
 
-class _LatestPostList extends StatelessWidget {
-  const _LatestPostList({required this.controller});
+class _FeedPostList extends StatelessWidget {
+  const _FeedPostList({required this.type});
 
-  final CommunityController controller;
+  final CommunityFeedType type;
 
   @override
   Widget build(BuildContext context) {
+    final controller = ServiceLocator.communityController;
     final t = AppLocalizations.of(context);
     if (t == null) {
       return const SizedBox.shrink();
@@ -123,11 +126,15 @@ class _LatestPostList extends StatelessWidget {
     return AnimatedBuilder(
       animation: controller,
       builder: (context, _) {
-        if (controller.isLoading) {
+        final posts = controller.postsFor(type);
+        final errorCode = controller.feedErrorCode(type);
+        final isLoading = controller.isFeedLoading(type);
+
+        if (isLoading) {
           return const Center(child: CircularProgressIndicator());
         }
 
-        if (controller.errorCode != null) {
+        if (errorCode != null) {
           return Center(
             child: Padding(
               padding: const EdgeInsets.all(24),
@@ -135,7 +142,7 @@ class _LatestPostList extends StatelessWidget {
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   Text(
-                    _messageForErrorCode(errorCode: controller.errorCode, t: t),
+                    _messageForErrorCode(errorCode: errorCode, t: t),
                     textAlign: TextAlign.center,
                     style: const TextStyle(
                       fontSize: 16,
@@ -144,7 +151,7 @@ class _LatestPostList extends StatelessWidget {
                   ),
                   const SizedBox(height: 16),
                   ElevatedButton(
-                    onPressed: controller.refreshLatestPosts,
+                    onPressed: () => _refreshFeed(controller, type),
                     child: Text(t.communityRetry),
                   ),
                 ],
@@ -153,7 +160,7 @@ class _LatestPostList extends StatelessWidget {
           );
         }
 
-        if (controller.latestPosts.isEmpty) {
+        if (posts.isEmpty) {
           return Center(
             child: Padding(
               padding: const EdgeInsets.all(24),
@@ -171,16 +178,17 @@ class _LatestPostList extends StatelessWidget {
         }
 
         return RefreshIndicator(
-          onRefresh: controller.refreshLatestPosts,
+          onRefresh: () => _refreshFeed(controller, type),
           child: ListView.separated(
             physics: const AlwaysScrollableScrollPhysics(),
             padding: const EdgeInsets.fromLTRB(16, 8, 16, 96),
-            itemCount: controller.latestPosts.length,
+            itemCount: posts.length,
             separatorBuilder: (context, index) => const SizedBox(height: 14),
             itemBuilder: (context, index) {
-              final post = controller.latestPosts[index];
+              final post = posts[index];
               return PostCard(
                 post: post,
+                isLikeLoading: controller.isPostLikePending(post.id),
                 onTap: () {
                   context.push(
                     AppRouter.communityPostDetail(post.id),
@@ -198,12 +206,51 @@ class _LatestPostList extends StatelessWidget {
                     extra: _toPresentationUser(post),
                   );
                 },
+                onLikeTap: () => _handleLikeTap(
+                  context: context,
+                  controller: controller,
+                  post: post,
+                  t: t,
+                ),
               );
             },
           ),
         );
       },
     );
+  }
+
+  Future<void> _handleLikeTap({
+    required BuildContext context,
+    required CommunityController controller,
+    required Post post,
+    required AppLocalizations t,
+  }) async {
+    try {
+      await controller.togglePostLike(post);
+    } catch (error) {
+      if (!context.mounted) {
+        return;
+      }
+      final message = _messageForActionError(error: error, t: t);
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(message)));
+    }
+  }
+
+  Future<void> _refreshFeed(
+    CommunityController controller,
+    CommunityFeedType type,
+  ) {
+    switch (type) {
+      case CommunityFeedType.following:
+        return controller.refreshFollowingPosts();
+      case CommunityFeedType.latest:
+        return controller.refreshLatestPosts();
+      case CommunityFeedType.trending:
+        return controller.refreshTrendingPosts();
+    }
   }
 
   String _messageForErrorCode({
@@ -216,6 +263,19 @@ class _LatestPostList extends StatelessWidget {
       default:
         return t.errorUnknown;
     }
+  }
+
+  String _messageForActionError({
+    required Object error,
+    required AppLocalizations t,
+  }) {
+    if (error is AppException) {
+      switch (error.code) {
+        case 'community_like_failed':
+          return t.communityLikeFailed;
+      }
+    }
+    return t.errorUnknown;
   }
 
   CommunityPost _toPresentationPost({
@@ -247,8 +307,7 @@ class _LatestPostList extends StatelessWidget {
   }
 
   String _buildExcerpt(String content) {
-    final normalizedContent = content.replaceAll('\n', ' ').trim();
-    return normalizedContent;
+    return content.replaceAll('\n', ' ').trim();
   }
 
   Color _avatarColorForId(String id) {

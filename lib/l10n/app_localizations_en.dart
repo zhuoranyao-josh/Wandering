@@ -571,6 +571,33 @@ class AppLocalizationsEn extends AppLocalizations {
   String get communityFollowAction => 'Follow';
 
   @override
+  String get communityUnfollowAction => 'Unfollow';
+
+  @override
+  String get communityFollowFailed => 'Failed to update follow status. Please try again later.';
+
+  @override
+  String get communityLikeFailed => 'Failed to update like status. Please try again later.';
+
+  @override
+  String get communityStatPosts => 'Posts';
+
+  @override
+  String get communityStatFollowers => 'Followers';
+
+  @override
+  String get communityStatFollowing => 'Following';
+
+  @override
+  String get communityStatLikesReceived => 'Likes';
+
+  @override
+  String get communityFollowingListTitle => 'Following';
+
+  @override
+  String get communityFollowingListEmpty => 'This user is not following anyone yet.';
+
+  @override
   String get communityUserPostsTitle => 'Posts';
 
   @override

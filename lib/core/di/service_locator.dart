@@ -73,7 +73,10 @@ class ServiceLocator {
     // Community 模块
     // 数据源：只有这里会真正接触 Firestore。
     final CommunityRemoteDataSource communityRemoteDataSource =
-        FirebaseCommunityRemoteDataSource(firestore: firestore);
+        FirebaseCommunityRemoteDataSource(
+          firestore: firestore,
+          firebaseAuth: firebaseAuth,
+        );
     final CommunityRepository communityRepository = CommunityRepositoryImpl(
       communityRemoteDataSource,
     );

@@ -8,16 +8,30 @@ import '../../../profile/presentation/controllers/profile_setup_controller.dart'
 import '../../domain/entities/post.dart';
 import '../../domain/repositories/community_repository.dart';
 
+enum CommunityFeedType { following, latest, trending }
+
 class CommunityController extends ChangeNotifier {
   final CommunityRepository communityRepository;
   final AuthController authController;
   final ProfileSetupController profileSetupController;
 
   bool _isInitialized = false;
-  bool _isLoading = false;
   bool _isSubmitting = false;
-  String? _errorCode;
+  final Map<CommunityFeedType, bool> _feedLoading = <CommunityFeedType, bool>{
+    CommunityFeedType.following: false,
+    CommunityFeedType.latest: false,
+    CommunityFeedType.trending: false,
+  };
+  final Map<CommunityFeedType, String?> _feedErrors =
+      <CommunityFeedType, String?>{
+        CommunityFeedType.following: null,
+        CommunityFeedType.latest: null,
+        CommunityFeedType.trending: null,
+      };
+  List<Post> _followingPosts = const <Post>[];
   List<Post> _latestPosts = const <Post>[];
+  List<Post> _trendingPosts = const <Post>[];
+  final Set<String> _pendingLikePostIds = <String>{};
 
   CommunityController({
     required this.communityRepository,
@@ -25,47 +39,96 @@ class CommunityController extends ChangeNotifier {
     required this.profileSetupController,
   });
 
-  bool get isLoading => _isLoading;
+  bool get isLoading => isFeedLoading(CommunityFeedType.latest);
   bool get isSubmitting => _isSubmitting;
-  String? get errorCode => _errorCode;
+  String? get errorCode => feedErrorCode(CommunityFeedType.latest);
   List<Post> get latestPosts => _latestPosts;
+  List<Post> get followingPosts => _followingPosts;
+  List<Post> get trendingPosts => _trendingPosts;
+
+  bool isFeedLoading(CommunityFeedType type) => _feedLoading[type] ?? false;
+
+  String? feedErrorCode(CommunityFeedType type) => _feedErrors[type];
+
+  List<Post> postsFor(CommunityFeedType type) {
+    switch (type) {
+      case CommunityFeedType.following:
+        return _followingPosts;
+      case CommunityFeedType.latest:
+        return _latestPosts;
+      case CommunityFeedType.trending:
+        return _trendingPosts;
+    }
+  }
+
+  bool isPostLikePending(String postId) {
+    return _pendingLikePostIds.contains(postId);
+  }
+
+  Post? findPostById(String postId) {
+    for (final posts in <List<Post>>[
+      _latestPosts,
+      _followingPosts,
+      _trendingPosts,
+    ]) {
+      try {
+        return posts.firstWhere((post) => post.id == postId);
+      } catch (_) {
+        continue;
+      }
+    }
+    return null;
+  }
 
   void upsertPost(Post post) {
-    final existingIndex = _latestPosts.indexWhere((item) => item.id == post.id);
-    if (existingIndex == -1) {
-      _latestPosts = <Post>[post, ..._latestPosts];
-    } else {
-      final updatedPosts = List<Post>.from(_latestPosts);
-      updatedPosts[existingIndex] = post;
-      _latestPosts = updatedPosts;
-    }
+    // 同步三类 feed 中已经存在的帖子，保持列表和详情页状态一致。
+    _latestPosts = _upsertIntoList(_latestPosts, post);
+    _followingPosts = _upsertIntoList(_followingPosts, post);
+    _trendingPosts = _upsertIntoList(_trendingPosts, post);
     notifyListeners();
   }
 
   void ensureInitialized() {
     if (_isInitialized) return;
     _isInitialized = true;
-    refreshLatestPosts();
+    refreshAllFeeds();
   }
 
-  Future<void> refreshLatestPosts() async {
-    _isLoading = true;
-    _errorCode = null;
-    notifyListeners();
+  Future<void> refreshAllFeeds() async {
+    await Future.wait<void>(<Future<void>>[
+      refreshLatestPosts(),
+      refreshFollowingPosts(),
+      refreshTrendingPosts(),
+    ]);
+  }
 
-    try {
-      _latestPosts = await communityRepository.getLatestPosts();
-      _errorCode = null;
-    } catch (error) {
-      if (error is AppException) {
-        _errorCode = error.code;
-      } else {
-        _errorCode = 'community_load_failed';
-      }
-    } finally {
-      _isLoading = false;
+  Future<void> refreshLatestPosts() {
+    return _refreshFeed(
+      CommunityFeedType.latest,
+      () => communityRepository.getLatestPosts(),
+    );
+  }
+
+  Future<void> refreshFollowingPosts() async {
+    final currentUser = authController.getCurrentUser();
+    if (currentUser == null) {
+      _followingPosts = const <Post>[];
+      _feedErrors[CommunityFeedType.following] = null;
       notifyListeners();
+      return;
     }
+
+    await _refreshFeed(
+      CommunityFeedType.following,
+      () => communityRepository.getFollowingPosts(userId: currentUser.uid),
+    );
+  }
+
+  Future<void> refreshTrendingPosts() {
+    return _refreshFeed(
+      CommunityFeedType.trending,
+      () => communityRepository.getTrendingPosts(),
+    );
   }
 
   Future<void> createPost({String? title, required String content}) async {
@@ -100,12 +163,12 @@ class CommunityController extends ChangeNotifier {
         content: cleanContent,
       );
 
-      // 发布成功后先本地插入，确保返回列表页时能立即看到新帖子。
+      // 发帖成功后先插入最新列表，避免回到社区页时出现闪烁。
       _latestPosts = <Post>[
         createdPost,
         ..._latestPosts.where((post) => post.id != createdPost.id),
       ];
-      _errorCode = null;
+      _feedErrors[CommunityFeedType.latest] = null;
       notifyListeners();
     } catch (error) {
       if (error is AppException) {
@@ -116,6 +179,97 @@ class CommunityController extends ChangeNotifier {
       _isSubmitting = false;
       notifyListeners();
     }
+  }
+
+  Future<void> togglePostLike(Post post) async {
+    final currentUser = authController.getCurrentUser();
+    if (currentUser == null) {
+      throw AppException('community_like_failed');
+    }
+    if (_pendingLikePostIds.contains(post.id)) {
+      return;
+    }
+
+    final isLiking = !post.isLikedByCurrentUser;
+    final optimisticPost = post.copyWith(
+      isLikedByCurrentUser: isLiking,
+      likeCount: isLiking ? post.likeCount + 1 : _safeDecrement(post.likeCount),
+    );
+
+    _pendingLikePostIds.add(post.id);
+    upsertPost(optimisticPost);
+
+    try {
+      if (isLiking) {
+        await communityRepository.likePost(
+          postId: post.id,
+          userId: currentUser.uid,
+        );
+      } else {
+        await communityRepository.unlikePost(
+          postId: post.id,
+          userId: currentUser.uid,
+        );
+      }
+    } catch (error) {
+      upsertPost(post);
+      if (error is AppException) {
+        rethrow;
+      }
+      throw AppException('community_like_failed');
+    } finally {
+      _pendingLikePostIds.remove(post.id);
+      notifyListeners();
+    }
+  }
+
+  Future<void> _refreshFeed(
+    CommunityFeedType type,
+    Future<List<Post>> Function() loader,
+  ) async {
+    _feedLoading[type] = true;
+    _feedErrors[type] = null;
+    notifyListeners();
+
+    try {
+      final posts = await loader();
+      _setPostsFor(type, posts);
+      _feedErrors[type] = null;
+    } catch (error) {
+      if (error is AppException) {
+        _feedErrors[type] = error.code;
+      } else {
+        _feedErrors[type] = 'community_load_failed';
+      }
+    } finally {
+      _feedLoading[type] = false;
+      notifyListeners();
+    }
+  }
+
+  void _setPostsFor(CommunityFeedType type, List<Post> posts) {
+    switch (type) {
+      case CommunityFeedType.following:
+        _followingPosts = posts;
+        break;
+      case CommunityFeedType.latest:
+        _latestPosts = posts;
+        break;
+      case CommunityFeedType.trending:
+        _trendingPosts = posts;
+        break;
+    }
+  }
+
+  List<Post> _upsertIntoList(List<Post> source, Post post) {
+    final existingIndex = source.indexWhere((item) => item.id == post.id);
+    if (existingIndex == -1) {
+      return source;
+    }
+
+    final updatedPosts = List<Post>.from(source);
+    updatedPosts[existingIndex] = post;
+    return updatedPosts;
   }
 
   Future<UserProfile?> _loadAuthorProfile(String uid) async {
@@ -171,5 +325,12 @@ class CommunityController extends ChangeNotifier {
     }
     final cleanValue = value.trim();
     return cleanValue.isEmpty ? null : cleanValue;
+  }
+
+  int _safeDecrement(int value) {
+    if (value <= 0) {
+      return 0;
+    }
+    return value - 1;
   }
 }

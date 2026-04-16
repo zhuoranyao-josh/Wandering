@@ -1199,6 +1199,60 @@ abstract class AppLocalizations {
   /// **'Follow'**
   String get communityFollowAction;
 
+  /// No description provided for @communityUnfollowAction.
+  ///
+  /// In en, this message translates to:
+  /// **'Unfollow'**
+  String get communityUnfollowAction;
+
+  /// No description provided for @communityFollowFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Failed to update follow status. Please try again later.'**
+  String get communityFollowFailed;
+
+  /// No description provided for @communityLikeFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Failed to update like status. Please try again later.'**
+  String get communityLikeFailed;
+
+  /// No description provided for @communityStatPosts.
+  ///
+  /// In en, this message translates to:
+  /// **'Posts'**
+  String get communityStatPosts;
+
+  /// No description provided for @communityStatFollowers.
+  ///
+  /// In en, this message translates to:
+  /// **'Followers'**
+  String get communityStatFollowers;
+
+  /// No description provided for @communityStatFollowing.
+  ///
+  /// In en, this message translates to:
+  /// **'Following'**
+  String get communityStatFollowing;
+
+  /// No description provided for @communityStatLikesReceived.
+  ///
+  /// In en, this message translates to:
+  /// **'Likes'**
+  String get communityStatLikesReceived;
+
+  /// No description provided for @communityFollowingListTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Following'**
+  String get communityFollowingListTitle;
+
+  /// No description provided for @communityFollowingListEmpty.
+  ///
+  /// In en, this message translates to:
+  /// **'This user is not following anyone yet.'**
+  String get communityFollowingListEmpty;
+
   /// No description provided for @communityUserPostsTitle.
   ///
   /// In en, this message translates to:

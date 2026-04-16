@@ -42,12 +42,12 @@ class CommunityRepositoryImpl implements CommunityRepository {
 
   @override
   Future<List<Post>> getTrendingPosts({int? limit}) {
-    throw UnimplementedError();
+    return remoteDataSource.getTrendingPosts(limit: limit);
   }
 
   @override
   Future<List<Post>> getFollowingPosts({required String userId, int? limit}) {
-    throw UnimplementedError();
+    return remoteDataSource.getFollowingPosts(userId: userId, limit: limit);
   }
 
   @override
@@ -67,12 +67,12 @@ class CommunityRepositoryImpl implements CommunityRepository {
 
   @override
   Future<void> likePost({required String postId, required String userId}) {
-    throw UnimplementedError();
+    return remoteDataSource.likePost(postId: postId, userId: userId);
   }
 
   @override
   Future<void> unlikePost({required String postId, required String userId}) {
-    throw UnimplementedError();
+    return remoteDataSource.unlikePost(postId: postId, userId: userId);
   }
 
   @override
@@ -136,12 +136,12 @@ class CommunityRepositoryImpl implements CommunityRepository {
 
   @override
   Future<UserProfileSummary?> getUserProfileSummary(String userId) {
-    throw UnimplementedError();
+    return remoteDataSource.getUserProfileSummary(userId);
   }
 
   @override
   Future<List<Post>> getPostsByUserId(String userId, {int? limit}) {
-    throw UnimplementedError();
+    return remoteDataSource.getPostsByUserId(userId, limit: limit);
   }
 
   @override
@@ -149,7 +149,10 @@ class CommunityRepositoryImpl implements CommunityRepository {
     required String currentUserId,
     required String targetUserId,
   }) {
-    throw UnimplementedError();
+    return remoteDataSource.followUser(
+      currentUserId: currentUserId,
+      targetUserId: targetUserId,
+    );
   }
 
   @override
@@ -157,6 +160,25 @@ class CommunityRepositoryImpl implements CommunityRepository {
     required String currentUserId,
     required String targetUserId,
   }) {
-    throw UnimplementedError();
+    return remoteDataSource.unfollowUser(
+      currentUserId: currentUserId,
+      targetUserId: targetUserId,
+    );
+  }
+
+  @override
+  Future<List<UserProfileSummary>> getFollowingUsers(String userId) {
+    return remoteDataSource.getFollowingUsers(userId);
+  }
+
+  @override
+  Future<bool> isFollowingUser({
+    required String currentUserId,
+    required String targetUserId,
+  }) {
+    return remoteDataSource.isFollowingUser(
+      currentUserId: currentUserId,
+      targetUserId: targetUserId,
+    );
   }
 }

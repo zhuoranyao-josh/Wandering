@@ -4,16 +4,16 @@ import '../entities/post_image.dart';
 import '../entities/user_profile_summary.dart';
 
 abstract class CommunityRepository {
-  /// 获取最新帖子列表，后续可扩展分页和过滤条件。
+  /// 获取最新帖子列表。
   Future<List<Post>> getLatestPosts({int? limit});
 
-  /// 获取热门帖子列表，通常用于按热度排序的社区首页。
+  /// 获取热门帖子列表。
   Future<List<Post>> getTrendingPosts({int? limit});
 
   /// 获取当前用户关注的人发布的帖子。
   Future<List<Post>> getFollowingPosts({required String userId, int? limit});
 
-  /// 获取附近帖子列表，后续可对接地理检索能力。
+  /// 附近帖子当前仍未接真实链路，先保留接口。
   Future<List<Post>> getNearbyPosts({
     required double latitude,
     required double longitude,
@@ -24,7 +24,7 @@ abstract class CommunityRepository {
   /// 根据帖子 ID 获取详情页所需的完整帖子信息。
   Future<Post?> getPostById(String postId);
 
-  /// 创建帖子，返回保存后的帖子结构，方便后续立即刷新 UI。
+  /// 创建帖子并返回保存后的帖子。
   Future<Post> createPost({
     required String authorId,
     required String authorName,
@@ -37,12 +37,12 @@ abstract class CommunityRepository {
     double? longitude,
   });
 
-  /// 帖子点赞与取消点赞接口，避免在 UI 层感知底层实现细节。
+  /// 帖子点赞与取消点赞。
   Future<void> likePost({required String postId, required String userId});
 
   Future<void> unlikePost({required String postId, required String userId});
 
-  /// 获取某条帖子下的评论列表，包含一级评论与一级回复。
+  /// 获取某条帖子下的评论列表。
   Future<List<Comment>> getCommentsByPostId(String postId, {int? limit});
 
   /// 添加一级评论。
@@ -54,7 +54,7 @@ abstract class CommunityRepository {
     required String content,
   });
 
-  /// 回复一级评论，不支持无限嵌套树结构。
+  /// 回复一级评论。
   Future<Comment> replyToComment({
     required String postId,
     required String parentCommentId,
@@ -65,7 +65,7 @@ abstract class CommunityRepository {
     String? replyToUserName,
   });
 
-  /// 评论点赞与取消点赞接口。
+  /// 评论点赞能力暂未接入真实链路，先保留接口。
   Future<void> likeComment({required String commentId, required String userId});
 
   Future<void> unlikeComment({
@@ -73,7 +73,7 @@ abstract class CommunityRepository {
     required String userId,
   });
 
-  /// 获取社区用户简要资料，用于头像跳转和用户主页展示。
+  /// 获取社区用户摘要资料。
   Future<UserProfileSummary?> getUserProfileSummary(String userId);
 
   /// 获取指定用户发布的帖子列表。
@@ -86,6 +86,14 @@ abstract class CommunityRepository {
   });
 
   Future<void> unfollowUser({
+    required String currentUserId,
+    required String targetUserId,
+  });
+
+  /// 获取用户关注列表与关注状态。
+  Future<List<UserProfileSummary>> getFollowingUsers(String userId);
+
+  Future<bool> isFollowingUser({
     required String currentUserId,
     required String targetUserId,
   });

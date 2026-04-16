@@ -9,15 +9,21 @@ class PostCard extends StatelessWidget {
     required this.post,
     required this.onTap,
     required this.onAvatarTap,
+    this.onLikeTap,
+    this.isLikeLoading = false,
   });
 
   final Post post;
   final VoidCallback onTap;
   final VoidCallback onAvatarTap;
+  final VoidCallback? onLikeTap;
+  final bool isLikeLoading;
 
   @override
   Widget build(BuildContext context) {
     final localeTag = Localizations.localeOf(context).toLanguageTag();
+    final coverImageUrl = post.coverImageUrl?.trim();
+    final hasCoverImage = coverImageUrl != null && coverImageUrl.isNotEmpty;
 
     return Material(
       color: Colors.transparent,
@@ -41,7 +47,7 @@ class PostCard extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // 卡片头部：头像和用户名支持独立点击进入个人主页。
+                // 卡片头部保留用户入口，便于直接跳到个人主页。
                 Row(
                   children: [
                     GestureDetector(
@@ -87,37 +93,61 @@ class PostCard extends StatelessWidget {
                     color: Color(0xFF64748B),
                   ),
                 ),
-                const SizedBox(height: 14),
-                // 真实帖子优先显示网络图；没有图片时使用占位块。
-                ClipRRect(
-                  borderRadius: BorderRadius.circular(16),
-                  child: AspectRatio(
-                    aspectRatio: 16 / 10,
-                    child: _PostImage(imageUrl: post.coverImageUrl),
-                  ),
-                ),
-                const SizedBox(height: 12),
-                Text(
-                  _buildMetaLabel(post: post, localeTag: localeTag),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(
-                    fontSize: 12,
-                    color: Color(0xFF64748B),
-                    fontWeight: FontWeight.w500,
-                  ),
-                ),
-                const SizedBox(height: 10),
-                Row(
-                  children: [
-                    _MetricChip(
-                      icon: Icons.favorite_border_rounded,
-                      value: post.likeCount,
+                if (hasCoverImage) ...[
+                  const SizedBox(height: 14),
+                  // 只有存在真实图片时才渲染图片区，避免无图帖子被空占位撑高。
+                  ClipRRect(
+                    borderRadius: BorderRadius.circular(16),
+                    child: AspectRatio(
+                      aspectRatio: 16 / 10,
+                      child: _PostImage(imageUrl: coverImageUrl),
                     ),
-                    const SizedBox(width: 10),
-                    _MetricChip(
-                      icon: Icons.mode_comment_outlined,
-                      value: post.commentCount,
+                  ),
+                ],
+                const SizedBox(height: 12),
+                // 底部信息固定为左侧时间地点，右侧点赞与评论。
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.end,
+                  children: [
+                    Expanded(
+                      child: Text(
+                        _buildMetaLabel(post: post, localeTag: localeTag),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(
+                          fontSize: 12,
+                          color: Color(0xFF64748B),
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Row(
+                      mainAxisSize: MainAxisSize.min,
+                      mainAxisAlignment: MainAxisAlignment.end,
+                      children: [
+                        _MetricChip(
+                          icon: post.isLikedByCurrentUser
+                              ? Icons.favorite_rounded
+                              : Icons.favorite_border_rounded,
+                          value: post.likeCount,
+                          iconColor: post.isLikedByCurrentUser
+                              ? const Color(0xFFDC2626)
+                              : const Color(0xFF64748B),
+                          textColor: post.isLikedByCurrentUser
+                              ? const Color(0xFF991B1B)
+                              : const Color(0xFF475569),
+                          onTap: onLikeTap,
+                          isLoading: isLikeLoading,
+                        ),
+                        const SizedBox(width: 10),
+                        _MetricChip(
+                          icon: Icons.mode_comment_outlined,
+                          value: post.commentCount,
+                          iconColor: const Color(0xFF64748B),
+                          textColor: const Color(0xFF475569),
+                        ),
+                      ],
                     ),
                   ],
                 ),
@@ -209,14 +239,25 @@ class _PostImage extends StatelessWidget {
 }
 
 class _MetricChip extends StatelessWidget {
-  const _MetricChip({required this.icon, required this.value});
+  const _MetricChip({
+    required this.icon,
+    required this.value,
+    required this.iconColor,
+    required this.textColor,
+    this.onTap,
+    this.isLoading = false,
+  });
 
   final IconData icon;
   final int value;
+  final Color iconColor;
+  final Color textColor;
+  final VoidCallback? onTap;
+  final bool isLoading;
 
   @override
   Widget build(BuildContext context) {
-    return Container(
+    final child = Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
       decoration: BoxDecoration(
         color: const Color(0xFFF8FAFC),
@@ -225,17 +266,37 @@ class _MetricChip extends StatelessWidget {
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(icon, size: 16, color: const Color(0xFF64748B)),
+          if (isLoading)
+            const SizedBox(
+              width: 16,
+              height: 16,
+              child: CircularProgressIndicator(strokeWidth: 2),
+            )
+          else
+            Icon(icon, size: 16, color: iconColor),
           const SizedBox(width: 6),
           Text(
             '$value',
-            style: const TextStyle(
+            style: TextStyle(
               fontSize: 12,
               fontWeight: FontWeight.w600,
-              color: Color(0xFF475569),
+              color: textColor,
             ),
           ),
         ],
+      ),
+    );
+
+    if (onTap == null) {
+      return child;
+    }
+
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        borderRadius: BorderRadius.circular(999),
+        onTap: isLoading ? null : onTap,
+        child: child,
       ),
     );
   }

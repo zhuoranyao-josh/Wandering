@@ -71,6 +71,18 @@ class _PostDetailPageState extends State<PostDetailPage> {
     _commentFocusNode.requestFocus();
   }
 
+  Future<void> _toggleLike(AppLocalizations t) async {
+    try {
+      await _controller.toggleLike();
+    } catch (error) {
+      if (!mounted) return;
+      final message = _messageForLikeError(error: error, t: t);
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(message)));
+    }
+  }
+
   String _messageForCommentError({
     required Object error,
     required AppLocalizations t,
@@ -82,6 +94,16 @@ class _PostDetailPageState extends State<PostDetailPage> {
         case 'community_comment_submit_failed':
           return t.communityCommentSubmitFailed;
       }
+    }
+    return t.errorUnknown;
+  }
+
+  String _messageForLikeError({
+    required Object error,
+    required AppLocalizations t,
+  }) {
+    if (error is AppException && error.code == 'community_like_failed') {
+      return t.communityLikeFailed;
     }
     return t.errorUnknown;
   }
@@ -111,7 +133,7 @@ class _PostDetailPageState extends State<PostDetailPage> {
       return const Center(child: CircularProgressIndicator());
     }
 
-    if (_controller.errorCode != null) {
+    if (_controller.errorCode != null && _controller.post == null) {
       return Center(
         child: Padding(
           padding: const EdgeInsets.all(24),
@@ -150,6 +172,8 @@ class _PostDetailPageState extends State<PostDetailPage> {
         children: [
           _PostHeader(
             post: post,
+            isLikeSubmitting: _controller.isLikeSubmitting,
+            onLikeTap: () => _toggleLike(t),
             onAuthorTap: () {
               context.push(
                 AppRouter.communityUserProfile(post.authorId),
@@ -172,6 +196,15 @@ class _PostDetailPageState extends State<PostDetailPage> {
             ),
           ),
           const SizedBox(height: 12),
+          if (_controller.hasCommentsLoadError) ...[
+            // 评论读取失败时保留帖子主体，给用户明确的局部重试入口。
+            _CommentsLoadErrorCard(
+              message: t.communityLoadFailed,
+              retryLabel: t.communityRetry,
+              onRetry: _controller.refresh,
+            ),
+            const SizedBox(height: 12),
+          ],
           if (_controller.topLevelComments.isEmpty)
             Padding(
               padding: const EdgeInsets.symmetric(vertical: 24),
@@ -345,11 +378,66 @@ class _PostDetailPageState extends State<PostDetailPage> {
   }
 }
 
+class _CommentsLoadErrorCard extends StatelessWidget {
+  const _CommentsLoadErrorCard({
+    required this.message,
+    required this.retryLabel,
+    required this.onRetry,
+  });
+
+  final String message;
+  final String retryLabel;
+  final Future<void> Function() onRetry;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+      ),
+      child: Row(
+        children: [
+          const Icon(
+            Icons.error_outline_rounded,
+            size: 18,
+            color: Color(0xFFB45309),
+          ),
+          const SizedBox(width: 10),
+          Expanded(
+            flex: 8,
+            child: Text(
+              message,
+              style: const TextStyle(
+                fontSize: 13,
+                height: 1.5,
+                color: Color(0xFF475569),
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ),
+          const SizedBox(width: 12),
+          TextButton(onPressed: onRetry, child: Text(retryLabel)),
+        ],
+      ),
+    );
+  }
+}
+
 class _PostHeader extends StatelessWidget {
-  const _PostHeader({required this.post, required this.onAuthorTap});
+  const _PostHeader({
+    required this.post,
+    required this.onAuthorTap,
+    required this.onLikeTap,
+    required this.isLikeSubmitting,
+  });
 
   final Post post;
   final VoidCallback onAuthorTap;
+  final VoidCallback onLikeTap;
+  final bool isLikeSubmitting;
 
   @override
   Widget build(BuildContext context) {
@@ -424,13 +512,25 @@ class _PostHeader extends StatelessWidget {
         Row(
           children: [
             _DetailMetric(
-              icon: Icons.favorite_border_rounded,
+              icon: post.isLikedByCurrentUser
+                  ? Icons.favorite_rounded
+                  : Icons.favorite_border_rounded,
               value: post.likeCount,
+              iconColor: post.isLikedByCurrentUser
+                  ? const Color(0xFFDC2626)
+                  : const Color(0xFF64748B),
+              textColor: post.isLikedByCurrentUser
+                  ? const Color(0xFF991B1B)
+                  : const Color(0xFF334155),
+              onTap: onLikeTap,
+              isLoading: isLikeSubmitting,
             ),
             const SizedBox(width: 12),
             _DetailMetric(
               icon: Icons.mode_comment_outlined,
               value: post.commentCount,
+              iconColor: const Color(0xFF64748B),
+              textColor: const Color(0xFF334155),
             ),
           ],
         ),
@@ -662,14 +762,25 @@ class _DetailAvatar extends StatelessWidget {
 }
 
 class _DetailMetric extends StatelessWidget {
-  const _DetailMetric({required this.icon, required this.value});
+  const _DetailMetric({
+    required this.icon,
+    required this.value,
+    required this.iconColor,
+    required this.textColor,
+    this.onTap,
+    this.isLoading = false,
+  });
 
   final IconData icon;
   final int value;
+  final Color iconColor;
+  final Color textColor;
+  final VoidCallback? onTap;
+  final bool isLoading;
 
   @override
   Widget build(BuildContext context) {
-    return Container(
+    final child = Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
       decoration: BoxDecoration(
         color: Colors.white,
@@ -678,17 +789,37 @@ class _DetailMetric extends StatelessWidget {
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(icon, size: 18, color: const Color(0xFF64748B)),
+          if (isLoading)
+            const SizedBox(
+              width: 18,
+              height: 18,
+              child: CircularProgressIndicator(strokeWidth: 2),
+            )
+          else
+            Icon(icon, size: 18, color: iconColor),
           const SizedBox(width: 6),
           Text(
             '$value',
-            style: const TextStyle(
+            style: TextStyle(
               fontSize: 13,
               fontWeight: FontWeight.w700,
-              color: Color(0xFF334155),
+              color: textColor,
             ),
           ),
         ],
+      ),
+    );
+
+    if (onTap == null) {
+      return child;
+    }
+
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        borderRadius: BorderRadius.circular(999),
+        onTap: isLoading ? null : onTap,
+        child: child,
       ),
     );
   }

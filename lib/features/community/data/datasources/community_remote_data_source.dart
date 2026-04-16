@@ -1,9 +1,14 @@
 import '../../domain/entities/comment.dart';
 import '../../domain/entities/post.dart';
 import '../../domain/entities/post_image.dart';
+import '../../domain/entities/user_profile_summary.dart';
 
 abstract class CommunityRemoteDataSource {
   Future<List<Post>> getLatestPosts({int? limit});
+
+  Future<List<Post>> getTrendingPosts({int? limit});
+
+  Future<List<Post>> getFollowingPosts({required String userId, int? limit});
 
   Future<Post?> getPostById(String postId);
 
@@ -37,5 +42,30 @@ abstract class CommunityRemoteDataSource {
     String? userAvatarUrl,
     required String content,
     String? replyToUserName,
+  });
+
+  Future<void> likePost({required String postId, required String userId});
+
+  Future<void> unlikePost({required String postId, required String userId});
+
+  Future<UserProfileSummary?> getUserProfileSummary(String userId);
+
+  Future<List<Post>> getPostsByUserId(String userId, {int? limit});
+
+  Future<void> followUser({
+    required String currentUserId,
+    required String targetUserId,
+  });
+
+  Future<void> unfollowUser({
+    required String currentUserId,
+    required String targetUserId,
+  });
+
+  Future<List<UserProfileSummary>> getFollowingUsers(String userId);
+
+  Future<bool> isFollowingUser({
+    required String currentUserId,
+    required String targetUserId,
   });
 }

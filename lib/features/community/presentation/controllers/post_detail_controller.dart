@@ -19,9 +19,11 @@ class PostDetailController extends ChangeNotifier {
 
   bool _isLoading = false;
   bool _isSubmitting = false;
+  bool _isLikeSubmitting = false;
   String? _errorCode;
   Post? _post;
   List<Comment> _comments = const <Comment>[];
+  bool _hasCommentsLoadError = false;
   Comment? _replyTarget;
   final Set<String> _expandedCommentIds = <String>{};
 
@@ -35,9 +37,11 @@ class PostDetailController extends ChangeNotifier {
 
   bool get isLoading => _isLoading;
   bool get isSubmitting => _isSubmitting;
+  bool get isLikeSubmitting => _isLikeSubmitting;
   String? get errorCode => _errorCode;
   Post? get post => _post;
   List<Comment> get comments => _comments;
+  bool get hasCommentsLoadError => _hasCommentsLoadError;
   Comment? get replyTarget => _replyTarget;
 
   List<Comment> get topLevelComments {
@@ -47,9 +51,62 @@ class PostDetailController extends ChangeNotifier {
       ..sort((a, b) => a.createdAt.compareTo(b.createdAt));
   }
 
+  Future<void> toggleLike() async {
+    final currentPost = _post;
+    final currentUser = authController.getCurrentUser();
+    if (currentPost == null || currentUser == null || _isLikeSubmitting) {
+      if (currentUser == null) {
+        throw AppException('community_like_failed');
+      }
+      return;
+    }
+
+    final isLiking = !currentPost.isLikedByCurrentUser;
+    final originalPost = currentPost;
+    final optimisticPost = currentPost.copyWith(
+      isLikedByCurrentUser: isLiking,
+      likeCount: isLiking
+          ? currentPost.likeCount + 1
+          : _safeDecrement(currentPost.likeCount),
+    );
+
+    _isLikeSubmitting = true;
+    _post = optimisticPost;
+    communityController.upsertPost(optimisticPost);
+    notifyListeners();
+
+    try {
+      if (isLiking) {
+        await communityRepository.likePost(
+          postId: currentPost.id,
+          userId: currentUser.uid,
+        );
+      } else {
+        await communityRepository.unlikePost(
+          postId: currentPost.id,
+          userId: currentUser.uid,
+        );
+      }
+    } catch (error) {
+      _post = originalPost;
+      communityController.upsertPost(originalPost);
+      notifyListeners();
+      if (error is AppException) {
+        rethrow;
+      }
+      throw AppException('community_like_failed');
+    } finally {
+      _isLikeSubmitting = false;
+      notifyListeners();
+    }
+  }
+
   Future<void> load() async {
     _isLoading = true;
     _errorCode = null;
+    _hasCommentsLoadError = false;
+    // 先复用社区列表中的缓存帖子，避免详情页完全依赖二次请求。
+    _post ??= communityController.findPostById(postId);
     notifyListeners();
 
     try {
@@ -68,6 +125,7 @@ class PostDetailController extends ChangeNotifier {
   }
 
   Future<void> refresh() async {
+    _hasCommentsLoadError = false;
     try {
       await _loadPostAndComments();
       _errorCode = null;
@@ -176,16 +234,36 @@ class PostDetailController extends ChangeNotifier {
   }
 
   Future<void> _loadPostAndComments() async {
-    final results = await Future.wait<Object?>(<Future<Object?>>[
-      communityRepository.getPostById(postId),
-      communityRepository.getCommentsByPostId(postId),
-    ]);
+    Object? postLoadError;
 
-    _post = results[0] as Post?;
-    _comments = (results[1] as List<Comment>).toList(growable: false);
+    try {
+      final latestPost = await communityRepository.getPostById(postId);
+      _post = latestPost ?? _post;
+    } catch (error) {
+      postLoadError = error;
+    }
 
     if (_post != null) {
       communityController.upsertPost(_post!);
+    }
+
+    try {
+      _comments = await communityRepository.getCommentsByPostId(postId);
+      _hasCommentsLoadError = false;
+    } catch (_) {
+      _comments = const <Comment>[];
+      _hasCommentsLoadError = true;
+      // 只要帖子主体还在，就允许详情页继续展示并单独提示评论加载失败。
+      if (_post == null) {
+        throw AppException('community_load_failed');
+      }
+    }
+
+    if (_post == null && postLoadError != null) {
+      if (postLoadError is AppException) {
+        throw postLoadError;
+      }
+      throw AppException('community_load_failed');
     }
   }
 
@@ -234,5 +312,12 @@ class PostDetailController extends ChangeNotifier {
     }
 
     return null;
+  }
+
+  int _safeDecrement(int value) {
+    if (value <= 0) {
+      return 0;
+    }
+    return value - 1;
   }
 }
