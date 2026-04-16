@@ -10,6 +10,11 @@ import '../features/activity/presentation/pages/activity_page.dart';
 import '../features/auth/domain/entities/auth_user.dart';
 import '../features/auth/presentation/pages/login_page.dart';
 import '../features/auth/presentation/pages/register_page.dart';
+import '../features/community/presentation/models/community_models.dart';
+import '../features/community/presentation/pages/community_page.dart';
+import '../features/community/presentation/pages/create_post_page.dart';
+import '../features/community/presentation/pages/post_detail_page.dart';
+import '../features/community/presentation/pages/user_profile_page.dart';
 import '../features/main_container/presentation/pages/main_container_page.dart';
 import '../features/main_container/presentation/pages/map_tab_page.dart';
 import '../features/main_container/presentation/pages/placeholder_tab_page.dart';
@@ -31,11 +36,15 @@ class AppRouter {
   static const String profileEdit = '/profile-edit';
   static const String activities = '/activities';
   static const String activityDetailPath = 'detail/:eventId';
+  static const String community = '/community';
+  static const String createPost = 'create-post';
+  static const String postDetail = 'post/:postId';
+  static const String userProfile = 'user/:userId';
 
   static const String tabOne = '/tab-1';
   static const String tabTwo = activities;
   static const String tabThree = home;
-  static const String tabFour = '/tab-4';
+  static const String tabFour = community;
   static const String tabMe = '/me';
 
   static final Set<String> _publicRoutes = <String>{welcome, login, register};
@@ -53,6 +62,18 @@ class AppRouter {
 
   static String activityDetail(String eventId) {
     return '$activities/detail/$eventId';
+  }
+
+  static String communityCreatePost() {
+    return '$community/$createPost';
+  }
+
+  static String communityPostDetail(String postId) {
+    return '$community/${postDetail.replaceFirst(':postId', postId)}';
+  }
+
+  static String communityUserProfile(String userId) {
+    return '$community/${userProfile.replaceFirst(':userId', userId)}';
   }
 
   static final GoRouter router = GoRouter(
@@ -155,8 +176,35 @@ class AppRouter {
             routes: <RouteBase>[
               GoRoute(
                 path: tabFour,
-                builder: (context, state) =>
-                    const PlaceholderTabPage(title: 'Tab 4'),
+                builder: (context, state) => const CommunityPage(),
+                routes: <RouteBase>[
+                  GoRoute(
+                    path: createPost,
+                    builder: (context, state) => const CreatePostPage(),
+                  ),
+                  GoRoute(
+                    path: postDetail,
+                    builder: (context, state) {
+                      final initialPost = state.extra as CommunityPost?;
+                      final postId = state.pathParameters['postId'] ?? '';
+                      return PostDetailPage(
+                        postId: postId,
+                        initialPost: initialPost,
+                      );
+                    },
+                  ),
+                  GoRoute(
+                    path: userProfile,
+                    builder: (context, state) {
+                      final initialUser = state.extra as CommunityUser?;
+                      final userId = state.pathParameters['userId'] ?? '';
+                      return UserProfilePage(
+                        userId: userId,
+                        initialUser: initialUser,
+                      );
+                    },
+                  ),
+                ],
               ),
             ],
           ),
@@ -224,7 +272,8 @@ class AppRouter {
     final bool canStayInAuthenticatedArea =
         _authenticatedExactRoutes.contains(location) ||
         location.startsWith('/me/') ||
-        location.startsWith('$activities/');
+        location.startsWith('$activities/') ||
+        location.startsWith('$community/');
     if (canStayInAuthenticatedArea) {
       return null;
     }

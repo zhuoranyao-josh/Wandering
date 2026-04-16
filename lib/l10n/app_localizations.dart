@@ -1000,6 +1000,330 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'View details'**
   String get viewDetails;
+
+  /// No description provided for @communityTabFollowing.
+  ///
+  /// In en, this message translates to:
+  /// **'Following'**
+  String get communityTabFollowing;
+
+  /// No description provided for @communityTabLatest.
+  ///
+  /// In en, this message translates to:
+  /// **'Latest'**
+  String get communityTabLatest;
+
+  /// No description provided for @communityTabPopular.
+  ///
+  /// In en, this message translates to:
+  /// **'Popular'**
+  String get communityTabPopular;
+
+  /// No description provided for @communityTabNearby.
+  ///
+  /// In en, this message translates to:
+  /// **'Nearby'**
+  String get communityTabNearby;
+
+  /// No description provided for @communitySearchTooltip.
+  ///
+  /// In en, this message translates to:
+  /// **'Search'**
+  String get communitySearchTooltip;
+
+  /// No description provided for @communityCreatePostTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Create post'**
+  String get communityCreatePostTitle;
+
+  /// No description provided for @communityCreatePostTitleOptional.
+  ///
+  /// In en, this message translates to:
+  /// **'Title (Optional)'**
+  String get communityCreatePostTitleOptional;
+
+  /// No description provided for @communityCreatePostTitleHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Add a short title'**
+  String get communityCreatePostTitleHint;
+
+  /// No description provided for @communityCreatePostContentRequired.
+  ///
+  /// In en, this message translates to:
+  /// **'Content (Required)'**
+  String get communityCreatePostContentRequired;
+
+  /// No description provided for @communityCreatePostContentHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Share what you discovered today'**
+  String get communityCreatePostContentHint;
+
+  /// No description provided for @communityCreatePostAddImage.
+  ///
+  /// In en, this message translates to:
+  /// **'Add image'**
+  String get communityCreatePostAddImage;
+
+  /// No description provided for @communityCreatePostAddLocation.
+  ///
+  /// In en, this message translates to:
+  /// **'Add location'**
+  String get communityCreatePostAddLocation;
+
+  /// No description provided for @communityCreatePostSubmit.
+  ///
+  /// In en, this message translates to:
+  /// **'Post'**
+  String get communityCreatePostSubmit;
+
+  /// No description provided for @communityRetry.
+  ///
+  /// In en, this message translates to:
+  /// **'Retry'**
+  String get communityRetry;
+
+  /// No description provided for @communityLoadFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Failed to load posts. Please try again later.'**
+  String get communityLoadFailed;
+
+  /// No description provided for @communityEmptyPosts.
+  ///
+  /// In en, this message translates to:
+  /// **'No posts yet.'**
+  String get communityEmptyPosts;
+
+  /// No description provided for @communityContentEmpty.
+  ///
+  /// In en, this message translates to:
+  /// **'Please enter post content.'**
+  String get communityContentEmpty;
+
+  /// No description provided for @communityPublishFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Failed to publish post. Please try again later.'**
+  String get communityPublishFailed;
+
+  /// No description provided for @communityCommentsEmpty.
+  ///
+  /// In en, this message translates to:
+  /// **'No comments yet.'**
+  String get communityCommentsEmpty;
+
+  /// No description provided for @communityCommentHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Write a comment...'**
+  String get communityCommentHint;
+
+  /// No description provided for @communityCommentSend.
+  ///
+  /// In en, this message translates to:
+  /// **'Send'**
+  String get communityCommentSend;
+
+  /// No description provided for @communityReplyAction.
+  ///
+  /// In en, this message translates to:
+  /// **'Reply'**
+  String get communityReplyAction;
+
+  /// No description provided for @communityCancelReply.
+  ///
+  /// In en, this message translates to:
+  /// **'Cancel'**
+  String get communityCancelReply;
+
+  /// No description provided for @communityHideReplies.
+  ///
+  /// In en, this message translates to:
+  /// **'Hide replies'**
+  String get communityHideReplies;
+
+  /// No description provided for @communityCommentEmpty.
+  ///
+  /// In en, this message translates to:
+  /// **'Please enter comment content.'**
+  String get communityCommentEmpty;
+
+  /// No description provided for @communityCommentSubmitFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Failed to send comment. Please try again later.'**
+  String get communityCommentSubmitFailed;
+
+  /// No description provided for @communityReplyingToUser.
+  ///
+  /// In en, this message translates to:
+  /// **'Replying to {name}'**
+  String communityReplyingToUser(Object name);
+
+  /// No description provided for @communityViewAllReplies.
+  ///
+  /// In en, this message translates to:
+  /// **'View all {count} replies'**
+  String communityViewAllReplies(Object count);
+
+  /// No description provided for @communityReplyPreview.
+  ///
+  /// In en, this message translates to:
+  /// **'{userName} replied to {replyToUserName}: {content}'**
+  String communityReplyPreview(Object userName, Object replyToUserName, Object content);
+
+  /// No description provided for @communityPostDetailTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Post details'**
+  String get communityPostDetailTitle;
+
+  /// No description provided for @communityCommentsTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Comments'**
+  String get communityCommentsTitle;
+
+  /// No description provided for @communityUserProfileTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Profile'**
+  String get communityUserProfileTitle;
+
+  /// No description provided for @communityFollowAction.
+  ///
+  /// In en, this message translates to:
+  /// **'Follow'**
+  String get communityFollowAction;
+
+  /// No description provided for @communityUserPostsTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Posts'**
+  String get communityUserPostsTitle;
+
+  /// No description provided for @communityPostNotFound.
+  ///
+  /// In en, this message translates to:
+  /// **'Post not found.'**
+  String get communityPostNotFound;
+
+  /// No description provided for @communityUserNotFound.
+  ///
+  /// In en, this message translates to:
+  /// **'User not found.'**
+  String get communityUserNotFound;
+
+  /// No description provided for @communityMockUserLuna.
+  ///
+  /// In en, this message translates to:
+  /// **'Luna'**
+  String get communityMockUserLuna;
+
+  /// No description provided for @communityMockUserNoah.
+  ///
+  /// In en, this message translates to:
+  /// **'Noah'**
+  String get communityMockUserNoah;
+
+  /// No description provided for @communityMockUserIris.
+  ///
+  /// In en, this message translates to:
+  /// **'Iris'**
+  String get communityMockUserIris;
+
+  /// No description provided for @communityMockPostOneTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Night market snapshot guide'**
+  String get communityMockPostOneTitle;
+
+  /// No description provided for @communityMockPostOneSummary.
+  ///
+  /// In en, this message translates to:
+  /// **'Street snacks, neon signs, and a route worth saving.'**
+  String get communityMockPostOneSummary;
+
+  /// No description provided for @communityMockPostOneContent.
+  ///
+  /// In en, this message translates to:
+  /// **'I walked from the old bridge to the riverside night market and found a surprisingly smooth photo route. The seafood stall near the entrance gets crowded after sunset, but the handmade dessert cart is still underrated. If you like warm lights and easy street shots, this corner is worth staying for an extra hour.'**
+  String get communityMockPostOneContent;
+
+  /// No description provided for @communityMockPostOneTime.
+  ///
+  /// In en, this message translates to:
+  /// **'2h ago'**
+  String get communityMockPostOneTime;
+
+  /// No description provided for @communityMockPostOneLocation.
+  ///
+  /// In en, this message translates to:
+  /// **'Huangpu Riverside'**
+  String get communityMockPostOneLocation;
+
+  /// No description provided for @communityMockPostTwoTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Morning run by the river'**
+  String get communityMockPostTwoTitle;
+
+  /// No description provided for @communityMockPostTwoSummary.
+  ///
+  /// In en, this message translates to:
+  /// **'Cool breeze, open track, and a great sunrise reflection.'**
+  String get communityMockPostTwoSummary;
+
+  /// No description provided for @communityMockPostTwoContent.
+  ///
+  /// In en, this message translates to:
+  /// **'The riverside path was almost empty at 6:30 this morning, so the whole route felt calm and clean. There are several benches with a clear skyline view, which makes it a nice place to run slowly or just sit down for ten minutes.'**
+  String get communityMockPostTwoContent;
+
+  /// No description provided for @communityMockPostTwoTime.
+  ///
+  /// In en, this message translates to:
+  /// **'5h ago'**
+  String get communityMockPostTwoTime;
+
+  /// No description provided for @communityMockPostTwoLocation.
+  ///
+  /// In en, this message translates to:
+  /// **'West Bund'**
+  String get communityMockPostTwoLocation;
+
+  /// No description provided for @communityMockPostThreeTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Cafe with the best window light'**
+  String get communityMockPostThreeTitle;
+
+  /// No description provided for @communityMockPostThreeSummary.
+  ///
+  /// In en, this message translates to:
+  /// **'Soft sunlight, quiet seats, and a corner for slow afternoons.'**
+  String get communityMockPostThreeSummary;
+
+  /// No description provided for @communityMockPostThreeContent.
+  ///
+  /// In en, this message translates to:
+  /// **'I stayed in this cafe for nearly an entire afternoon because the window light kept changing in a really gentle way. The second-floor corner seat is the best choice if you want photos, reading time, or a quiet chat with friends.'**
+  String get communityMockPostThreeContent;
+
+  /// No description provided for @communityMockPostThreeTime.
+  ///
+  /// In en, this message translates to:
+  /// **'Yesterday'**
+  String get communityMockPostThreeTime;
+
+  /// No description provided for @communityMockPostThreeLocation.
+  ///
+  /// In en, this message translates to:
+  /// **'Anfu Road'**
+  String get communityMockPostThreeLocation;
 }
 
 class _AppLocalizationsDelegate extends LocalizationsDelegate<AppLocalizations> {

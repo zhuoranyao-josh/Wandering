@@ -464,4 +464,172 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get viewDetails => 'View details';
+
+  @override
+  String get communityTabFollowing => 'Following';
+
+  @override
+  String get communityTabLatest => 'Latest';
+
+  @override
+  String get communityTabPopular => 'Popular';
+
+  @override
+  String get communityTabNearby => 'Nearby';
+
+  @override
+  String get communitySearchTooltip => 'Search';
+
+  @override
+  String get communityCreatePostTitle => 'Create post';
+
+  @override
+  String get communityCreatePostTitleOptional => 'Title (Optional)';
+
+  @override
+  String get communityCreatePostTitleHint => 'Add a short title';
+
+  @override
+  String get communityCreatePostContentRequired => 'Content (Required)';
+
+  @override
+  String get communityCreatePostContentHint => 'Share what you discovered today';
+
+  @override
+  String get communityCreatePostAddImage => 'Add image';
+
+  @override
+  String get communityCreatePostAddLocation => 'Add location';
+
+  @override
+  String get communityCreatePostSubmit => 'Post';
+
+  @override
+  String get communityRetry => 'Retry';
+
+  @override
+  String get communityLoadFailed => 'Failed to load posts. Please try again later.';
+
+  @override
+  String get communityEmptyPosts => 'No posts yet.';
+
+  @override
+  String get communityContentEmpty => 'Please enter post content.';
+
+  @override
+  String get communityPublishFailed => 'Failed to publish post. Please try again later.';
+
+  @override
+  String get communityCommentsEmpty => 'No comments yet.';
+
+  @override
+  String get communityCommentHint => 'Write a comment...';
+
+  @override
+  String get communityCommentSend => 'Send';
+
+  @override
+  String get communityReplyAction => 'Reply';
+
+  @override
+  String get communityCancelReply => 'Cancel';
+
+  @override
+  String get communityHideReplies => 'Hide replies';
+
+  @override
+  String get communityCommentEmpty => 'Please enter comment content.';
+
+  @override
+  String get communityCommentSubmitFailed => 'Failed to send comment. Please try again later.';
+
+  @override
+  String communityReplyingToUser(Object name) {
+    return 'Replying to $name';
+  }
+
+  @override
+  String communityViewAllReplies(Object count) {
+    return 'View all $count replies';
+  }
+
+  @override
+  String communityReplyPreview(Object userName, Object replyToUserName, Object content) {
+    return '$userName replied to $replyToUserName: $content';
+  }
+
+  @override
+  String get communityPostDetailTitle => 'Post details';
+
+  @override
+  String get communityCommentsTitle => 'Comments';
+
+  @override
+  String get communityUserProfileTitle => 'Profile';
+
+  @override
+  String get communityFollowAction => 'Follow';
+
+  @override
+  String get communityUserPostsTitle => 'Posts';
+
+  @override
+  String get communityPostNotFound => 'Post not found.';
+
+  @override
+  String get communityUserNotFound => 'User not found.';
+
+  @override
+  String get communityMockUserLuna => 'Luna';
+
+  @override
+  String get communityMockUserNoah => 'Noah';
+
+  @override
+  String get communityMockUserIris => 'Iris';
+
+  @override
+  String get communityMockPostOneTitle => 'Night market snapshot guide';
+
+  @override
+  String get communityMockPostOneSummary => 'Street snacks, neon signs, and a route worth saving.';
+
+  @override
+  String get communityMockPostOneContent => 'I walked from the old bridge to the riverside night market and found a surprisingly smooth photo route. The seafood stall near the entrance gets crowded after sunset, but the handmade dessert cart is still underrated. If you like warm lights and easy street shots, this corner is worth staying for an extra hour.';
+
+  @override
+  String get communityMockPostOneTime => '2h ago';
+
+  @override
+  String get communityMockPostOneLocation => 'Huangpu Riverside';
+
+  @override
+  String get communityMockPostTwoTitle => 'Morning run by the river';
+
+  @override
+  String get communityMockPostTwoSummary => 'Cool breeze, open track, and a great sunrise reflection.';
+
+  @override
+  String get communityMockPostTwoContent => 'The riverside path was almost empty at 6:30 this morning, so the whole route felt calm and clean. There are several benches with a clear skyline view, which makes it a nice place to run slowly or just sit down for ten minutes.';
+
+  @override
+  String get communityMockPostTwoTime => '5h ago';
+
+  @override
+  String get communityMockPostTwoLocation => 'West Bund';
+
+  @override
+  String get communityMockPostThreeTitle => 'Cafe with the best window light';
+
+  @override
+  String get communityMockPostThreeSummary => 'Soft sunlight, quiet seats, and a corner for slow afternoons.';
+
+  @override
+  String get communityMockPostThreeContent => 'I stayed in this cafe for nearly an entire afternoon because the window light kept changing in a really gentle way. The second-floor corner seat is the best choice if you want photos, reading time, or a quiet chat with friends.';
+
+  @override
+  String get communityMockPostThreeTime => 'Yesterday';
+
+  @override
+  String get communityMockPostThreeLocation => 'Anfu Road';
 }

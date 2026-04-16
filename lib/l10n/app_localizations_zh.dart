@@ -464,4 +464,172 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get viewDetails => '查看详情';
+
+  @override
+  String get communityTabFollowing => '关注';
+
+  @override
+  String get communityTabLatest => '最新';
+
+  @override
+  String get communityTabPopular => '热门';
+
+  @override
+  String get communityTabNearby => '附近';
+
+  @override
+  String get communitySearchTooltip => '搜索';
+
+  @override
+  String get communityCreatePostTitle => '发布帖子';
+
+  @override
+  String get communityCreatePostTitleOptional => '标题（可选）';
+
+  @override
+  String get communityCreatePostTitleHint => '输入一个简短标题';
+
+  @override
+  String get communityCreatePostContentRequired => '内容（必填）';
+
+  @override
+  String get communityCreatePostContentHint => '写点今天的见闻吧';
+
+  @override
+  String get communityCreatePostAddImage => '添加图片';
+
+  @override
+  String get communityCreatePostAddLocation => '添加地点';
+
+  @override
+  String get communityCreatePostSubmit => '发送';
+
+  @override
+  String get communityRetry => '重试';
+
+  @override
+  String get communityLoadFailed => '帖子加载失败，请稍后再试。';
+
+  @override
+  String get communityEmptyPosts => '暂时还没有帖子。';
+
+  @override
+  String get communityContentEmpty => '请输入帖子内容。';
+
+  @override
+  String get communityPublishFailed => '帖子发布失败，请稍后再试。';
+
+  @override
+  String get communityCommentsEmpty => '暂时还没有评论。';
+
+  @override
+  String get communityCommentHint => '写下你的评论...';
+
+  @override
+  String get communityCommentSend => '发送';
+
+  @override
+  String get communityReplyAction => '回复';
+
+  @override
+  String get communityCancelReply => '取消';
+
+  @override
+  String get communityHideReplies => '收起回复';
+
+  @override
+  String get communityCommentEmpty => '请输入评论内容。';
+
+  @override
+  String get communityCommentSubmitFailed => '评论发送失败，请稍后再试。';
+
+  @override
+  String communityReplyingToUser(Object name) {
+    return '正在回复 $name';
+  }
+
+  @override
+  String communityViewAllReplies(Object count) {
+    return '查看全部 $count 条回复';
+  }
+
+  @override
+  String communityReplyPreview(Object userName, Object replyToUserName, Object content) {
+    return '$userName 回复 $replyToUserName：$content';
+  }
+
+  @override
+  String get communityPostDetailTitle => '帖子详情';
+
+  @override
+  String get communityCommentsTitle => '评论';
+
+  @override
+  String get communityUserProfileTitle => '用户主页';
+
+  @override
+  String get communityFollowAction => '关注';
+
+  @override
+  String get communityUserPostsTitle => '发布的帖子';
+
+  @override
+  String get communityPostNotFound => '未找到该帖子。';
+
+  @override
+  String get communityUserNotFound => '未找到该用户。';
+
+  @override
+  String get communityMockUserLuna => '露娜';
+
+  @override
+  String get communityMockUserNoah => '诺亚';
+
+  @override
+  String get communityMockUserIris => '伊里斯';
+
+  @override
+  String get communityMockPostOneTitle => '夜市随手拍攻略';
+
+  @override
+  String get communityMockPostOneSummary => '小吃、霓虹和一条值得收藏的夜市路线。';
+
+  @override
+  String get communityMockPostOneContent => '我从老桥一路走到江边夜市，意外发现这条拍照路线非常顺。入口附近的海鲜摊在天黑后会很快排队，不过手作甜品车反而还没那么多人。如果你喜欢暖色灯光和轻松的街拍氛围，这一角真的值得多停留一会。';
+
+  @override
+  String get communityMockPostOneTime => '2 小时前';
+
+  @override
+  String get communityMockPostOneLocation => '黄浦江边';
+
+  @override
+  String get communityMockPostTwoTitle => '江边晨跑记录';
+
+  @override
+  String get communityMockPostTwoSummary => '风很轻，步道很开阔，日出的倒影也很好看。';
+
+  @override
+  String get communityMockPostTwoContent => '今天早上 6 点半去滨江跑步，整条路线都很安静，空气也很舒服。沿路有几处可以直接看到城市天际线的长椅，不管是慢跑还是坐下来放空十分钟，体验都很好。';
+
+  @override
+  String get communityMockPostTwoTime => '5 小时前';
+
+  @override
+  String get communityMockPostTwoLocation => '西岸滨江';
+
+  @override
+  String get communityMockPostThreeTitle => '窗边光线最好的咖啡店';
+
+  @override
+  String get communityMockPostThreeSummary => '阳光很软，座位安静，很适合慢慢待一个下午。';
+
+  @override
+  String get communityMockPostThreeContent => '这家咖啡店我几乎待了一整个下午，因为窗边的光线会缓慢变化，拍人和拍桌面都很好看。如果你想找一个适合看书、发呆或者和朋友轻声聊天的地方，二楼角落的位置最值得先占下来。';
+
+  @override
+  String get communityMockPostThreeTime => '昨天';
+
+  @override
+  String get communityMockPostThreeLocation => '安福路';
 }

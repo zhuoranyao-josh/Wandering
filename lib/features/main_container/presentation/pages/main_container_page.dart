@@ -15,6 +15,10 @@ class MainContainerPage extends StatelessWidget {
   // 调试开关：true 时高亮显示点击热区，方便观察范围。
   final bool showTapLayerDebug;
 
+  // 底部导航显示顺序与 StatefulShell 分支顺序解耦：
+  // 第一个按钮显示 Community，第 4 个按钮回到原来的第一个分支。
+  static const List<int> _branchIndexByTabSlot = <int>[3, 1, 2, 0, 4];
+
   const MainContainerPage({
     super.key,
     required this.navigationShell,
@@ -29,10 +33,19 @@ class MainContainerPage extends StatelessWidget {
     this.showTapLayerDebug = false,
   });
 
-  void _onTapTab(int index) {
+  int _branchIndexForTabSlot(int tabSlot) {
+    return _branchIndexByTabSlot[tabSlot];
+  }
+
+  bool _isTabSlotSelected(int tabSlot) {
+    return navigationShell.currentIndex == _branchIndexForTabSlot(tabSlot);
+  }
+
+  void _onTapTab(int tabSlot) {
+    final int branchIndex = _branchIndexForTabSlot(tabSlot);
     navigationShell.goBranch(
-      index,
-      initialLocation: index == navigationShell.currentIndex,
+      branchIndex,
+      initialLocation: branchIndex == navigationShell.currentIndex,
     );
   }
 
@@ -42,11 +55,11 @@ class MainContainerPage extends StatelessWidget {
     const unselectedColor = Colors.black45;
 
     Widget buildVisualIcon({
-      required int index,
+      required int tabSlot,
       required IconData icon,
       bool isCenter = false,
     }) {
-      final isSelected = navigationShell.currentIndex == index;
+      final isSelected = _isTabSlotSelected(tabSlot);
       final color = isSelected ? selectedColor : unselectedColor;
 
       if (isCenter) {
@@ -80,7 +93,7 @@ class MainContainerPage extends StatelessWidget {
       );
     }
 
-    Widget buildTapTarget({required int index, required double size}) {
+    Widget buildTapTarget({required int tabSlot, required double size}) {
       return Center(
         child: SizedBox(
           width: size,
@@ -88,7 +101,7 @@ class MainContainerPage extends StatelessWidget {
           // 点击层只负责命中测试和 onTap，不负责视觉图标展示。
           child: GestureDetector(
             behavior: HitTestBehavior.opaque,
-            onTap: () => _onTapTab(index),
+            onTap: () => _onTapTab(tabSlot),
             child: DecoratedBox(
               decoration: showTapLayerDebug
                   ? BoxDecoration(
@@ -108,7 +121,7 @@ class MainContainerPage extends StatelessWidget {
     }
 
     Widget buildVisualLayer() {
-      // 视觉层：保持 Spacer 留白和图标位置，只管“看起来”。
+      // 视觉层：保持 Spacer 留白和图标位置，只负责“看起来”的布局。
       return IgnorePointer(
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.center,
@@ -117,24 +130,28 @@ class MainContainerPage extends StatelessWidget {
               child: Row(
                 children: [
                   const Spacer(flex: 2),
-                  buildVisualIcon(index: 0, icon: Icons.home_outlined),
+                  buildVisualIcon(tabSlot: 0, icon: Icons.home_outlined),
                   const Spacer(flex: 3),
                   buildVisualIcon(
-                    index: 1,
+                    tabSlot: 1,
                     icon: Icons.local_activity_outlined,
                   ),
                   const Spacer(flex: 3),
                 ],
               ),
             ),
-            buildVisualIcon(index: 2, icon: Icons.map_rounded, isCenter: true),
+            buildVisualIcon(
+              tabSlot: 2,
+              icon: Icons.map_rounded,
+              isCenter: true,
+            ),
             Expanded(
               child: Row(
                 children: [
                   const Spacer(flex: 3),
-                  buildVisualIcon(index: 3, icon: Icons.chat_bubble_outline),
+                  buildVisualIcon(tabSlot: 3, icon: Icons.chat_bubble_outline),
                   const Spacer(flex: 3),
-                  buildVisualIcon(index: 4, icon: Icons.person_outline),
+                  buildVisualIcon(tabSlot: 4, icon: Icons.person_outline),
                   const Spacer(flex: 2),
                 ],
               ),
@@ -153,21 +170,21 @@ class MainContainerPage extends StatelessWidget {
             child: Row(
               children: [
                 const Spacer(flex: 2),
-                buildTapTarget(index: 0, size: itemTapTargetSize),
+                buildTapTarget(tabSlot: 0, size: itemTapTargetSize),
                 const Spacer(flex: 3),
-                buildTapTarget(index: 1, size: itemTapTargetSize),
+                buildTapTarget(tabSlot: 1, size: itemTapTargetSize),
                 const Spacer(flex: 3),
               ],
             ),
           ),
-          buildTapTarget(index: 2, size: centerTapTargetSize),
+          buildTapTarget(tabSlot: 2, size: centerTapTargetSize),
           Expanded(
             child: Row(
               children: [
                 const Spacer(flex: 3),
-                buildTapTarget(index: 3, size: itemTapTargetSize),
+                buildTapTarget(tabSlot: 3, size: itemTapTargetSize),
                 const Spacer(flex: 3),
-                buildTapTarget(index: 4, size: itemTapTargetSize),
+                buildTapTarget(tabSlot: 4, size: itemTapTargetSize),
                 const Spacer(flex: 2),
               ],
             ),

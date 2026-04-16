@@ -160,5 +160,76 @@
       "date": {}
     }
   },
-  "viewDetails": "View details"
+  "viewDetails": "View details",
+  "communityTabFollowing": "Following",
+  "communityTabLatest": "Latest",
+  "communityTabPopular": "Popular",
+  "communityTabNearby": "Nearby",
+  "communitySearchTooltip": "Search",
+  "communityCreatePostTitle": "Create post",
+  "communityCreatePostTitleOptional": "Title (Optional)",
+  "communityCreatePostTitleHint": "Add a short title",
+  "communityCreatePostContentRequired": "Content (Required)",
+  "communityCreatePostContentHint": "Share what you discovered today",
+  "communityCreatePostAddImage": "Add image",
+  "communityCreatePostAddLocation": "Add location",
+  "communityCreatePostSubmit": "Post",
+  "communityRetry": "Retry",
+  "communityLoadFailed": "Failed to load posts. Please try again later.",
+  "communityEmptyPosts": "No posts yet.",
+  "communityContentEmpty": "Please enter post content.",
+  "communityPublishFailed": "Failed to publish post. Please try again later.",
+  "communityCommentsEmpty": "No comments yet.",
+  "communityCommentHint": "Write a comment...",
+  "communityCommentSend": "Send",
+  "communityReplyAction": "Reply",
+  "communityCancelReply": "Cancel",
+  "communityHideReplies": "Hide replies",
+  "communityCommentEmpty": "Please enter comment content.",
+  "communityCommentSubmitFailed": "Failed to send comment. Please try again later.",
+  "communityReplyingToUser": "Replying to {name}",
+  "@communityReplyingToUser": {
+    "placeholders": {
+      "name": {}
+    }
+  },
+  "communityViewAllReplies": "View all {count} replies",
+  "@communityViewAllReplies": {
+    "placeholders": {
+      "count": {}
+    }
+  },
+  "communityReplyPreview": "{userName} replied to {replyToUserName}: {content}",
+  "@communityReplyPreview": {
+    "placeholders": {
+      "userName": {},
+      "replyToUserName": {},
+      "content": {}
+    }
+  },
+  "communityPostDetailTitle": "Post details",
+  "communityCommentsTitle": "Comments",
+  "communityUserProfileTitle": "Profile",
+  "communityFollowAction": "Follow",
+  "communityUserPostsTitle": "Posts",
+  "communityPostNotFound": "Post not found.",
+  "communityUserNotFound": "User not found.",
+  "communityMockUserLuna": "Luna",
+  "communityMockUserNoah": "Noah",
+  "communityMockUserIris": "Iris",
+  "communityMockPostOneTitle": "Night market snapshot guide",
+  "communityMockPostOneSummary": "Street snacks, neon signs, and a route worth saving.",
+  "communityMockPostOneContent": "I walked from the old bridge to the riverside night market and found a surprisingly smooth photo route. The seafood stall near the entrance gets crowded after sunset, but the handmade dessert cart is still underrated. If you like warm lights and easy street shots, this corner is worth staying for an extra hour.",
+  "communityMockPostOneTime": "2h ago",
+  "communityMockPostOneLocation": "Huangpu Riverside",
+  "communityMockPostTwoTitle": "Morning run by the river",
+  "communityMockPostTwoSummary": "Cool breeze, open track, and a great sunrise reflection.",
+  "communityMockPostTwoContent": "The riverside path was almost empty at 6:30 this morning, so the whole route felt calm and clean. There are several benches with a clear skyline view, which makes it a nice place to run slowly or just sit down for ten minutes.",
+  "communityMockPostTwoTime": "5h ago",
+  "communityMockPostTwoLocation": "West Bund",
+  "communityMockPostThreeTitle": "Cafe with the best window light",
+  "communityMockPostThreeSummary": "Soft sunlight, quiet seats, and a corner for slow afternoons.",
+  "communityMockPostThreeContent": "I stayed in this cafe for nearly an entire afternoon because the window light kept changing in a really gentle way. The second-floor corner seat is the best choice if you want photos, reading time, or a quiet chat with friends.",
+  "communityMockPostThreeTime": "Yesterday",
+  "communityMockPostThreeLocation": "Anfu Road"
 }

@@ -27,18 +27,12 @@
   - Divider with text ("or")
 - Set up asset management system for images and icons
 
----
-
 ### 🐛 Bugs
 - UI inconsistency between AppBar and body background (top and bottom sections appeared visually separated)
-
----
 
 ### 🔧 Fixes
 - Made AppBar transparent and removed elevation to unify page background
 - Enabled extendBodyBehindAppBar to ensure a consistent full-screen layout
-
----
 
 ### ⚡ Improvements
 - Refactored project to enforce strict separation of concerns:
@@ -50,14 +44,14 @@
   - Animated background transitions on Welcome Page
   - Loading states for all authentication actions
 
----
-
 ### 📚 Learnings
 - Gained a deeper understanding of clean architecture in Flutter, especially how to decouple UI from backend services
 - Learned how Firebase Authentication works in practice, including anonymous login and third-party providers
 - Improved knowledge of Flutter layout system, especially how `Scaffold`, `AppBar`, and `SafeArea` interact
 - Understood the importance of reusable components for maintaining scalable UI design
 - Learned how to structure a project for long-term maintainability and future backend migration
+
+---
 
 ## 2026-04-06 ~ 2026-04-15
 ### 🚀 Features
@@ -112,14 +106,21 @@
 - Navigation refactors need careful handling of empty back stacks, test setup, and redirect loops
 - Learned how to import an earth model into an application
 
+---
+
 ## 2026-04-15 ~ 2026-04-07
 ### 🚀 Features
 - Added the Activity module with Firestore-backed event loading, bottom-tab entry, search, category filters, date/date-range filters, and a lightweight ActivityDetailPage placeholder.
+- Added the foundational structure of the Community module, including Community Page, Create Post Page, Post Detail Page, and User Profile Page.
+- Integrated real post list, real post detail, and basic comment flow (top-level comments + one-level replies).
 
 ### 🐛 Bug Fixes
 - Fixed activity detail taps being redirected to the globe/map page
 
 ### ⚡ Improvements
 - improved event loading/filtering so activities with nullable `startAt` / `endAt` can still be displayed correctly.
+- Introduced a clearer layered architecture (domain / data / presentation) to support future features like likes, follow system, and real user profile data.
 
 ### 📚 Learnings
+- Gained a clearer understanding of the minimal scalable structure for the Community module.
+- Confirmed that “top-level comments + one-level replies” is sufficient for current needs, avoiding premature complexity.
