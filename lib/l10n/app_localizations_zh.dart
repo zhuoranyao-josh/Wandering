@@ -502,7 +502,59 @@ class AppLocalizationsZh extends AppLocalizations {
   String get communityCreatePostAddLocation => '添加地点';
 
   @override
+  String get communityCreatePostRemoveLocation => '移除地点';
+
+  @override
+  String get communityCreatePostDragToRemove => '拖到这里删除';
+
+  @override
+  String communityCreatePostSelectedImages(Object current, Object max) {
+    return '已选图片（$current/$max）';
+  }
+
+  @override
+  String communityCreatePostImageLimitReached(Object max) {
+    return '一个帖子最多只能选择 $max 张图片，已为你保留前 $max 张。';
+  }
+
+  @override
+  String get communityCreatePostRemoveImage => '删除图片';
+
+  @override
+  String communityImageMoreCount(Object count) {
+    return '+$count';
+  }
+
+  @override
+  String communityImageMoreHint(Object count) {
+    return '到帖子详情中查看另外 $count 张图片';
+  }
+
+  @override
+  String get commonImageViewerClose => '关闭图片查看器';
+
+  @override
+  String commonImageViewerPageLabel(Object current, Object total) {
+    return '$current / $total';
+  }
+
+  @override
   String get communityCreatePostSubmit => '发送';
+
+  @override
+  String get communityLocationSearchTitle => '搜索地点';
+
+  @override
+  String get communityLocationSearchHint => '输入城市名或地点名';
+
+  @override
+  String get communityLocationSearchEmptyHint => '输入关键词后即可搜索地点。';
+
+  @override
+  String get communityLocationSearchEmptyResult => '没有找到匹配的地点。';
+
+  @override
+  String get communityLocationSearchFailed => '地点搜索失败，请稍后再试。';
 
   @override
   String get communityRetry => '重试';
@@ -563,6 +615,33 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get communityCommentsTitle => '评论';
+
+  @override
+  String get communityDeleteAction => '删除';
+
+  @override
+  String get communityDeletePostAction => '删除帖子';
+
+  @override
+  String get communityDeleteCommentAction => '删除评论';
+
+  @override
+  String get communityDeletePostTitle => '确认删除这条帖子？';
+
+  @override
+  String get communityDeletePostMessage => '删除后将无法恢复。';
+
+  @override
+  String get communityDeleteCommentTitle => '确认删除这条评论？';
+
+  @override
+  String get communityDeleteCommentMessage => '删除后将无法恢复。';
+
+  @override
+  String get communityDeletePostFailed => '删除帖子失败，请稍后再试。';
+
+  @override
+  String get communityDeleteCommentFailed => '删除评论失败，请稍后再试。';
 
   @override
   String get communityUserProfileTitle => '用户主页';

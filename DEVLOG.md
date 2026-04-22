@@ -113,14 +113,19 @@
 - Added the Activity module with Firestore-backed event loading, bottom-tab entry, search, category filters, date/date-range filters, and a lightweight ActivityDetailPage placeholder.
 - Added the foundational structure of the Community module, including Community Page, Create Post Page, Post Detail Page, and User Profile Page.
 - Integrated real post list, real post detail, and basic comment flow (top-level comments + one-level replies).
+- Added real post like / unlike flow with Firebase-backed like state and count sync
+- Added Cloud Functions triggers for post likes and follow count maintenance
 
 ### 🐛 Bug Fixes
 - Fixed activity detail taps being redirected to the globe/map page
+- Fixed post detail loading fallback so cached post content can still render when partial loads fail
 
 ### ⚡ Improvements
 - improved event loading/filtering so activities with nullable `startAt` / `endAt` can still be displayed correctly.
 - Introduced a clearer layered architecture (domain / data / presentation) to support future features like likes, follow system, and real user profile data.
+- Extended repository and data source contracts to support likes, following, trending posts, and real profile queries
 
 ### 📚 Learnings
 - Gained a clearer understanding of the minimal scalable structure for the Community module.
 - Confirmed that “top-level comments + one-level replies” is sufficient for current needs, avoiding premature complexity.
+- Keeping counter fields like likeCount, followerCount, and followingCount in Cloud Functions makes client rules much simpler

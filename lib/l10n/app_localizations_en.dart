@@ -502,7 +502,59 @@ class AppLocalizationsEn extends AppLocalizations {
   String get communityCreatePostAddLocation => 'Add location';
 
   @override
+  String get communityCreatePostRemoveLocation => 'Remove location';
+
+  @override
+  String get communityCreatePostDragToRemove => 'Drag here to remove';
+
+  @override
+  String communityCreatePostSelectedImages(Object current, Object max) {
+    return 'Selected images ($current/$max)';
+  }
+
+  @override
+  String communityCreatePostImageLimitReached(Object max) {
+    return 'You can add up to $max images. Kept the first $max.';
+  }
+
+  @override
+  String get communityCreatePostRemoveImage => 'Remove image';
+
+  @override
+  String communityImageMoreCount(Object count) {
+    return '+$count';
+  }
+
+  @override
+  String communityImageMoreHint(Object count) {
+    return 'View $count more images in post details';
+  }
+
+  @override
+  String get commonImageViewerClose => 'Close image viewer';
+
+  @override
+  String commonImageViewerPageLabel(Object current, Object total) {
+    return '$current / $total';
+  }
+
+  @override
   String get communityCreatePostSubmit => 'Post';
+
+  @override
+  String get communityLocationSearchTitle => 'Search location';
+
+  @override
+  String get communityLocationSearchHint => 'Search by city or place name';
+
+  @override
+  String get communityLocationSearchEmptyHint => 'Enter a keyword to search locations.';
+
+  @override
+  String get communityLocationSearchEmptyResult => 'No matching locations found.';
+
+  @override
+  String get communityLocationSearchFailed => 'Failed to search locations. Please try again.';
 
   @override
   String get communityRetry => 'Retry';
@@ -563,6 +615,33 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get communityCommentsTitle => 'Comments';
+
+  @override
+  String get communityDeleteAction => 'Delete';
+
+  @override
+  String get communityDeletePostAction => 'Delete post';
+
+  @override
+  String get communityDeleteCommentAction => 'Delete comment';
+
+  @override
+  String get communityDeletePostTitle => 'Delete this post?';
+
+  @override
+  String get communityDeletePostMessage => 'This action cannot be undone.';
+
+  @override
+  String get communityDeleteCommentTitle => 'Delete this comment?';
+
+  @override
+  String get communityDeleteCommentMessage => 'This action cannot be undone.';
+
+  @override
+  String get communityDeletePostFailed => 'Failed to delete post. Please try again later.';
+
+  @override
+  String get communityDeleteCommentFailed => 'Failed to delete comment. Please try again later.';
 
   @override
   String get communityUserProfileTitle => 'Profile';

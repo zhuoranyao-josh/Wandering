@@ -1,7 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
+import '../../../../core/widgets/common_image_viewer.dart';
+import '../../../../l10n/app_localizations.dart';
 import '../../domain/entities/post.dart';
+import '../../domain/entities/post_image.dart';
 
 class PostCard extends StatelessWidget {
   const PostCard({
@@ -22,8 +25,11 @@ class PostCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final localeTag = Localizations.localeOf(context).toLanguageTag();
-    final coverImageUrl = post.coverImageUrl?.trim();
-    final hasCoverImage = coverImageUrl != null && coverImageUrl.isNotEmpty;
+    final t = AppLocalizations.of(context);
+    final postImages = post.images
+        .where((image) => image.url.trim().isNotEmpty)
+        .toList(growable: false);
+    final hasImages = postImages.isNotEmpty;
 
     return Material(
       color: Colors.transparent,
@@ -93,15 +99,18 @@ class PostCard extends StatelessWidget {
                     color: Color(0xFF64748B),
                   ),
                 ),
-                if (hasCoverImage) ...[
+                if (hasImages) ...[
                   const SizedBox(height: 14),
-                  // 只有存在真实图片时才渲染图片区，避免无图帖子被空占位撑高。
-                  ClipRRect(
-                    borderRadius: BorderRadius.circular(16),
-                    child: AspectRatio(
-                      aspectRatio: 16 / 10,
-                      child: _PostImage(imageUrl: coverImageUrl),
-                    ),
+                  // Feed 卡片里最多展示 9 张，避免图片过多把列表撑得太长。
+                  _PostImageGrid(
+                    images: postImages,
+                    moreCountLabelBuilder: (count) =>
+                        t?.communityImageMoreCount(count) ?? '+$count',
+                    moreHintBuilder: (count) =>
+                        t?.communityImageMoreHint(count) ?? '+$count',
+                    onImageTap: (index) =>
+                        _openImageViewer(context, initialIndex: index),
+                    onMoreTap: onTap,
                   ),
                 ],
                 const SizedBox(height: 12),
@@ -168,11 +177,140 @@ class PostCard extends StatelessWidget {
       'MM-dd HH:mm',
       localeTag,
     ).format(post.createdAt);
-    final placeText = post.placeName?.trim();
+    final placeText = post.locationSummaryLabel?.trim();
     if (placeText == null || placeText.isEmpty) {
       return timeText;
     }
     return '$timeText · $placeText';
+  }
+
+  Future<void> _openImageViewer(BuildContext context, {int initialIndex = 0}) {
+    final images = post.images
+        .where((image) => image.url.trim().isNotEmpty)
+        .map((image) => _toViewerItem(image.url))
+        .toList(growable: false);
+    return showCommonImageViewer(
+      context: context,
+      images: images,
+      initialIndex: initialIndex,
+    );
+  }
+
+  CommonImageViewerItem _toViewerItem(String imagePath) {
+    final cleanPath = imagePath.trim();
+    if (cleanPath.startsWith('assets/')) {
+      return CommonImageViewerItem.asset(cleanPath);
+    }
+    return CommonImageViewerItem.network(cleanPath);
+  }
+}
+
+class _PostImageGrid extends StatelessWidget {
+  const _PostImageGrid({
+    required this.images,
+    required this.moreCountLabelBuilder,
+    required this.moreHintBuilder,
+    required this.onImageTap,
+    required this.onMoreTap,
+  });
+
+  final List<PostImage> images;
+  final String Function(int count) moreCountLabelBuilder;
+  final String Function(int count) moreHintBuilder;
+  final ValueChanged<int> onImageTap;
+  final VoidCallback onMoreTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final visibleCount = images.length > 9 ? 9 : images.length;
+    final extraCount = images.length - visibleCount;
+
+    return GridView.builder(
+      shrinkWrap: true,
+      physics: const NeverScrollableScrollPhysics(),
+      itemCount: visibleCount,
+      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+        crossAxisCount: 3,
+        crossAxisSpacing: 8,
+        mainAxisSpacing: 8,
+        childAspectRatio: 1,
+      ),
+      itemBuilder: (context, index) {
+        final image = images[index];
+        final showMoreOverlay = extraCount > 0 && index == visibleCount - 1;
+
+        return _PostGridImageTile(
+          imageUrl: image.url,
+          overlayLabel: showMoreOverlay
+              ? moreCountLabelBuilder(extraCount)
+              : null,
+          overlayTooltip: showMoreOverlay ? moreHintBuilder(extraCount) : null,
+          onTap: showMoreOverlay ? onMoreTap : () => onImageTap(index),
+        );
+      },
+    );
+  }
+}
+
+class _PostGridImageTile extends StatelessWidget {
+  const _PostGridImageTile({
+    required this.imageUrl,
+    required this.onTap,
+    this.overlayLabel,
+    this.overlayTooltip,
+  });
+
+  final String imageUrl;
+  final VoidCallback onTap;
+  final String? overlayLabel;
+  final String? overlayTooltip;
+
+  @override
+  Widget build(BuildContext context) {
+    final hasOverlay =
+        overlayLabel != null &&
+        overlayLabel!.trim().isNotEmpty &&
+        overlayTooltip != null;
+
+    final image = ClipRRect(
+      borderRadius: BorderRadius.circular(16),
+      child: Stack(
+        fit: StackFit.expand,
+        children: [
+          _PostImage(imageUrl: imageUrl),
+          if (hasOverlay)
+            DecoratedBox(
+              decoration: const BoxDecoration(color: Color(0x8A0F172A)),
+              child: Center(
+                child: Text(
+                  overlayLabel!,
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 22,
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
+              ),
+            ),
+        ],
+      ),
+    );
+
+    // 单张图片点击看大图；带 +N 遮罩的最后一张则跳去详情页查看全部。
+    final tile = Material(
+      color: Colors.transparent,
+      child: InkWell(
+        borderRadius: BorderRadius.circular(16),
+        onTap: onTap,
+        child: image,
+      ),
+    );
+
+    if (!hasOverlay) {
+      return tile;
+    }
+
+    return Tooltip(message: overlayTooltip!, child: tile);
   }
 }
 

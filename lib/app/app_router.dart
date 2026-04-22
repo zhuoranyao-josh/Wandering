@@ -13,6 +13,7 @@ import '../features/auth/presentation/pages/register_page.dart';
 import '../features/community/presentation/models/community_models.dart';
 import '../features/community/presentation/pages/community_page.dart';
 import '../features/community/presentation/pages/create_post_page.dart';
+import '../features/community/presentation/pages/location_search_page.dart';
 import '../features/community/presentation/pages/post_detail_page.dart';
 import '../features/community/presentation/pages/user_profile_page.dart';
 import '../features/main_container/presentation/pages/main_container_page.dart';
@@ -38,6 +39,7 @@ class AppRouter {
   static const String activityDetailPath = 'detail/:eventId';
   static const String community = '/community';
   static const String createPost = 'create-post';
+  static const String locationSearch = 'location-search';
   static const String postDetail = 'post/:postId';
   static const String userProfile = 'user/:userId';
 
@@ -66,6 +68,10 @@ class AppRouter {
 
   static String communityCreatePost() {
     return '$community/$createPost';
+  }
+
+  static String communityLocationSearch() {
+    return '$community/$locationSearch';
   }
 
   static String communityPostDetail(String postId) {
@@ -181,6 +187,10 @@ class AppRouter {
                   GoRoute(
                     path: createPost,
                     builder: (context, state) => const CreatePostPage(),
+                  ),
+                  GoRoute(
+                    path: locationSearch,
+                    builder: (context, state) => const LocationSearchPage(),
                   ),
                   GoRoute(
                     path: postDetail,

@@ -173,7 +173,48 @@
   "communityCreatePostContentHint": "写点今天的见闻吧",
   "communityCreatePostAddImage": "添加图片",
   "communityCreatePostAddLocation": "添加地点",
+  "communityCreatePostRemoveLocation": "移除地点",
+  "communityCreatePostDragToRemove": "拖到这里删除",
+  "communityCreatePostSelectedImages": "已选图片（{current}/{max}）",
+  "@communityCreatePostSelectedImages": {
+    "placeholders": {
+      "current": {},
+      "max": {}
+    }
+  },
+  "communityCreatePostImageLimitReached": "一个帖子最多只能选择 {max} 张图片，已为你保留前 {max} 张。",
+  "@communityCreatePostImageLimitReached": {
+    "placeholders": {
+      "max": {}
+    }
+  },
+  "communityCreatePostRemoveImage": "删除图片",
+  "communityImageMoreCount": "+{count}",
+  "@communityImageMoreCount": {
+    "placeholders": {
+      "count": {}
+    }
+  },
+  "communityImageMoreHint": "到帖子详情中查看另外 {count} 张图片",
+  "@communityImageMoreHint": {
+    "placeholders": {
+      "count": {}
+    }
+  },
+  "commonImageViewerClose": "关闭图片查看器",
+  "commonImageViewerPageLabel": "{current} / {total}",
+  "@commonImageViewerPageLabel": {
+    "placeholders": {
+      "current": {},
+      "total": {}
+    }
+  },
   "communityCreatePostSubmit": "发送",
+  "communityLocationSearchTitle": "搜索地点",
+  "communityLocationSearchHint": "输入城市名或地点名",
+  "communityLocationSearchEmptyHint": "输入关键词后即可搜索地点。",
+  "communityLocationSearchEmptyResult": "没有找到匹配的地点。",
+  "communityLocationSearchFailed": "地点搜索失败，请稍后再试。",
   "communityRetry": "重试",
   "communityLoadFailed": "帖子加载失败，请稍后再试。",
   "communityEmptyPosts": "暂时还没有帖子。",
@@ -209,6 +250,15 @@
   },
   "communityPostDetailTitle": "帖子详情",
   "communityCommentsTitle": "评论",
+  "communityDeleteAction": "删除",
+  "communityDeletePostAction": "删除帖子",
+  "communityDeleteCommentAction": "删除评论",
+  "communityDeletePostTitle": "确认删除这条帖子？",
+  "communityDeletePostMessage": "删除后将无法恢复。",
+  "communityDeleteCommentTitle": "确认删除这条评论？",
+  "communityDeleteCommentMessage": "删除后将无法恢复。",
+  "communityDeletePostFailed": "删除帖子失败，请稍后再试。",
+  "communityDeleteCommentFailed": "删除评论失败，请稍后再试。",
   "communityUserProfileTitle": "用户主页",
   "communityFollowAction": "关注",
   "communityUnfollowAction": "取消关注",

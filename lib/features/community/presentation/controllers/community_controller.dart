@@ -6,6 +6,7 @@ import '../../../auth/presentation/controllers/auth_controller.dart';
 import '../../../profile/domain/entities/user_profile.dart';
 import '../../../profile/presentation/controllers/profile_setup_controller.dart';
 import '../../domain/entities/post.dart';
+import '../../domain/entities/post_location.dart';
 import '../../domain/repositories/community_repository.dart';
 
 enum CommunityFeedType { following, latest, trending }
@@ -88,6 +89,16 @@ class CommunityController extends ChangeNotifier {
     notifyListeners();
   }
 
+  void removePost(String postId) {
+    // 删除帖子后同步移除三类 feed 中的缓存，避免返回列表时还看到旧卡片。
+    _latestPosts = _latestPosts.where((post) => post.id != postId).toList();
+    _followingPosts = _followingPosts
+        .where((post) => post.id != postId)
+        .toList();
+    _trendingPosts = _trendingPosts.where((post) => post.id != postId).toList();
+    notifyListeners();
+  }
+
   void ensureInitialized() {
     if (_isInitialized) return;
     _isInitialized = true;
@@ -131,7 +142,17 @@ class CommunityController extends ChangeNotifier {
     );
   }
 
-  Future<void> createPost({String? title, required String content}) async {
+  Future<void> createPost({
+    String? title,
+    required String content,
+    List<String> imageLocalPaths = const <String>[],
+    String? placeNameFull,
+    String? placeCity,
+    String? placeCountry,
+    String? placeType,
+    double? latitude,
+    double? longitude,
+  }) async {
     final cleanContent = content.trim();
     if (cleanContent.isEmpty) {
       throw AppException('community_content_empty');
@@ -149,6 +170,11 @@ class CommunityController extends ChangeNotifier {
       }
 
       final authorProfile = await _loadAuthorProfile(currentUser.uid);
+      final cleanImageLocalPaths = imageLocalPaths
+          .map((path) => path.trim())
+          .where((path) => path.isNotEmpty)
+          .take(20)
+          .toList(growable: false);
       final createdPost = await communityRepository.createPost(
         authorId: currentUser.uid,
         authorName: _resolveAuthorName(
@@ -161,6 +187,16 @@ class CommunityController extends ChangeNotifier {
         ),
         title: _normalizeNullableText(title),
         content: cleanContent,
+        // 控制器兜底限制图片数量，避免异常状态把超量图片送到数据层。
+        imageLocalPaths: cleanImageLocalPaths,
+        // 地点字段在 controller 先做一层清洗，减少 data layer 的兼容分支。
+        placeName: _normalizeNullableText(placeNameFull),
+        placeNameFull: _normalizeNullableText(placeNameFull),
+        placeCity: _normalizeNullableText(placeCity),
+        placeCountry: _normalizeNullableText(placeCountry),
+        placeType: _normalizeNullableText(placeType),
+        latitude: latitude,
+        longitude: longitude,
       );
 
       // 发帖成功后先插入最新列表，避免回到社区页时出现闪烁。
@@ -178,6 +214,39 @@ class CommunityController extends ChangeNotifier {
     } finally {
       _isSubmitting = false;
       notifyListeners();
+    }
+  }
+
+  Future<List<PostLocation>> searchLocations({
+    required String query,
+    required String sessionToken,
+  }) async {
+    final cleanQuery = query.trim();
+    if (cleanQuery.isEmpty) {
+      return const <PostLocation>[];
+    }
+
+    try {
+      return communityRepository.searchLocations(
+        query: cleanQuery,
+        sessionToken: sessionToken,
+      );
+    } catch (error) {
+      if (error is AppException) {
+        rethrow;
+      }
+      throw AppException('community_location_search_failed');
+    }
+  }
+
+  Future<PostLocation> retrieveLocation(PostLocation suggestion) async {
+    try {
+      return communityRepository.retrieveLocation(suggestion);
+    } catch (error) {
+      if (error is AppException) {
+        rethrow;
+      }
+      throw AppException('community_location_search_failed');
     }
   }
 

@@ -173,7 +173,48 @@
   "communityCreatePostContentHint": "Share what you discovered today",
   "communityCreatePostAddImage": "Add image",
   "communityCreatePostAddLocation": "Add location",
+  "communityCreatePostRemoveLocation": "Remove location",
+  "communityCreatePostDragToRemove": "Drag here to remove",
+  "communityCreatePostSelectedImages": "Selected images ({current}/{max})",
+  "@communityCreatePostSelectedImages": {
+    "placeholders": {
+      "current": {},
+      "max": {}
+    }
+  },
+  "communityCreatePostImageLimitReached": "You can add up to {max} images. Kept the first {max}.",
+  "@communityCreatePostImageLimitReached": {
+    "placeholders": {
+      "max": {}
+    }
+  },
+  "communityCreatePostRemoveImage": "Remove image",
+  "communityImageMoreCount": "+{count}",
+  "@communityImageMoreCount": {
+    "placeholders": {
+      "count": {}
+    }
+  },
+  "communityImageMoreHint": "View {count} more images in post details",
+  "@communityImageMoreHint": {
+    "placeholders": {
+      "count": {}
+    }
+  },
+  "commonImageViewerClose": "Close image viewer",
+  "commonImageViewerPageLabel": "{current} / {total}",
+  "@commonImageViewerPageLabel": {
+    "placeholders": {
+      "current": {},
+      "total": {}
+    }
+  },
   "communityCreatePostSubmit": "Post",
+  "communityLocationSearchTitle": "Search location",
+  "communityLocationSearchHint": "Search by city or place name",
+  "communityLocationSearchEmptyHint": "Enter a keyword to search locations.",
+  "communityLocationSearchEmptyResult": "No matching locations found.",
+  "communityLocationSearchFailed": "Failed to search locations. Please try again.",
   "communityRetry": "Retry",
   "communityLoadFailed": "Failed to load posts. Please try again later.",
   "communityEmptyPosts": "No posts yet.",
@@ -209,6 +250,15 @@
   },
   "communityPostDetailTitle": "Post details",
   "communityCommentsTitle": "Comments",
+  "communityDeleteAction": "Delete",
+  "communityDeletePostAction": "Delete post",
+  "communityDeleteCommentAction": "Delete comment",
+  "communityDeletePostTitle": "Delete this post?",
+  "communityDeletePostMessage": "This action cannot be undone.",
+  "communityDeleteCommentTitle": "Delete this comment?",
+  "communityDeleteCommentMessage": "This action cannot be undone.",
+  "communityDeletePostFailed": "Failed to delete post. Please try again later.",
+  "communityDeleteCommentFailed": "Failed to delete comment. Please try again later.",
   "communityUserProfileTitle": "Profile",
   "communityFollowAction": "Follow",
   "communityUnfollowAction": "Unfollow",

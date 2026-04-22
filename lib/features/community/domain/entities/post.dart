@@ -1,4 +1,5 @@
 import 'post_image.dart';
+import 'post_location.dart';
 
 const Object _postSentinel = Object();
 
@@ -14,11 +15,15 @@ class Post {
   final String? title;
   final String content;
 
-  /// 图片保留为数组，便于后续扩展多图布局。
+  /// 图片继续保留为数组，方便后续扩展多图布局。
   final List<PostImage> images;
 
-  /// 地点信息可为空，当前仅用于展示。
+  /// `placeName` 继续兼容旧数据；新的结构化字段用于更稳定的展示。
   final String? placeName;
+  final String? placeNameFull;
+  final String? placeCity;
+  final String? placeCountry;
+  final String? placeType;
   final double? latitude;
   final double? longitude;
 
@@ -36,7 +41,11 @@ class Post {
     this.title,
     required this.content,
     this.images = const <PostImage>[],
-    required this.placeName,
+    this.placeName,
+    this.placeNameFull,
+    this.placeCity,
+    this.placeCountry,
+    this.placeType,
     required this.latitude,
     required this.longitude,
     required this.likeCount,
@@ -60,8 +69,23 @@ class Post {
 
   bool get isMultiImage => images.length > 1;
 
-  bool get hasLocation =>
-      placeName != null || latitude != null || longitude != null;
+  PostLocation? get location {
+    final value = PostLocation(
+      fullName: placeNameFull ?? placeName,
+      city: placeCity,
+      country: placeCountry,
+      latitude: latitude,
+      longitude: longitude,
+      placeType: placeType,
+    );
+    return value.hasValue ? value : null;
+  }
+
+  String? get locationSummaryLabel => location?.summaryLabel;
+
+  String? get locationFullLabel => location?.fullLabel;
+
+  bool get hasLocation => location != null;
 
   Post copyWith({
     String? id,
@@ -72,6 +96,10 @@ class Post {
     String? content,
     List<PostImage>? images,
     Object? placeName = _postSentinel,
+    Object? placeNameFull = _postSentinel,
+    Object? placeCity = _postSentinel,
+    Object? placeCountry = _postSentinel,
+    Object? placeType = _postSentinel,
     Object? latitude = _postSentinel,
     Object? longitude = _postSentinel,
     int? likeCount,
@@ -90,6 +118,18 @@ class Post {
       placeName: placeName == _postSentinel
           ? this.placeName
           : placeName as String?,
+      placeNameFull: placeNameFull == _postSentinel
+          ? this.placeNameFull
+          : placeNameFull as String?,
+      placeCity: placeCity == _postSentinel
+          ? this.placeCity
+          : placeCity as String?,
+      placeCountry: placeCountry == _postSentinel
+          ? this.placeCountry
+          : placeCountry as String?,
+      placeType: placeType == _postSentinel
+          ? this.placeType
+          : placeType as String?,
       latitude: latitude == _postSentinel ? this.latitude : latitude as double?,
       longitude: longitude == _postSentinel
           ? this.longitude

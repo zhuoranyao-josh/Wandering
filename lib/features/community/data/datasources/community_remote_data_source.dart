@@ -1,6 +1,6 @@
 import '../../domain/entities/comment.dart';
 import '../../domain/entities/post.dart';
-import '../../domain/entities/post_image.dart';
+import '../../domain/entities/post_location.dart';
 import '../../domain/entities/user_profile_summary.dart';
 
 abstract class CommunityRemoteDataSource {
@@ -18,11 +18,24 @@ abstract class CommunityRemoteDataSource {
     String? authorAvatarUrl,
     String? title,
     required String content,
-    List<PostImage> images = const <PostImage>[],
+    List<String> imageLocalPaths = const <String>[],
     String? placeName,
+    String? placeNameFull,
+    String? placeCity,
+    String? placeCountry,
+    String? placeType,
     double? latitude,
     double? longitude,
   });
+
+  Future<List<PostLocation>> searchLocations({
+    required String query,
+    required String sessionToken,
+  });
+
+  Future<PostLocation> retrieveLocation(PostLocation suggestion);
+
+  Future<void> deletePost({required String postId, required String userId});
 
   Future<List<Comment>> getCommentsByPostId(String postId, {int? limit});
 
@@ -42,6 +55,12 @@ abstract class CommunityRemoteDataSource {
     String? userAvatarUrl,
     required String content,
     String? replyToUserName,
+  });
+
+  Future<void> deleteComment({
+    required String postId,
+    required String commentId,
+    required String userId,
   });
 
   Future<void> likePost({required String postId, required String userId});

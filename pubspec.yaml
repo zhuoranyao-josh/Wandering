@@ -77,7 +77,6 @@ flutter:
   # 👉 开启自动生成多语言代码
   generate: true
   assets:
-    - assets/data/map_home/
     - assets/icons/
     - assets/images/
     - assets/images/welcome/

@@ -5,6 +5,7 @@ import 'package:flutter/services.dart';
 import 'package:mapbox_maps_flutter/mapbox_maps_flutter.dart';
 
 import '../../../../core/config/mapbox_config.dart';
+import '../../../../core/di/service_locator.dart';
 import '../../../../core/system_ui/app_system_ui.dart';
 import '../../../../core/widgets/app_button.dart';
 import '../../../../l10n/app_localizations.dart';
@@ -30,9 +31,10 @@ class _MapHomePageState extends State<MapHomePage> {
   static const double _ornamentBottomMargin = 8;
   static const double _floatingInset = 16;
 
-  final MapHomeController _controller = MapHomeController(
-    initialMarkerZoom: _initialMapZoom,
-  );
+  late final MapHomeController _controller =
+      ServiceLocator.createMapHomeController(
+        initialMarkerZoom: _initialMapZoom,
+      );
   Locale? _lastLocale;
   bool? _lastHasSelectedPlace;
 
@@ -123,11 +125,12 @@ class _MapHomePageState extends State<MapHomePage> {
             return Stack(
               fit: StackFit.expand,
               children: [
+                // 地图在底层，所有状态面板和卡片都作为浮层叠上来。
                 _buildMapWidget(),
                 _buildFutureOverlaySlots(),
                 _buildTopRightAction(t),
                 if (_controller.selectedPlace != null)
-                  _buildPlacePreviewCard(t),
+                  _buildPlacePreviewCard(context, t),
                 if (_controller.isLoading) _buildLoadingOverlay(t),
                 if (_controller.hasError) _buildErrorOverlay(t),
               ],
@@ -227,13 +230,15 @@ class _MapHomePageState extends State<MapHomePage> {
     );
   }
 
-  Widget _buildPlacePreviewCard(AppLocalizations t) {
+  Widget _buildPlacePreviewCard(BuildContext context, AppLocalizations t) {
     final place = _controller.selectedPlace;
     if (place == null) {
       return const SizedBox.shrink();
     }
 
-    final copy = place.localizedCopy(t);
+    // 卡片文案直接走实体本地化方法，UI 不再自己判断语言分支。
+    final languageCode = Localizations.localeOf(context).languageCode;
+    final copy = place.localizedCopy(languageCode);
 
     return SafeArea(
       minimum: const EdgeInsets.fromLTRB(
@@ -247,7 +252,7 @@ class _MapHomePageState extends State<MapHomePage> {
         child: PlacePreviewCard(
           title: copy.name,
           description: copy.description,
-          imageAssetPath: place.previewAssetPath,
+          imageUrl: place.coverImage,
           buttonText: t.viewDetails,
           onClose: _controller.clearSelectedPlace,
           onPressed: () {},

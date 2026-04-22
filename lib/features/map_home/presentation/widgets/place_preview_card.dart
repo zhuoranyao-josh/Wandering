@@ -7,7 +7,7 @@ class PlacePreviewCard extends StatelessWidget {
     super.key,
     required this.title,
     required this.description,
-    required this.imageAssetPath,
+    required this.imageUrl,
     required this.buttonText,
     required this.onClose,
     required this.onPressed,
@@ -15,7 +15,7 @@ class PlacePreviewCard extends StatelessWidget {
 
   final String title;
   final String description;
-  final String imageAssetPath;
+  final String imageUrl;
   final String buttonText;
   final VoidCallback onClose;
   final VoidCallback onPressed;
@@ -90,7 +90,7 @@ class PlacePreviewCard extends StatelessWidget {
               borderRadius: BorderRadius.circular(18),
               child: AspectRatio(
                 aspectRatio: 16 / 9,
-                child: Image.asset(imageAssetPath, fit: BoxFit.cover),
+                child: _buildCoverImage(),
               ),
             ),
             const SizedBox(height: 16),
@@ -98,6 +98,45 @@ class PlacePreviewCard extends StatelessWidget {
           ],
         ),
       ),
+    );
+  }
+
+  Widget _buildCoverImage() {
+    if (imageUrl.startsWith('http://') || imageUrl.startsWith('https://')) {
+      // Firestore 默认走网络图；加载失败时退回纯色占位，避免卡片直接空白。
+      return Image.network(
+        imageUrl,
+        fit: BoxFit.cover,
+        errorBuilder: (context, error, stackTrace) => _buildFallbackImage(),
+        loadingBuilder: (context, child, progress) {
+          if (progress == null) {
+            return child;
+          }
+          return _buildFallbackImage();
+        },
+      );
+    }
+    if (imageUrl.isNotEmpty) {
+      return Image.asset(
+        imageUrl,
+        fit: BoxFit.cover,
+        errorBuilder: (context, error, stackTrace) => _buildFallbackImage(),
+      );
+    }
+
+    return _buildFallbackImage();
+  }
+
+  Widget _buildFallbackImage() {
+    return const DecoratedBox(
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: <Color>[Color(0xFFF59E0B), Color(0xFFFB7185)],
+        ),
+      ),
+      child: Center(child: Icon(Icons.public, size: 40, color: Colors.white)),
     );
   }
 }

@@ -18,6 +18,11 @@ import '../../features/community/data/datasources/firebase_community_remote_data
 import '../../features/community/data/repositories/community_repository_impl.dart';
 import '../../features/community/domain/repositories/community_repository.dart';
 import '../../features/community/presentation/controllers/community_controller.dart';
+import '../../features/map_home/data/datasources/firebase_map_home_remote_data_source.dart';
+import '../../features/map_home/data/datasources/map_home_remote_data_source.dart';
+import '../../features/map_home/data/repositories/map_home_repository_impl.dart';
+import '../../features/map_home/domain/repositories/map_home_repository.dart';
+import '../../features/map_home/presentation/controllers/map_home_controller.dart';
 import '../../features/profile/data/datasources/firebase_profile_remote_data_source.dart';
 import '../../features/profile/data/datasources/profile_remote_data_source.dart';
 import '../../features/profile/data/repositories/profile_repository_impl.dart';
@@ -28,29 +33,25 @@ class ServiceLocator {
   static late final AuthController authController;
   static late final ActivityController activityController;
   static late final CommunityController communityController;
+  static late final MapHomeRepository mapHomeRepository;
   static late final ProfileSetupController profileSetupController;
 
   static void setup() {
-    // 最底层依赖
+    // 最底层依赖统一在这里创建，避免页面直接接触 Firebase。
     final firebaseAuth = FirebaseAuth.instance;
     final googleSignIn = GoogleSignIn();
     final firestore = FirebaseFirestore.instance;
     final storage = FirebaseStorage.instance;
 
     // Auth 模块
-    // 数据源：只有这里会真正接触 Firebase / Google Sign-In。
     final AuthRemoteDataSource authRemoteDataSource =
         FirebaseAuthRemoteDataSource(
           firebaseAuth: firebaseAuth,
           googleSignIn: googleSignIn,
         );
-
-    // 仓库
     final AuthRepository authRepository = AuthRepositoryImpl(
       authRemoteDataSource,
     );
-
-    // 控制器
     authController = AuthController(authRepository);
 
     // Activity 模块
@@ -61,8 +62,12 @@ class ServiceLocator {
     );
     activityController = ActivityController(activityRepository);
 
+    // Map Home 模块
+    final MapHomeRemoteDataSource mapHomeRemoteDataSource =
+        FirebaseMapHomeRemoteDataSource(firestore: firestore);
+    mapHomeRepository = MapHomeRepositoryImpl(mapHomeRemoteDataSource);
+
     // Profile 模块
-    // 数据源：只有这里会真正接触 Firestore / Storage。
     final ProfileRemoteDataSource profileRemoteDataSource =
         FirebaseProfileRemoteDataSource(firestore: firestore, storage: storage);
     final ProfileRepository profileRepository = ProfileRepositoryImpl(
@@ -71,11 +76,11 @@ class ServiceLocator {
     profileSetupController = ProfileSetupController(profileRepository);
 
     // Community 模块
-    // 数据源：只有这里会真正接触 Firestore。
     final CommunityRemoteDataSource communityRemoteDataSource =
         FirebaseCommunityRemoteDataSource(
           firestore: firestore,
           firebaseAuth: firebaseAuth,
+          storage: storage,
         );
     final CommunityRepository communityRepository = CommunityRepositoryImpl(
       communityRemoteDataSource,
@@ -84,6 +89,15 @@ class ServiceLocator {
       communityRepository: communityRepository,
       authController: authController,
       profileSetupController: profileSetupController,
+    );
+  }
+
+  static MapHomeController createMapHomeController({
+    required double initialMarkerZoom,
+  }) {
+    return MapHomeController(
+      mapHomeRepository: mapHomeRepository,
+      initialMarkerZoom: initialMarkerZoom,
     );
   }
 }

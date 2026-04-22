@@ -1073,11 +1073,95 @@ abstract class AppLocalizations {
   /// **'Add location'**
   String get communityCreatePostAddLocation;
 
+  /// No description provided for @communityCreatePostRemoveLocation.
+  ///
+  /// In en, this message translates to:
+  /// **'Remove location'**
+  String get communityCreatePostRemoveLocation;
+
+  /// No description provided for @communityCreatePostDragToRemove.
+  ///
+  /// In en, this message translates to:
+  /// **'Drag here to remove'**
+  String get communityCreatePostDragToRemove;
+
+  /// No description provided for @communityCreatePostSelectedImages.
+  ///
+  /// In en, this message translates to:
+  /// **'Selected images ({current}/{max})'**
+  String communityCreatePostSelectedImages(Object current, Object max);
+
+  /// No description provided for @communityCreatePostImageLimitReached.
+  ///
+  /// In en, this message translates to:
+  /// **'You can add up to {max} images. Kept the first {max}.'**
+  String communityCreatePostImageLimitReached(Object max);
+
+  /// No description provided for @communityCreatePostRemoveImage.
+  ///
+  /// In en, this message translates to:
+  /// **'Remove image'**
+  String get communityCreatePostRemoveImage;
+
+  /// No description provided for @communityImageMoreCount.
+  ///
+  /// In en, this message translates to:
+  /// **'+{count}'**
+  String communityImageMoreCount(Object count);
+
+  /// No description provided for @communityImageMoreHint.
+  ///
+  /// In en, this message translates to:
+  /// **'View {count} more images in post details'**
+  String communityImageMoreHint(Object count);
+
+  /// No description provided for @commonImageViewerClose.
+  ///
+  /// In en, this message translates to:
+  /// **'Close image viewer'**
+  String get commonImageViewerClose;
+
+  /// No description provided for @commonImageViewerPageLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'{current} / {total}'**
+  String commonImageViewerPageLabel(Object current, Object total);
+
   /// No description provided for @communityCreatePostSubmit.
   ///
   /// In en, this message translates to:
   /// **'Post'**
   String get communityCreatePostSubmit;
+
+  /// No description provided for @communityLocationSearchTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Search location'**
+  String get communityLocationSearchTitle;
+
+  /// No description provided for @communityLocationSearchHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Search by city or place name'**
+  String get communityLocationSearchHint;
+
+  /// No description provided for @communityLocationSearchEmptyHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter a keyword to search locations.'**
+  String get communityLocationSearchEmptyHint;
+
+  /// No description provided for @communityLocationSearchEmptyResult.
+  ///
+  /// In en, this message translates to:
+  /// **'No matching locations found.'**
+  String get communityLocationSearchEmptyResult;
+
+  /// No description provided for @communityLocationSearchFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Failed to search locations. Please try again.'**
+  String get communityLocationSearchFailed;
 
   /// No description provided for @communityRetry.
   ///
@@ -1186,6 +1270,60 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Comments'**
   String get communityCommentsTitle;
+
+  /// No description provided for @communityDeleteAction.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete'**
+  String get communityDeleteAction;
+
+  /// No description provided for @communityDeletePostAction.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete post'**
+  String get communityDeletePostAction;
+
+  /// No description provided for @communityDeleteCommentAction.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete comment'**
+  String get communityDeleteCommentAction;
+
+  /// No description provided for @communityDeletePostTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete this post?'**
+  String get communityDeletePostTitle;
+
+  /// No description provided for @communityDeletePostMessage.
+  ///
+  /// In en, this message translates to:
+  /// **'This action cannot be undone.'**
+  String get communityDeletePostMessage;
+
+  /// No description provided for @communityDeleteCommentTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete this comment?'**
+  String get communityDeleteCommentTitle;
+
+  /// No description provided for @communityDeleteCommentMessage.
+  ///
+  /// In en, this message translates to:
+  /// **'This action cannot be undone.'**
+  String get communityDeleteCommentMessage;
+
+  /// No description provided for @communityDeletePostFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Failed to delete post. Please try again later.'**
+  String get communityDeletePostFailed;
+
+  /// No description provided for @communityDeleteCommentFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Failed to delete comment. Please try again later.'**
+  String get communityDeleteCommentFailed;
 
   /// No description provided for @communityUserProfileTitle.
   ///

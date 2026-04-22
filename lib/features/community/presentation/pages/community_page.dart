@@ -290,7 +290,7 @@ class _FeedPostList extends StatelessWidget {
       content: post.content,
       imageAssetPath: post.coverImageUrl ?? _fallbackPreviewImagePath,
       timeLabel: DateFormat('MM-dd HH:mm', localeTag).format(post.createdAt),
-      locationLabel: post.placeName ?? '',
+      locationLabel: post.locationSummaryLabel ?? '',
       likeCount: post.likeCount,
       commentCount: post.commentCount,
       comments: const <CommunityComment>[],

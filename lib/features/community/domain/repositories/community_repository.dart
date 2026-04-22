@@ -1,6 +1,6 @@
 import '../entities/comment.dart';
 import '../entities/post.dart';
-import '../entities/post_image.dart';
+import '../entities/post_location.dart';
 import '../entities/user_profile_summary.dart';
 
 abstract class CommunityRepository {
@@ -31,11 +31,27 @@ abstract class CommunityRepository {
     String? authorAvatarUrl,
     String? title,
     required String content,
-    List<PostImage> images = const <PostImage>[],
+    List<String> imageLocalPaths = const <String>[],
     String? placeName,
+    String? placeNameFull,
+    String? placeCity,
+    String? placeCountry,
+    String? placeType,
     double? latitude,
     double? longitude,
   });
+
+  /// 使用 Search Box suggest 获取候选地点。
+  Future<List<PostLocation>> searchLocations({
+    required String query,
+    required String sessionToken,
+  });
+
+  /// 用户点击候选项后，再通过 retrieve 换取完整地点详情。
+  Future<PostLocation> retrieveLocation(PostLocation suggestion);
+
+  /// 删除当前用户自己发布的帖子。
+  Future<void> deletePost({required String postId, required String userId});
 
   /// 帖子点赞与取消点赞。
   Future<void> likePost({required String postId, required String userId});
@@ -63,6 +79,13 @@ abstract class CommunityRepository {
     String? userAvatarUrl,
     required String content,
     String? replyToUserName,
+  });
+
+  /// 删除当前用户自己的评论；一级评论会连同其回复一起移除。
+  Future<void> deleteComment({
+    required String postId,
+    required String commentId,
+    required String userId,
   });
 
   /// 评论点赞能力暂未接入真实链路，先保留接口。

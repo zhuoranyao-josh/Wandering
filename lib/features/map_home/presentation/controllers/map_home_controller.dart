@@ -4,9 +4,12 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:mapbox_maps_flutter/mapbox_maps_flutter.dart';
 
-import '../../data/mock/map_home_mock_data.dart';
+import '../../../../core/error/app_exception.dart';
 import '../../domain/entities/globe_marker_entity.dart';
+import '../../domain/entities/map_home_data_bundle.dart';
+import '../../domain/entities/map_home_region_entity.dart';
 import '../../domain/entities/place_entity.dart';
+import '../../domain/repositories/map_home_repository.dart';
 
 enum MapHomeViewStatus { loading, ready, error }
 
@@ -46,116 +49,24 @@ class MapHomeController extends ChangeNotifier {
   static const double _overviewMaxZoom = 3.2;
   static const double _cityMinZoom = 3.2;
   static const double _markerVisibilityHysteresis = 0.08;
+  static const double _overviewMarkerRadius = 10.0;
+  static const double _clusterMarkerRadius = 11.0;
+  static const double _cityMarkerRadius = 8.4;
+  static const double _selectedCityMarkerRadius = 10.2;
 
-  static const List<_OverviewRegionConfig> _overviewRegionConfigs =
-      <_OverviewRegionConfig>[
-        _OverviewRegionConfig(
-          id: 'japan_kanto',
-          placeIds: <String>['tokyo', 'yokohama'],
-          focusZoom: 5.1,
-        ),
-        _OverviewRegionConfig(
-          id: 'japan_kansai',
-          placeIds: <String>['osaka'],
-          focusZoom: 5.1,
-        ),
-        _OverviewRegionConfig(
-          id: 'china_north',
-          placeIds: <String>['beijing', 'tianjin'],
-          focusZoom: 4.8,
-        ),
-        _OverviewRegionConfig(
-          id: 'china_east',
-          placeIds: <String>['shanghai', 'suzhou'],
-          focusZoom: 4.9,
-        ),
-        _OverviewRegionConfig(
-          id: 'china_south',
-          placeIds: <String>['guangzhou', 'hong_kong'],
-          focusZoom: 4.8,
-        ),
-        _OverviewRegionConfig(
-          id: 'china_west',
-          placeIds: <String>['lhasa'],
-          focusZoom: 4.8,
-        ),
-        _OverviewRegionConfig(
-          id: 'usa_east',
-          placeIds: <String>['new_york'],
-          focusZoom: 4.8,
-        ),
-        _OverviewRegionConfig(
-          id: 'usa_west',
-          placeIds: <String>['los_angeles'],
-          focusZoom: 4.8,
-        ),
-        _OverviewRegionConfig(
-          id: 'russia_northwest',
-          placeIds: <String>['moscow', 'saint_petersburg'],
-          focusZoom: 4.6,
-        ),
-        _OverviewRegionConfig(
-          id: 'germany',
-          placeIds: <String>['berlin', 'frankfurt', 'munich'],
-          focusZoom: 4.8,
-        ),
-        _OverviewRegionConfig(
-          id: 'france',
-          placeIds: <String>['paris'],
-          focusZoom: 4.8,
-        ),
-        _OverviewRegionConfig(
-          id: 'united_kingdom',
-          placeIds: <String>['london'],
-          focusZoom: 4.8,
-        ),
-        _OverviewRegionConfig(
-          id: 'turkey',
-          placeIds: <String>['istanbul'],
-          focusZoom: 4.9,
-        ),
-        _OverviewRegionConfig(
-          id: 'canada',
-          placeIds: <String>['toronto'],
-          focusZoom: 4.8,
-        ),
-        _OverviewRegionConfig(
-          id: 'argentina',
-          placeIds: <String>['buenos_aires'],
-          focusZoom: 4.8,
-        ),
-        _OverviewRegionConfig(
-          id: 'brazil',
-          placeIds: <String>['sao_paulo'],
-          focusZoom: 4.8,
-        ),
-        _OverviewRegionConfig(
-          id: 'egypt',
-          placeIds: <String>['cairo'],
-          focusZoom: 4.9,
-        ),
-        _OverviewRegionConfig(
-          id: 'south_africa',
-          placeIds: <String>['cape_town'],
-          focusZoom: 4.8,
-        ),
-        _OverviewRegionConfig(
-          id: 'australia_east',
-          placeIds: <String>['sydney', 'melbourne'],
-          focusZoom: 4.9,
-        ),
-        _OverviewRegionConfig(
-          id: 'new_zealand',
-          placeIds: <String>['wellington'],
-          focusZoom: 5.0,
-        ),
-      ];
+  MapHomeController({
+    required this.mapHomeRepository,
+    required double initialMarkerZoom,
+  }) : _initialMarkerZoom = initialMarkerZoom;
+
+  final MapHomeRepository mapHomeRepository;
+  final double _initialMarkerZoom;
 
   MapHomeViewStatus _status = MapHomeViewStatus.loading;
-  final double _initialMarkerZoom;
   MapHomeLightPreset _lightPreset = MapHomeLightPreset.day;
   MapHomeBasemapLanguage _basemapLanguage = MapHomeBasemapLanguage.en;
   List<GlobeMarkerEntity> _markers = <GlobeMarkerEntity>[];
+  List<MapHomeRegionEntity> _regions = <MapHomeRegionEntity>[];
   GeoJsonSource? _overviewSource;
   GeoJsonSource? _citySource;
   MapboxMap? _mapboxMap;
@@ -167,6 +78,8 @@ class MapHomeController extends ChangeNotifier {
   PlaceEntity? _selectedPlace;
   String? _selectedMarkerId;
   final Map<String, PlaceEntity> _placesById = <String, PlaceEntity>{};
+  final Map<String, MapHomeRegionEntity> _regionsById =
+      <String, MapHomeRegionEntity>{};
   final Map<String, GlobeMarkerEntity> _markersById =
       <String, GlobeMarkerEntity>{};
   final Map<String, GlobeMarkerEntity> _markersByPlaceId =
@@ -185,10 +98,8 @@ class MapHomeController extends ChangeNotifier {
   bool get canToggleLightPreset =>
       isReady && _mapboxMap != null && !_isApplyingStyle;
 
-  MapHomeController({required double initialMarkerZoom})
-    : _initialMarkerZoom = initialMarkerZoom;
-
   void onMapCreated(MapboxMap mapboxMap) {
+    _log('onMapCreated');
     _overviewSource = null;
     _citySource = null;
     _mapboxMap = mapboxMap;
@@ -209,11 +120,13 @@ class MapHomeController extends ChangeNotifier {
   Future<void> onStyleLoaded() async {
     final mapboxMap = _mapboxMap;
     if (mapboxMap == null) {
+      _log('onStyleLoaded skipped because mapboxMap is null');
       return;
     }
 
     try {
       _isApplyingStyle = true;
+      _log('onStyleLoaded start');
       await _loadMapData();
       await _applyMapStyle(
         mapboxMap,
@@ -226,6 +139,7 @@ class MapHomeController extends ChangeNotifier {
       await _applyMarkerLayerVisibility(_areMarkersVisible);
       _status = MapHomeViewStatus.ready;
       _errorDetails = null;
+      _log('onStyleLoaded ready');
     } catch (error) {
       _setError(error);
     } finally {
@@ -250,10 +164,10 @@ class MapHomeController extends ChangeNotifier {
         lightPreset: nextPreset,
         basemapLanguage: _basemapLanguage,
       );
-      await _refreshMarkerVisuals();
       _lightPreset = nextPreset;
       _status = MapHomeViewStatus.ready;
       _errorDetails = null;
+      _log('toggleLightPreset => ${nextPreset.styleValue}');
     } catch (error) {
       _setError(error);
     } finally {
@@ -269,6 +183,7 @@ class MapHomeController extends ChangeNotifier {
 
     _status = MapHomeViewStatus.error;
     _errorDetails = message.trim().isEmpty ? null : message.trim();
+    _log('onMapLoadError: $_errorDetails');
     notifyListeners();
   }
 
@@ -282,6 +197,7 @@ class MapHomeController extends ChangeNotifier {
     }
 
     _basemapLanguage = nextLanguage;
+    _log('syncBasemapLanguageWithLocale => ${nextLanguage.styleValue}');
 
     if (_mapboxMap != null) {
       retry();
@@ -297,6 +213,7 @@ class MapHomeController extends ChangeNotifier {
     _status = MapHomeViewStatus.loading;
     _errorDetails = null;
     _isApplyingStyle = false;
+    _log('retry => rebuild map widget');
     notifyListeners();
   }
 
@@ -327,15 +244,21 @@ class MapHomeController extends ChangeNotifier {
 
   void _setError(Object error) {
     _status = MapHomeViewStatus.error;
-    _errorDetails = error.toString();
+    // Firestore 閻庢鍠栭崐鎼佹偉閸洖鐭楁い蹇撴閼稿墎绱撴担鍝勬瀺缂佹梹鎸抽弻銊モ枎閹烘繂娈?UI闂佹寧绋戞總鏃傜箔婢舵劕绠┑鐘插€搁弬褍鈹戦纰卞剰闁诡喗顨堢划鈺咁敍濞嗗海绠氶梺璇″弾閸ㄥ啿煤閸ф绠抽柕澶涢檮閻﹀綊姊婚崶銊ョ祷闁糕晛鏈妵鍕偨閸涘﹥銆?
+    _errorDetails = error is AppException ? null : error.toString();
+    _log('setError => ${error.runtimeType}: $_errorDetails');
   }
 
   Future<void> _loadMapData() async {
-    final data = await MapHomeMockData.load();
+    final MapHomeDataBundle data = await mapHomeRepository.loadMapHomeData();
     _markers = data.markers;
+    _regions = data.regions;
     _placesById
       ..clear()
       ..addEntries(data.places.map((place) => MapEntry(place.id, place)));
+    _regionsById
+      ..clear()
+      ..addEntries(data.regions.map((region) => MapEntry(region.id, region)));
     _markersById
       ..clear()
       ..addEntries(data.markers.map((marker) => MapEntry(marker.id, marker)));
@@ -344,30 +267,53 @@ class MapHomeController extends ChangeNotifier {
       ..addEntries(
         data.markers.map((marker) => MapEntry(marker.placeId, marker)),
       );
+
+    _log(
+      'loadMapData => places=${_placesById.length}, markers=${_markers.length}, regions=${_regionsById.length}',
+    );
   }
 
   Future<void> selectMarkerById(String markerId) async {
+    _log('selectMarkerById => $markerId');
     final marker = _markersById[markerId];
     if (marker == null) {
+      _log('selectMarkerById => marker not found');
       return;
     }
 
-    final place = _placesById[marker.placeId];
+    await selectPlaceById(marker.placeId, markerId: markerId);
+  }
+
+  Future<void> selectPlaceById(String placeId, {String? markerId}) async {
+    _log('selectPlaceById => placeId=$placeId markerId=$markerId');
+    final place = _placesById[placeId];
     if (place == null) {
+      _log('selectPlaceById => place not found');
       return;
     }
 
-    // 先显示选中态，再执行飞行动画，让交互反馈更直接。
-    _selectedMarkerId = markerId;
+    final marker = markerId != null ? _markersById[markerId] : null;
+    final fallbackMarker = marker ?? _markersByPlaceId[placeId];
+    if (fallbackMarker == null) {
+      _log(
+        'selectPlaceById => fallback marker not found, use place coordinates',
+      );
+    }
+    // 鍏堟爣璁伴€変腑鎬侊紝鍐嶆墽琛岄琛屽姩鐢伙紝璁╁崱鐗囧拰鍦板浘鐘舵€佸悓姝ユ洿鐩存帴.
+    _selectedMarkerId = fallbackMarker?.id;
     await _refreshMarkerVisuals();
 
     final mapboxMap = _mapboxMap;
     if (mapboxMap != null) {
       final cameraState = await mapboxMap.getCameraState();
+      final targetCoordinates = fallbackMarker == null
+          ? (place.longitude, place.latitude)
+          : _resolveMarkerCoordinates(fallbackMarker) ??
+                (place.longitude, place.latitude);
       await mapboxMap.flyTo(
         CameraOptions(
           center: Point(
-            coordinates: Position(marker.longitude, marker.latitude),
+            coordinates: Position(targetCoordinates.$1, targetCoordinates.$2),
           ),
           zoom: place.flyToZoom,
           pitch: cameraState.pitch,
@@ -377,13 +323,14 @@ class MapHomeController extends ChangeNotifier {
       );
     }
 
-    // 卡片显示后隐藏当前城市点，避免主焦点重复。
     _selectedPlace = place;
     await _refreshMarkerVisuals();
+    _log('selectPlaceById => selectedPlace=${place.id}');
     notifyListeners();
   }
 
   Future<void> clearSelectedPlace() async {
+    _log('clearSelectedPlace');
     _selectedPlace = null;
     _selectedMarkerId = null;
     await _refreshMarkerVisuals();
@@ -415,8 +362,7 @@ class MapHomeController extends ChangeNotifier {
 
     await _removeMarkerLayersIfNeeded(mapboxMap);
     await _removeMarkerSourcesIfNeeded(mapboxMap);
-
-    // 全球视角先显示“区域层”，避免跨大区域的自动 clustering 把空间结构压扁。
+    // 鍏ㄥ眬瑙嗚鍏堟樉绀哄尯鍩熷眰锛岄伩鍏嶈法澶у尯鍩熺殑鑷姩 clustering 鍘嬫墎绌洪棿缁撴瀯.
     final overviewSource = GeoJsonSource(
       id: _overviewSourceId,
       data: _buildOverviewFeatureCollection(),
@@ -440,6 +386,7 @@ class MapHomeController extends ChangeNotifier {
     await mapboxMap.style.addLayer(_buildClusterCircleLayer());
     await mapboxMap.style.addLayer(_buildClusterCountLayer());
     await mapboxMap.style.addLayer(_buildCityPointLayer());
+    _log('syncMarkers => layers added');
   }
 
   Future<void> _syncMarkerVisibilityWithZoom(double zoom) async {
@@ -449,6 +396,7 @@ class MapHomeController extends ChangeNotifier {
     }
 
     _areMarkersVisible = shouldShowMarkers;
+    _log('marker visibility => $_areMarkersVisible at zoom=$zoom');
     await _applyMarkerLayerVisibility(shouldShowMarkers);
   }
 
@@ -495,6 +443,8 @@ class MapHomeController extends ChangeNotifier {
     }
 
     try {
+      _log('tap => x=${context.touchPosition.x}, y=${context.touchPosition.y}');
+
       final features = await mapboxMap.queryRenderedFeatures(
         RenderedQueryGeometry.fromScreenCoordinate(context.touchPosition),
         RenderedQueryOptions(
@@ -508,42 +458,83 @@ class MapHomeController extends ChangeNotifier {
         ),
       );
 
-      QueriedRenderedFeature? tappedFeature;
-      for (final feature in features) {
-        if (feature == null) {
-          continue;
-        }
-        tappedFeature = feature;
-        break;
-      }
+      _log('tap => raw feature count=${features.length}');
 
+      final tappedFeature = _firstValidFeature(features);
       if (tappedFeature == null) {
+        _log('tap => no feature hit');
         return;
       }
 
       final sourceId = tappedFeature.queriedFeature.source;
       final featureMap = tappedFeature.queriedFeature.feature;
       final properties = _readFeatureProperties(featureMap);
+      _log(
+        'tap => source=$sourceId '
+        'markerId=${_readStringProperty(properties, 'markerId')} '
+        'id=${_readStringProperty(properties, 'id')} '
+        'placeId=${_readStringProperty(properties, 'placeId')} '
+        'cluster=${properties['cluster']} '
+        'point_count=${properties['point_count']}',
+      );
 
       if (sourceId == _overviewSourceId) {
+        _log('tap => overview tapped, zoom only');
         await _zoomIntoOverviewRegion(featureMap, properties);
         return;
       }
 
       if (_isClusterFeature(properties)) {
+        _log('tap => cluster tapped, zoom only');
         await _zoomIntoCluster(featureMap);
         return;
       }
 
-      final markerId = _readStringProperty(properties, 'markerId');
-      if (markerId == null) {
+      _log('tap => city point tapped, try select place');
+      await _handleCityFeatureTap(tappedFeature);
+    } catch (error) {
+      _log('tap => error: $error');
+    }
+  }
+
+  QueriedRenderedFeature? _firstValidFeature(
+    List<QueriedRenderedFeature?> features,
+  ) {
+    for (final feature in features) {
+      if (feature != null) {
+        return feature;
+      }
+    }
+    return null;
+  }
+
+  Future<void> _handleCityFeatureTap(
+    QueriedRenderedFeature tappedFeature,
+  ) async {
+    final featureMap = tappedFeature.queriedFeature.feature;
+    final properties = _readFeatureProperties(featureMap);
+
+    final markerId =
+        _readStringProperty(properties, 'markerId') ??
+        _readStringProperty(properties, 'id');
+    final placeId = _readStringProperty(properties, 'placeId');
+
+    _log('cityTap => markerId=$markerId, placeId=$placeId');
+
+    if (markerId != null) {
+      await selectMarkerById(markerId);
+      if (_selectedPlace != null) {
         return;
       }
-
-      await selectMarkerById(markerId);
-    } catch (_) {
-      // 点击未命中要保持地图可继续浏览，不打断主交互。
+      _log('cityTap => marker selection did not produce selectedPlace');
     }
+
+    if (placeId != null) {
+      await selectPlaceById(placeId, markerId: markerId);
+      return;
+    }
+
+    _log('cityTap => no markerId/placeId found');
   }
 
   Future<void> _zoomIntoOverviewRegion(
@@ -562,6 +553,7 @@ class MapHomeController extends ChangeNotifier {
 
     final currentCamera = await mapboxMap.getCameraState();
     final focusZoom = _toDouble(properties['focusZoom']) ?? 4.8;
+    _log('overview zoom => focusZoom=$focusZoom');
 
     await mapboxMap.easeTo(
       CameraOptions(
@@ -592,6 +584,7 @@ class MapHomeController extends ChangeNotifier {
     final currentCamera = await mapboxMap.getCameraState();
     final expansionZoom =
         _parseDouble(expansionZoomValue.value) ?? currentCamera.zoom + 1.5;
+    _log('cluster zoom => expansionZoom=$expansionZoom');
 
     await mapboxMap.easeTo(
       CameraOptions(
@@ -627,7 +620,8 @@ class MapHomeController extends ChangeNotifier {
   }
 
   String _buildOverviewFeatureCollection() {
-    final features = _overviewRegionConfigs
+    // 区域配置改成动态读取，只为命中的 region 生成 overview 聚合.
+    final features = _regions
         .map(_buildOverviewFeature)
         .whereType<Map<String, Object>>()
         .toList(growable: false);
@@ -638,22 +632,28 @@ class MapHomeController extends ChangeNotifier {
     });
   }
 
-  Map<String, Object>? _buildOverviewFeature(_OverviewRegionConfig config) {
-    final memberMarkers = config.placeIds
-        .map((placeId) => _markersByPlaceId[placeId])
-        .whereType<GlobeMarkerEntity>()
+  Map<String, Object>? _buildOverviewFeature(MapHomeRegionEntity region) {
+    final memberPoints = _placesById.values
+        .where((place) => place.regionId == region.id)
+        .map(_resolveMarkerPointForPlace)
+        .whereType<_ResolvedMarkerPoint>()
         .toList(growable: false);
-    if (memberMarkers.isEmpty) {
+    if (memberPoints.isEmpty) {
       return null;
     }
 
-    final center = _computeCenter(memberMarkers);
+    final center = _computeCenter(
+      memberPoints
+          .map((point) => (point.longitude, point.latitude))
+          .toList(growable: false),
+    );
     if (center == null) {
       return null;
     }
+
     final isSelectedRegion =
         _selectedMarkerId != null &&
-        memberMarkers.any((marker) => marker.id == _selectedMarkerId);
+        memberPoints.any((point) => point.marker.id == _selectedMarkerId);
 
     return <String, Object>{
       'type': 'Feature',
@@ -662,23 +662,31 @@ class MapHomeController extends ChangeNotifier {
         'coordinates': <double>[center.$1, center.$2],
       },
       'properties': <String, Object>{
-        'regionId': config.id,
-        'pointCount': memberMarkers.length,
-        'focusZoom': config.focusZoom,
+        'regionId': region.id,
+        'pointCount': memberPoints.length,
+        'focusZoom': region.focusZoom,
         'isSelected': isSelectedRegion,
       },
     };
   }
 
   String _buildMarkerFeatureCollection() {
-    final features = _markers.map(_buildMarkerFeature).toList(growable: false);
+    final features = _markers
+        .map(_buildMarkerFeature)
+        .whereType<Map<String, Object>>()
+        .toList(growable: false);
     return jsonEncode(<String, Object>{
       'type': 'FeatureCollection',
       'features': features,
     });
   }
 
-  Map<String, Object> _buildMarkerFeature(GlobeMarkerEntity marker) {
+  Map<String, Object>? _buildMarkerFeature(GlobeMarkerEntity marker) {
+    final resolvedPoint = _resolveMarkerPoint(marker);
+    if (resolvedPoint == null) {
+      return null;
+    }
+
     final isSelectedMarker = _selectedMarkerId == marker.id;
     final isHiddenMarker = isSelectedMarker && _selectedPlace != null;
 
@@ -686,12 +694,17 @@ class MapHomeController extends ChangeNotifier {
       'type': 'Feature',
       'geometry': <String, Object>{
         'type': 'Point',
-        'coordinates': <double>[marker.longitude, marker.latitude],
+        'coordinates': <double>[
+          resolvedPoint.longitude,
+          resolvedPoint.latitude,
+        ],
       },
       'properties': <String, Object>{
+        'id': marker.id,
         'markerId': marker.id,
         'placeId': marker.placeId,
-        'markerType': _markerTypePropertyValue(marker.type),
+        'pointType': 'city',
+        'markerType': marker.type.rawValue,
         'isSelected': isSelectedMarker,
         'isHidden': isHiddenMarker,
       },
@@ -714,15 +727,7 @@ class MapHomeController extends ChangeNotifier {
         '#FFC36B',
         '#FFB347',
       ],
-      circleRadiusExpression: <Object>[
-        'interpolate',
-        <Object>['linear'],
-        <Object>['zoom'],
-        0.5,
-        8.6,
-        _overviewMaxZoom,
-        12.8,
-      ],
+      circleRadius: _overviewMarkerRadius,
       circleBlur: 0.1,
       circleOpacity: 0.96,
       circleStrokeColor: const Color(0xFFFFF3D6).toARGB32(),
@@ -768,17 +773,7 @@ class MapHomeController extends ChangeNotifier {
         16,
         '#FF8E36',
       ],
-      circleRadiusExpression: <Object>[
-        'interpolate',
-        <Object>['linear'],
-        <Object>['zoom'],
-        _cityMinZoom,
-        8.8,
-        4.5,
-        10.8,
-        8.0,
-        15.2,
-      ],
+      circleRadius: _clusterMarkerRadius,
       circleBlur: 0.12,
       circleOpacity: 0.96,
       circleStrokeColor: const Color(0xFFFFF3D6).toARGB32(),
@@ -835,94 +830,20 @@ class MapHomeController extends ChangeNotifier {
         ],
       ],
       circleRadiusExpression: <Object>[
-        'interpolate',
-        <Object>['linear'],
-        <Object>['zoom'],
-        _cityMinZoom,
+        'case',
         <Object>[
-          'case',
-          <Object>[
-            'boolean',
-            <Object>['get', 'isHidden'],
-            false,
-          ],
-          0.1,
-          <Object>[
-            'boolean',
-            <Object>['get', 'isSelected'],
-            false,
-          ],
-          5.0,
-          3.6,
+          'boolean',
+          <Object>['get', 'isHidden'],
+          false,
         ],
-        4.5,
+        0.1,
         <Object>[
-          'case',
-          <Object>[
-            'boolean',
-            <Object>['get', 'isHidden'],
-            false,
-          ],
-          0.1,
-          <Object>[
-            'boolean',
-            <Object>['get', 'isSelected'],
-            false,
-          ],
-          8.2,
-          6.3,
+          'boolean',
+          <Object>['get', 'isSelected'],
+          false,
         ],
-        8.0,
-        <Object>[
-          'case',
-          <Object>[
-            'boolean',
-            <Object>['get', 'isHidden'],
-            false,
-          ],
-          0.1,
-          <Object>[
-            'boolean',
-            <Object>['get', 'isSelected'],
-            false,
-          ],
-          12.0,
-          9.6,
-        ],
-        11.0,
-        <Object>[
-          'case',
-          <Object>[
-            'boolean',
-            <Object>['get', 'isHidden'],
-            false,
-          ],
-          0.1,
-          <Object>[
-            'boolean',
-            <Object>['get', 'isSelected'],
-            false,
-          ],
-          16.0,
-          12.8,
-        ],
-        13.0,
-        <Object>[
-          'case',
-          <Object>[
-            'boolean',
-            <Object>['get', 'isHidden'],
-            false,
-          ],
-          0.1,
-          <Object>[
-            'boolean',
-            <Object>['get', 'isSelected'],
-            false,
-          ],
-          18.4,
-          14.8,
-        ],
+        _selectedCityMarkerRadius,
+        _cityMarkerRadius,
       ],
       circleBlurExpression: <Object>[
         'case',
@@ -1005,19 +926,70 @@ class MapHomeController extends ChangeNotifier {
     return properties['cluster'] == true || properties['point_count'] != null;
   }
 
-  (double, double)? _computeCenter(List<GlobeMarkerEntity> markers) {
-    if (markers.isEmpty) {
+  (double, double)? _computeCenter(List<(double, double)> points) {
+    if (points.isEmpty) {
       return null;
     }
 
     var longitudeSum = 0.0;
     var latitudeSum = 0.0;
-    for (final marker in markers) {
-      longitudeSum += marker.longitude;
-      latitudeSum += marker.latitude;
+    for (final point in points) {
+      longitudeSum += point.$1;
+      latitudeSum += point.$2;
     }
 
-    return (longitudeSum / markers.length, latitudeSum / markers.length);
+    return (longitudeSum / points.length, latitudeSum / points.length);
+  }
+
+  _ResolvedMarkerPoint? _resolveMarkerPoint(GlobeMarkerEntity marker) {
+    final place = _placesById[marker.placeId];
+    if (place == null) {
+      return null;
+    }
+
+    final coordinates = _resolveMarkerCoordinates(marker);
+    if (coordinates == null) {
+      return null;
+    }
+
+    return _ResolvedMarkerPoint(
+      place: place,
+      marker: marker,
+      longitude: coordinates.$1,
+      latitude: coordinates.$2,
+    );
+  }
+
+  _ResolvedMarkerPoint? _resolveMarkerPointForPlace(PlaceEntity place) {
+    final marker = _markersByPlaceId[place.id];
+    if (marker == null) {
+      return null;
+    }
+
+    final coordinates = _resolveMarkerCoordinates(marker);
+    if (coordinates == null) {
+      return null;
+    }
+
+    return _ResolvedMarkerPoint(
+      place: place,
+      marker: marker,
+      longitude: coordinates.$1,
+      latitude: coordinates.$2,
+    );
+  }
+
+  (double, double)? _resolveMarkerCoordinates(GlobeMarkerEntity marker) {
+    if (marker.hasCoordinates) {
+      return (marker.longitude!, marker.latitude!);
+    }
+
+    final place = _placesById[marker.placeId];
+    if (place == null) {
+      return null;
+    }
+
+    return (place.longitude, place.latitude);
   }
 
   (double, double)? _readCoordinates(Map<String?, Object?> feature) {
@@ -1048,17 +1020,6 @@ class MapHomeController extends ChangeNotifier {
     return null;
   }
 
-  String _markerTypePropertyValue(GlobeMarkerType type) {
-    switch (type) {
-      case GlobeMarkerType.official:
-        return 'official';
-      case GlobeMarkerType.community:
-        return 'community';
-      case GlobeMarkerType.mixed:
-        return 'mixed';
-    }
-  }
-
   double? _parseDouble(String? value) {
     if (value == null) {
       return null;
@@ -1072,16 +1033,22 @@ class MapHomeController extends ChangeNotifier {
     }
     return null;
   }
+
+  void _log(String message) {
+    debugPrint('MapHome: $message');
+  }
 }
 
-class _OverviewRegionConfig {
-  const _OverviewRegionConfig({
-    required this.id,
-    required this.placeIds,
-    required this.focusZoom,
+class _ResolvedMarkerPoint {
+  const _ResolvedMarkerPoint({
+    required this.place,
+    required this.marker,
+    required this.longitude,
+    required this.latitude,
   });
 
-  final String id;
-  final List<String> placeIds;
-  final double focusZoom;
+  final PlaceEntity place;
+  final GlobeMarkerEntity marker;
+  final double longitude;
+  final double latitude;
 }

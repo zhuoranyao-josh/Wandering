@@ -5,6 +5,7 @@ import 'package:intl/intl.dart';
 import '../../../../app/app_router.dart';
 import '../../../../core/di/service_locator.dart';
 import '../../../../core/error/app_exception.dart';
+import '../../../../core/widgets/common_image_viewer.dart';
 import '../../../../l10n/app_localizations.dart';
 import '../../domain/entities/comment.dart';
 import '../../domain/entities/post.dart';
@@ -83,6 +84,80 @@ class _PostDetailPageState extends State<PostDetailPage> {
     }
   }
 
+  Future<void> _confirmDeletePost(AppLocalizations t) async {
+    final shouldDelete = await _showDeleteConfirmDialog(
+      title: t.communityDeletePostTitle,
+      message: t.communityDeletePostMessage,
+      confirmLabel: t.communityDeleteAction,
+    );
+    if (shouldDelete != true) {
+      return;
+    }
+
+    try {
+      await _controller.deletePost();
+      if (!mounted) return;
+      context.pop();
+    } catch (error) {
+      if (!mounted) return;
+      final message = _messageForDeleteError(error: error, t: t);
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(message)));
+    }
+  }
+
+  Future<void> _confirmDeleteComment(
+    Comment comment,
+    AppLocalizations t,
+  ) async {
+    final shouldDelete = await _showDeleteConfirmDialog(
+      title: t.communityDeleteCommentTitle,
+      message: t.communityDeleteCommentMessage,
+      confirmLabel: t.communityDeleteAction,
+    );
+    if (shouldDelete != true) {
+      return;
+    }
+
+    try {
+      await _controller.deleteComment(comment);
+    } catch (error) {
+      if (!mounted) return;
+      final message = _messageForDeleteError(error: error, t: t);
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(message)));
+    }
+  }
+
+  Future<bool?> _showDeleteConfirmDialog({
+    required String title,
+    required String message,
+    required String confirmLabel,
+  }) {
+    return showDialog<bool>(
+      context: context,
+      builder: (dialogContext) {
+        final t = AppLocalizations.of(dialogContext);
+        return AlertDialog(
+          title: Text(title),
+          content: Text(message),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(dialogContext).pop(false),
+              child: Text(t?.cancel ?? ''),
+            ),
+            TextButton(
+              onPressed: () => Navigator.of(dialogContext).pop(true),
+              child: Text(confirmLabel),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
   String _messageForCommentError({
     required Object error,
     required AppLocalizations t,
@@ -104,6 +179,21 @@ class _PostDetailPageState extends State<PostDetailPage> {
   }) {
     if (error is AppException && error.code == 'community_like_failed') {
       return t.communityLikeFailed;
+    }
+    return t.errorUnknown;
+  }
+
+  String _messageForDeleteError({
+    required Object error,
+    required AppLocalizations t,
+  }) {
+    if (error is AppException) {
+      switch (error.code) {
+        case 'community_delete_post_failed':
+          return t.communityDeletePostFailed;
+        case 'community_delete_comment_failed':
+          return t.communityDeleteCommentFailed;
+      }
     }
     return t.errorUnknown;
   }
@@ -173,7 +263,12 @@ class _PostDetailPageState extends State<PostDetailPage> {
           _PostHeader(
             post: post,
             isLikeSubmitting: _controller.isLikeSubmitting,
+            isPostDeleting: _controller.isPostDeleting,
+            canDeletePost: _controller.canDeletePost,
+            deletePostTooltip: t.communityDeletePostAction,
             onLikeTap: () => _toggleLike(t),
+            onDeletePost: () => _confirmDeletePost(t),
+            onImageTap: (index) => _openPostImages(post, index),
             onAuthorTap: () {
               context.push(
                 AppRouter.communityUserProfile(post.authorId),
@@ -223,7 +318,12 @@ class _PostDetailPageState extends State<PostDetailPage> {
                   comment: comment,
                   replies: replies,
                   isExpanded: _controller.isExpanded(comment.id),
+                  deleteTooltip: t.communityDeleteCommentAction,
+                  canDeleteComment: _controller.canDeleteComment,
+                  isCommentDeleting: _controller.isCommentDeleting,
                   onReplyTap: () => _startReply(comment),
+                  onDeleteComment: (comment) =>
+                      _confirmDeleteComment(comment, t),
                   onToggleReplies: replies.length > 3
                       ? () => _controller.toggleReplies(comment.id)
                       : null,
@@ -376,6 +476,26 @@ class _PostDetailPageState extends State<PostDetailPage> {
     ];
     return palette[id.hashCode.abs() % palette.length];
   }
+
+  Future<void> _openPostImages(Post post, int initialIndex) {
+    final images = post.images
+        .where((image) => image.url.trim().isNotEmpty)
+        .map((image) => _toViewerItem(image.url))
+        .toList(growable: false);
+    return showCommonImageViewer(
+      context: context,
+      images: images,
+      initialIndex: initialIndex,
+    );
+  }
+
+  CommonImageViewerItem _toViewerItem(String imagePath) {
+    final cleanPath = imagePath.trim();
+    if (cleanPath.startsWith('assets/')) {
+      return CommonImageViewerItem.asset(cleanPath);
+    }
+    return CommonImageViewerItem.network(cleanPath);
+  }
 }
 
 class _CommentsLoadErrorCard extends StatelessWidget {
@@ -431,13 +551,23 @@ class _PostHeader extends StatelessWidget {
     required this.post,
     required this.onAuthorTap,
     required this.onLikeTap,
+    required this.onDeletePost,
+    required this.onImageTap,
     required this.isLikeSubmitting,
+    required this.isPostDeleting,
+    required this.canDeletePost,
+    required this.deletePostTooltip,
   });
 
   final Post post;
   final VoidCallback onAuthorTap;
   final VoidCallback onLikeTap;
+  final VoidCallback onDeletePost;
+  final ValueChanged<int> onImageTap;
   final bool isLikeSubmitting;
+  final bool isPostDeleting;
+  final bool canDeletePost;
+  final String deletePostTooltip;
 
   @override
   Widget build(BuildContext context) {
@@ -495,17 +625,34 @@ class _PostHeader extends StatelessWidget {
         ),
         if (post.hasImages) ...[
           const SizedBox(height: 16),
-          _PostImageGallery(images: post.images),
+          _PostImageGallery(images: post.images, onImageTap: onImageTap),
         ],
-        if (post.placeName != null && post.placeName!.trim().isNotEmpty) ...[
+        if (post.locationFullLabel != null &&
+            post.locationFullLabel!.trim().isNotEmpty) ...[
           const SizedBox(height: 14),
-          Text(
-            post.placeName!,
-            style: const TextStyle(
-              fontSize: 13,
-              color: Color(0xFF64748B),
-              fontWeight: FontWeight.w600,
-            ),
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Padding(
+                padding: EdgeInsets.only(top: 1),
+                child: Icon(
+                  Icons.place_rounded,
+                  size: 16,
+                  color: Color(0xFFDC2626),
+                ),
+              ),
+              const SizedBox(width: 6),
+              Expanded(
+                child: Text(
+                  post.locationFullLabel!,
+                  style: const TextStyle(
+                    fontSize: 13,
+                    color: Color(0xFF64748B),
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ),
+            ],
           ),
         ],
         const SizedBox(height: 16),
@@ -532,6 +679,15 @@ class _PostHeader extends StatelessWidget {
               iconColor: const Color(0xFF64748B),
               textColor: const Color(0xFF334155),
             ),
+            const Spacer(),
+            if (canDeletePost) ...[
+              // 帖子删除入口放到互动数据同一行，右侧用垃圾桶图标承载。
+              _DeleteIconButton(
+                tooltip: deletePostTooltip,
+                isLoading: isPostDeleting,
+                onTap: onDeletePost,
+              ),
+            ],
           ],
         ),
       ],
@@ -544,14 +700,22 @@ class _CommentCard extends StatelessWidget {
     required this.comment,
     required this.replies,
     required this.isExpanded,
+    required this.deleteTooltip,
+    required this.canDeleteComment,
+    required this.isCommentDeleting,
     required this.onReplyTap,
+    required this.onDeleteComment,
     this.onToggleReplies,
   });
 
   final Comment comment;
   final List<Comment> replies;
   final bool isExpanded;
+  final String deleteTooltip;
+  final bool Function(Comment comment) canDeleteComment;
+  final bool Function(String commentId) isCommentDeleting;
   final VoidCallback onReplyTap;
+  final ValueChanged<Comment> onDeleteComment;
   final VoidCallback? onToggleReplies;
 
   @override
@@ -622,14 +786,27 @@ class _CommentCard extends StatelessWidget {
                       ),
                     ),
                     const SizedBox(height: 8),
-                    TextButton(
-                      onPressed: onReplyTap,
-                      style: TextButton.styleFrom(
-                        padding: EdgeInsets.zero,
-                        minimumSize: Size.zero,
-                        tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                      ),
-                      child: Text(t.communityReplyAction),
+                    Row(
+                      children: [
+                        TextButton(
+                          onPressed: onReplyTap,
+                          style: TextButton.styleFrom(
+                            padding: EdgeInsets.zero,
+                            minimumSize: Size.zero,
+                            tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                          ),
+                          child: Text(t.communityReplyAction),
+                        ),
+                        const Spacer(),
+                        if (canDeleteComment(comment)) ...[
+                          // 评论删除放在卡片底部右侧，避免和用户名、时间信息挤在一起。
+                          _DeleteIconButton(
+                            tooltip: deleteTooltip,
+                            isLoading: isCommentDeleting(comment.id),
+                            onTap: () => onDeleteComment(comment),
+                          ),
+                        ],
+                      ],
                     ),
                   ],
                 ),
@@ -651,15 +828,31 @@ class _CommentCard extends StatelessWidget {
                   ...visibleReplies.map((reply) {
                     return Padding(
                       padding: const EdgeInsets.symmetric(vertical: 4),
-                      child: Text(
-                        _replyPreviewText(reply, t),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(
-                          fontSize: 13,
-                          height: 1.4,
-                          color: Color(0xFF475569),
-                        ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            _replyPreviewText(reply, t),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: const TextStyle(
+                              fontSize: 13,
+                              height: 1.4,
+                              color: Color(0xFF475569),
+                            ),
+                          ),
+                          if (canDeleteComment(reply)) ...[
+                            const SizedBox(height: 4),
+                            Align(
+                              alignment: Alignment.centerRight,
+                              child: _DeleteIconButton(
+                                tooltip: deleteTooltip,
+                                isLoading: isCommentDeleting(reply.id),
+                                onTap: () => onDeleteComment(reply),
+                              ),
+                            ),
+                          ],
+                        ],
                       ),
                     );
                   }),
@@ -701,28 +894,78 @@ class _CommentCard extends StatelessWidget {
   }
 }
 
-class _PostImageGallery extends StatelessWidget {
-  const _PostImageGallery({required this.images});
+class _DeleteIconButton extends StatelessWidget {
+  const _DeleteIconButton({
+    required this.tooltip,
+    required this.isLoading,
+    required this.onTap,
+  });
 
-  final List<PostImage> images;
+  final String tooltip;
+  final bool isLoading;
+  final VoidCallback onTap;
 
   @override
   Widget build(BuildContext context) {
-    return Column(
-      children: images
-          .map((image) {
-            return Padding(
-              padding: EdgeInsets.only(bottom: image == images.last ? 0 : 12),
-              child: ClipRRect(
-                borderRadius: BorderRadius.circular(20),
-                child: AspectRatio(
-                  aspectRatio: image.aspectRatio ?? 16 / 10,
-                  child: _DetailImage(imagePath: image.url),
-                ),
-              ),
-            );
-          })
-          .toList(growable: false),
+    if (isLoading) {
+      return const SizedBox(
+        width: 20,
+        height: 20,
+        child: Padding(
+          padding: EdgeInsets.all(2),
+          child: CircularProgressIndicator(strokeWidth: 2),
+        ),
+      );
+    }
+
+    // 统一使用垃圾桶按钮，和帖子删除入口保持一致，减少用户理解成本。
+    return IconButton(
+      onPressed: onTap,
+      tooltip: tooltip,
+      visualDensity: VisualDensity.compact,
+      splashRadius: 18,
+      icon: const Icon(
+        Icons.delete_outline_rounded,
+        size: 20,
+        color: Color(0xFF94A3B8),
+      ),
+    );
+  }
+}
+
+class _PostImageGallery extends StatelessWidget {
+  const _PostImageGallery({required this.images, required this.onImageTap});
+
+  final List<PostImage> images;
+  final ValueChanged<int> onImageTap;
+
+  @override
+  Widget build(BuildContext context) {
+    // 详情页展示全部图片，不做 9 张裁剪，方便用户完整浏览帖子内容。
+    return GridView.builder(
+      shrinkWrap: true,
+      physics: const NeverScrollableScrollPhysics(),
+      itemCount: images.length,
+      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+        crossAxisCount: 3,
+        crossAxisSpacing: 10,
+        mainAxisSpacing: 10,
+        childAspectRatio: 1,
+      ),
+      itemBuilder: (context, index) {
+        final image = images[index];
+        return Material(
+          color: Colors.transparent,
+          child: InkWell(
+            borderRadius: BorderRadius.circular(18),
+            onTap: () => onImageTap(index),
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(18),
+              child: _DetailImage(imagePath: image.url),
+            ),
+          ),
+        );
+      },
     );
   }
 }

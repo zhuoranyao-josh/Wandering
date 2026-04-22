@@ -1,6 +1,6 @@
 import '../../domain/entities/comment.dart';
 import '../../domain/entities/post.dart';
-import '../../domain/entities/post_image.dart';
+import '../../domain/entities/post_location.dart';
 import '../../domain/entities/user_profile_summary.dart';
 import '../../domain/repositories/community_repository.dart';
 import '../datasources/community_remote_data_source.dart';
@@ -22,8 +22,12 @@ class CommunityRepositoryImpl implements CommunityRepository {
     String? authorAvatarUrl,
     String? title,
     required String content,
-    List<PostImage> images = const <PostImage>[],
+    List<String> imageLocalPaths = const <String>[],
     String? placeName,
+    String? placeNameFull,
+    String? placeCity,
+    String? placeCountry,
+    String? placeType,
     double? latitude,
     double? longitude,
   }) {
@@ -33,11 +37,36 @@ class CommunityRepositoryImpl implements CommunityRepository {
       authorAvatarUrl: authorAvatarUrl,
       title: title,
       content: content,
-      images: images,
+      imageLocalPaths: imageLocalPaths,
       placeName: placeName,
+      placeNameFull: placeNameFull,
+      placeCity: placeCity,
+      placeCountry: placeCountry,
+      placeType: placeType,
       latitude: latitude,
       longitude: longitude,
     );
+  }
+
+  @override
+  Future<List<PostLocation>> searchLocations({
+    required String query,
+    required String sessionToken,
+  }) {
+    return remoteDataSource.searchLocations(
+      query: query,
+      sessionToken: sessionToken,
+    );
+  }
+
+  @override
+  Future<PostLocation> retrieveLocation(PostLocation suggestion) {
+    return remoteDataSource.retrieveLocation(suggestion);
+  }
+
+  @override
+  Future<void> deletePost({required String postId, required String userId}) {
+    return remoteDataSource.deletePost(postId: postId, userId: userId);
   }
 
   @override
@@ -115,6 +144,19 @@ class CommunityRepositoryImpl implements CommunityRepository {
       userAvatarUrl: userAvatarUrl,
       content: content,
       replyToUserName: replyToUserName,
+    );
+  }
+
+  @override
+  Future<void> deleteComment({
+    required String postId,
+    required String commentId,
+    required String userId,
+  }) {
+    return remoteDataSource.deleteComment(
+      postId: postId,
+      commentId: commentId,
+      userId: userId,
     );
   }
 

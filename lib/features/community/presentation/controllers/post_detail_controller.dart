@@ -20,12 +20,14 @@ class PostDetailController extends ChangeNotifier {
   bool _isLoading = false;
   bool _isSubmitting = false;
   bool _isLikeSubmitting = false;
+  bool _isPostDeleting = false;
   String? _errorCode;
   Post? _post;
   List<Comment> _comments = const <Comment>[];
   bool _hasCommentsLoadError = false;
   Comment? _replyTarget;
   final Set<String> _expandedCommentIds = <String>{};
+  final Set<String> _deletingCommentIds = <String>{};
 
   PostDetailController({
     required this.postId,
@@ -38,17 +40,39 @@ class PostDetailController extends ChangeNotifier {
   bool get isLoading => _isLoading;
   bool get isSubmitting => _isSubmitting;
   bool get isLikeSubmitting => _isLikeSubmitting;
+  bool get isPostDeleting => _isPostDeleting;
   String? get errorCode => _errorCode;
   Post? get post => _post;
   List<Comment> get comments => _comments;
   bool get hasCommentsLoadError => _hasCommentsLoadError;
   Comment? get replyTarget => _replyTarget;
 
+  bool get canDeletePost {
+    final currentUserId = authController.getCurrentUser()?.uid;
+    final currentPost = _post;
+    if (currentUserId == null || currentPost == null) {
+      return false;
+    }
+    return currentPost.authorId == currentUserId;
+  }
+
   List<Comment> get topLevelComments {
     return _comments
         .where((comment) => comment.isTopLevel)
         .toList(growable: false)
       ..sort((a, b) => a.createdAt.compareTo(b.createdAt));
+  }
+
+  bool canDeleteComment(Comment comment) {
+    final currentUserId = authController.getCurrentUser()?.uid;
+    if (currentUserId == null) {
+      return false;
+    }
+    return comment.userId == currentUserId;
+  }
+
+  bool isCommentDeleting(String commentId) {
+    return _deletingCommentIds.contains(commentId);
   }
 
   Future<void> toggleLike() async {
@@ -136,6 +160,36 @@ class PostDetailController extends ChangeNotifier {
       } else {
         _errorCode = 'community_load_failed';
       }
+      notifyListeners();
+    }
+  }
+
+  Future<void> deletePost() async {
+    final currentPost = _post;
+    final currentUser = authController.getCurrentUser();
+    if (currentPost == null || currentUser == null || _isPostDeleting) {
+      throw AppException('community_delete_post_failed');
+    }
+
+    _isPostDeleting = true;
+    notifyListeners();
+
+    try {
+      await communityRepository.deletePost(
+        postId: currentPost.id,
+        userId: currentUser.uid,
+      );
+      _post = null;
+      _comments = const <Comment>[];
+      communityController.removePost(currentPost.id);
+      notifyListeners();
+    } catch (error) {
+      if (error is AppException) {
+        rethrow;
+      }
+      throw AppException('community_delete_post_failed');
+    } finally {
+      _isPostDeleting = false;
       notifyListeners();
     }
   }
@@ -229,6 +283,41 @@ class PostDetailController extends ChangeNotifier {
       throw AppException('community_comment_submit_failed');
     } finally {
       _isSubmitting = false;
+      notifyListeners();
+    }
+  }
+
+  Future<void> deleteComment(Comment comment) async {
+    final currentUser = authController.getCurrentUser();
+    if (currentUser == null || _deletingCommentIds.contains(comment.id)) {
+      throw AppException('community_delete_comment_failed');
+    }
+
+    _deletingCommentIds.add(comment.id);
+    notifyListeners();
+
+    try {
+      await communityRepository.deleteComment(
+        postId: postId,
+        commentId: comment.id,
+        userId: currentUser.uid,
+      );
+
+      if (_replyTarget?.id == comment.id ||
+          _replyTarget?.parentCommentId == comment.id) {
+        _replyTarget = null;
+      }
+
+      await _loadPostAndComments();
+      _errorCode = null;
+      notifyListeners();
+    } catch (error) {
+      if (error is AppException) {
+        rethrow;
+      }
+      throw AppException('community_delete_comment_failed');
+    } finally {
+      _deletingCommentIds.remove(comment.id);
       notifyListeners();
     }
   }
