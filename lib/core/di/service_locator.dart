@@ -3,6 +3,10 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 
+import '../../features/admin/data/datasources/admin_remote_data_source.dart';
+import '../../features/admin/data/datasources/firebase_admin_remote_data_source.dart';
+import '../../features/admin/data/repositories/admin_repository_impl.dart';
+import '../../features/admin/domain/repositories/admin_repository.dart';
 import '../../features/activity/data/datasources/activity_remote_data_source.dart';
 import '../../features/activity/data/datasources/firebase_activity_remote_data_source.dart';
 import '../../features/activity/data/repositories/activity_repository_impl.dart';
@@ -35,6 +39,7 @@ class ServiceLocator {
   static late final CommunityController communityController;
   static late final MapHomeRepository mapHomeRepository;
   static late final ProfileSetupController profileSetupController;
+  static late final AdminRepository adminRepository;
 
   static void setup() {
     // 最底层依赖统一在这里创建，避免页面直接接触 Firebase。
@@ -90,6 +95,11 @@ class ServiceLocator {
       authController: authController,
       profileSetupController: profileSetupController,
     );
+
+    // Admin 妯″潡
+    final AdminRemoteDataSource adminRemoteDataSource =
+        FirebaseAdminRemoteDataSource(firestore: firestore, storage: storage);
+    adminRepository = AdminRepositoryImpl(adminRemoteDataSource);
   }
 
   static MapHomeController createMapHomeController({

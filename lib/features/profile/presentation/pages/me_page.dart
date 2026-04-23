@@ -234,13 +234,28 @@ class _MePageState extends State<MePage> {
                   onTap: () => _showLanguageDialog(t),
                 ),
               ),
+              if ((_profile?.role ?? 'user') == 'admin') ...[
+                const SizedBox(height: 16),
+                Container(
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(16),
+                  ),
+                  child: ListTile(
+                    leading: const Icon(Icons.admin_panel_settings_outlined),
+                    title: Text(t.adminMode),
+                    trailing: const Icon(Icons.chevron_right),
+                    onTap: () => context.push(AppRouter.adminDashboard),
+                  ),
+                ),
+              ],
               const SizedBox(height: 16),
               SizedBox(
                 width: double.infinity,
                 child: ElevatedButton(
                   onPressed: () async {
                     await ServiceLocator.authController.signOut();
-                    if (!mounted) return;
+                    if (!context.mounted) return;
                     context.go(AppRouter.welcome);
                   },
                   child: Text(t.logout),

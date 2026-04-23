@@ -41,6 +41,9 @@ class FirebaseProfileRemoteDataSource implements ProfileRemoteDataSource {
       email: data['email'] as String?,
       authProvider: (data['authProvider'] as String?) ?? 'unknown',
       isAnonymous: (data['isAnonymous'] as bool?) ?? false,
+      role: (data['role'] as String?)?.trim().toLowerCase() == 'admin'
+          ? 'admin'
+          : 'user',
       avatarUrl: data['avatarUrl'] as String?,
       nickname: (data['nickname'] as String?) ?? '',
       birthday: data['birthday'] != null

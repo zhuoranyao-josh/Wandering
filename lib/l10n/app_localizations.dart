@@ -1067,6 +1067,426 @@ abstract class AppLocalizations {
   /// **'Start Journey'**
   String get placeDetailsStartJourney;
 
+  /// No description provided for @adminMode.
+  ///
+  /// In en, this message translates to:
+  /// **'Admin Mode'**
+  String get adminMode;
+
+  /// No description provided for @adminDashboardTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Admin Dashboard'**
+  String get adminDashboardTitle;
+
+  /// No description provided for @adminManagePlaces.
+  ///
+  /// In en, this message translates to:
+  /// **'Manage Places'**
+  String get adminManagePlaces;
+
+  /// No description provided for @adminManageActivities.
+  ///
+  /// In en, this message translates to:
+  /// **'Manage Activities'**
+  String get adminManageActivities;
+
+  /// No description provided for @adminPlaceListTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Places'**
+  String get adminPlaceListTitle;
+
+  /// No description provided for @adminPlaceEditTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Edit Place'**
+  String get adminPlaceEditTitle;
+
+  /// No description provided for @adminActivityListTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Activities'**
+  String get adminActivityListTitle;
+
+  /// No description provided for @adminActivityEditTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Edit Activity'**
+  String get adminActivityEditTitle;
+
+  /// No description provided for @adminCreatePlace.
+  ///
+  /// In en, this message translates to:
+  /// **'Create Place'**
+  String get adminCreatePlace;
+
+  /// No description provided for @adminCreateActivity.
+  ///
+  /// In en, this message translates to:
+  /// **'Create Activity'**
+  String get adminCreateActivity;
+
+  /// No description provided for @adminCreate.
+  ///
+  /// In en, this message translates to:
+  /// **'Create'**
+  String get adminCreate;
+
+  /// No description provided for @adminEdit.
+  ///
+  /// In en, this message translates to:
+  /// **'Edit'**
+  String get adminEdit;
+
+  /// No description provided for @adminEnable.
+  ///
+  /// In en, this message translates to:
+  /// **'Enable'**
+  String get adminEnable;
+
+  /// No description provided for @adminDisable.
+  ///
+  /// In en, this message translates to:
+  /// **'Disable'**
+  String get adminDisable;
+
+  /// No description provided for @adminEnabled.
+  ///
+  /// In en, this message translates to:
+  /// **'Enabled'**
+  String get adminEnabled;
+
+  /// No description provided for @adminDisabled.
+  ///
+  /// In en, this message translates to:
+  /// **'Disabled'**
+  String get adminDisabled;
+
+  /// No description provided for @adminSearchHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Search by id or name'**
+  String get adminSearchHint;
+
+  /// No description provided for @adminNoData.
+  ///
+  /// In en, this message translates to:
+  /// **'No data'**
+  String get adminNoData;
+
+  /// No description provided for @adminLoadFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Failed to load admin data.'**
+  String get adminLoadFailed;
+
+  /// No description provided for @adminSaveFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Failed to save changes.'**
+  String get adminSaveFailed;
+
+  /// No description provided for @adminDeleteFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Failed to delete item.'**
+  String get adminDeleteFailed;
+
+  /// No description provided for @adminDeleteConfirmTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete this item?'**
+  String get adminDeleteConfirmTitle;
+
+  /// No description provided for @adminDeleteConfirmMessage.
+  ///
+  /// In en, this message translates to:
+  /// **'This action cannot be undone.'**
+  String get adminDeleteConfirmMessage;
+
+  /// No description provided for @adminBasicInfo.
+  ///
+  /// In en, this message translates to:
+  /// **'Basic Info'**
+  String get adminBasicInfo;
+
+  /// No description provided for @adminMapSettings.
+  ///
+  /// In en, this message translates to:
+  /// **'Map Settings'**
+  String get adminMapSettings;
+
+  /// No description provided for @adminMarkerSettings.
+  ///
+  /// In en, this message translates to:
+  /// **'Marker Settings'**
+  String get adminMarkerSettings;
+
+  /// No description provided for @adminPreviewCard.
+  ///
+  /// In en, this message translates to:
+  /// **'Preview Card'**
+  String get adminPreviewCard;
+
+  /// No description provided for @adminPlaceDetails.
+  ///
+  /// In en, this message translates to:
+  /// **'Place Details'**
+  String get adminPlaceDetails;
+
+  /// No description provided for @adminSubcontent.
+  ///
+  /// In en, this message translates to:
+  /// **'Subcontent'**
+  String get adminSubcontent;
+
+  /// No description provided for @adminExperiences.
+  ///
+  /// In en, this message translates to:
+  /// **'Experiences'**
+  String get adminExperiences;
+
+  /// No description provided for @adminFlavors.
+  ///
+  /// In en, this message translates to:
+  /// **'Flavors'**
+  String get adminFlavors;
+
+  /// No description provided for @adminStays.
+  ///
+  /// In en, this message translates to:
+  /// **'Stays'**
+  String get adminStays;
+
+  /// No description provided for @adminGallery.
+  ///
+  /// In en, this message translates to:
+  /// **'Gallery'**
+  String get adminGallery;
+
+  /// No description provided for @adminName.
+  ///
+  /// In en, this message translates to:
+  /// **'Name'**
+  String get adminName;
+
+  /// No description provided for @adminTags.
+  ///
+  /// In en, this message translates to:
+  /// **'Tags'**
+  String get adminTags;
+
+  /// No description provided for @adminTagsHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Separate tags with commas'**
+  String get adminTagsHint;
+
+  /// No description provided for @adminRegionId.
+  ///
+  /// In en, this message translates to:
+  /// **'Region ID'**
+  String get adminRegionId;
+
+  /// No description provided for @adminLatitude.
+  ///
+  /// In en, this message translates to:
+  /// **'Latitude'**
+  String get adminLatitude;
+
+  /// No description provided for @adminLongitude.
+  ///
+  /// In en, this message translates to:
+  /// **'Longitude'**
+  String get adminLongitude;
+
+  /// No description provided for @adminFlyToZoom.
+  ///
+  /// In en, this message translates to:
+  /// **'Fly To Zoom'**
+  String get adminFlyToZoom;
+
+  /// No description provided for @adminFlyToPitch.
+  ///
+  /// In en, this message translates to:
+  /// **'Fly To Pitch'**
+  String get adminFlyToPitch;
+
+  /// No description provided for @adminFlyToBearing.
+  ///
+  /// In en, this message translates to:
+  /// **'Fly To Bearing'**
+  String get adminFlyToBearing;
+
+  /// No description provided for @adminMarkerType.
+  ///
+  /// In en, this message translates to:
+  /// **'Marker Type'**
+  String get adminMarkerType;
+
+  /// No description provided for @adminMarkerLatitude.
+  ///
+  /// In en, this message translates to:
+  /// **'Marker Latitude'**
+  String get adminMarkerLatitude;
+
+  /// No description provided for @adminMarkerLongitude.
+  ///
+  /// In en, this message translates to:
+  /// **'Marker Longitude'**
+  String get adminMarkerLongitude;
+
+  /// No description provided for @adminCoverImageUrl.
+  ///
+  /// In en, this message translates to:
+  /// **'Cover Image URL'**
+  String get adminCoverImageUrl;
+
+  /// No description provided for @adminQuote.
+  ///
+  /// In en, this message translates to:
+  /// **'Quote'**
+  String get adminQuote;
+
+  /// No description provided for @adminShortDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'Short Description'**
+  String get adminShortDescription;
+
+  /// No description provided for @adminLongDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'Long Description'**
+  String get adminLongDescription;
+
+  /// No description provided for @adminOrder.
+  ///
+  /// In en, this message translates to:
+  /// **'Order'**
+  String get adminOrder;
+
+  /// No description provided for @adminTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Title'**
+  String get adminTitle;
+
+  /// No description provided for @adminBadge.
+  ///
+  /// In en, this message translates to:
+  /// **'Badge'**
+  String get adminBadge;
+
+  /// No description provided for @adminSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Subtitle'**
+  String get adminSubtitle;
+
+  /// No description provided for @adminImageUrl.
+  ///
+  /// In en, this message translates to:
+  /// **'Image URL'**
+  String get adminImageUrl;
+
+  /// No description provided for @adminUploadImage.
+  ///
+  /// In en, this message translates to:
+  /// **'Select and upload image'**
+  String get adminUploadImage;
+
+  /// No description provided for @adminUploadingImage.
+  ///
+  /// In en, this message translates to:
+  /// **'Uploading image...'**
+  String get adminUploadingImage;
+
+  /// No description provided for @adminImageUploadFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Failed to upload image.'**
+  String get adminImageUploadFailed;
+
+  /// No description provided for @adminImageUploadSuccess.
+  ///
+  /// In en, this message translates to:
+  /// **'Image uploaded.'**
+  String get adminImageUploadSuccess;
+
+  /// No description provided for @adminPriceRange.
+  ///
+  /// In en, this message translates to:
+  /// **'Price Range'**
+  String get adminPriceRange;
+
+  /// No description provided for @adminCaption.
+  ///
+  /// In en, this message translates to:
+  /// **'Caption'**
+  String get adminCaption;
+
+  /// No description provided for @adminSchedule.
+  ///
+  /// In en, this message translates to:
+  /// **'Schedule'**
+  String get adminSchedule;
+
+  /// No description provided for @adminCategory.
+  ///
+  /// In en, this message translates to:
+  /// **'Category'**
+  String get adminCategory;
+
+  /// No description provided for @adminCityName.
+  ///
+  /// In en, this message translates to:
+  /// **'City Name'**
+  String get adminCityName;
+
+  /// No description provided for @adminCountryName.
+  ///
+  /// In en, this message translates to:
+  /// **'Country Name'**
+  String get adminCountryName;
+
+  /// No description provided for @adminCityCode.
+  ///
+  /// In en, this message translates to:
+  /// **'City Code'**
+  String get adminCityCode;
+
+  /// No description provided for @adminPlaceId.
+  ///
+  /// In en, this message translates to:
+  /// **'Place ID'**
+  String get adminPlaceId;
+
+  /// No description provided for @adminStartAtIso.
+  ///
+  /// In en, this message translates to:
+  /// **'Start At (ISO-8601)'**
+  String get adminStartAtIso;
+
+  /// No description provided for @adminEndAtIso.
+  ///
+  /// In en, this message translates to:
+  /// **'End At (ISO-8601)'**
+  String get adminEndAtIso;
+
+  /// No description provided for @adminFeatured.
+  ///
+  /// In en, this message translates to:
+  /// **'Featured'**
+  String get adminFeatured;
+
+  /// No description provided for @adminDetailText.
+  ///
+  /// In en, this message translates to:
+  /// **'Detail Text'**
+  String get adminDetailText;
+
   /// No description provided for @communityTabFollowing.
   ///
   /// In en, this message translates to:

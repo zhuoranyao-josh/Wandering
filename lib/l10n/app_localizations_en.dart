@@ -499,6 +499,216 @@ class AppLocalizationsEn extends AppLocalizations {
   String get placeDetailsStartJourney => 'Start Journey';
 
   @override
+  String get adminMode => 'Admin Mode';
+
+  @override
+  String get adminDashboardTitle => 'Admin Dashboard';
+
+  @override
+  String get adminManagePlaces => 'Manage Places';
+
+  @override
+  String get adminManageActivities => 'Manage Activities';
+
+  @override
+  String get adminPlaceListTitle => 'Places';
+
+  @override
+  String get adminPlaceEditTitle => 'Edit Place';
+
+  @override
+  String get adminActivityListTitle => 'Activities';
+
+  @override
+  String get adminActivityEditTitle => 'Edit Activity';
+
+  @override
+  String get adminCreatePlace => 'Create Place';
+
+  @override
+  String get adminCreateActivity => 'Create Activity';
+
+  @override
+  String get adminCreate => 'Create';
+
+  @override
+  String get adminEdit => 'Edit';
+
+  @override
+  String get adminEnable => 'Enable';
+
+  @override
+  String get adminDisable => 'Disable';
+
+  @override
+  String get adminEnabled => 'Enabled';
+
+  @override
+  String get adminDisabled => 'Disabled';
+
+  @override
+  String get adminSearchHint => 'Search by id or name';
+
+  @override
+  String get adminNoData => 'No data';
+
+  @override
+  String get adminLoadFailed => 'Failed to load admin data.';
+
+  @override
+  String get adminSaveFailed => 'Failed to save changes.';
+
+  @override
+  String get adminDeleteFailed => 'Failed to delete item.';
+
+  @override
+  String get adminDeleteConfirmTitle => 'Delete this item?';
+
+  @override
+  String get adminDeleteConfirmMessage => 'This action cannot be undone.';
+
+  @override
+  String get adminBasicInfo => 'Basic Info';
+
+  @override
+  String get adminMapSettings => 'Map Settings';
+
+  @override
+  String get adminMarkerSettings => 'Marker Settings';
+
+  @override
+  String get adminPreviewCard => 'Preview Card';
+
+  @override
+  String get adminPlaceDetails => 'Place Details';
+
+  @override
+  String get adminSubcontent => 'Subcontent';
+
+  @override
+  String get adminExperiences => 'Experiences';
+
+  @override
+  String get adminFlavors => 'Flavors';
+
+  @override
+  String get adminStays => 'Stays';
+
+  @override
+  String get adminGallery => 'Gallery';
+
+  @override
+  String get adminName => 'Name';
+
+  @override
+  String get adminTags => 'Tags';
+
+  @override
+  String get adminTagsHint => 'Separate tags with commas';
+
+  @override
+  String get adminRegionId => 'Region ID';
+
+  @override
+  String get adminLatitude => 'Latitude';
+
+  @override
+  String get adminLongitude => 'Longitude';
+
+  @override
+  String get adminFlyToZoom => 'Fly To Zoom';
+
+  @override
+  String get adminFlyToPitch => 'Fly To Pitch';
+
+  @override
+  String get adminFlyToBearing => 'Fly To Bearing';
+
+  @override
+  String get adminMarkerType => 'Marker Type';
+
+  @override
+  String get adminMarkerLatitude => 'Marker Latitude';
+
+  @override
+  String get adminMarkerLongitude => 'Marker Longitude';
+
+  @override
+  String get adminCoverImageUrl => 'Cover Image URL';
+
+  @override
+  String get adminQuote => 'Quote';
+
+  @override
+  String get adminShortDescription => 'Short Description';
+
+  @override
+  String get adminLongDescription => 'Long Description';
+
+  @override
+  String get adminOrder => 'Order';
+
+  @override
+  String get adminTitle => 'Title';
+
+  @override
+  String get adminBadge => 'Badge';
+
+  @override
+  String get adminSubtitle => 'Subtitle';
+
+  @override
+  String get adminImageUrl => 'Image URL';
+
+  @override
+  String get adminUploadImage => 'Select and upload image';
+
+  @override
+  String get adminUploadingImage => 'Uploading image...';
+
+  @override
+  String get adminImageUploadFailed => 'Failed to upload image.';
+
+  @override
+  String get adminImageUploadSuccess => 'Image uploaded.';
+
+  @override
+  String get adminPriceRange => 'Price Range';
+
+  @override
+  String get adminCaption => 'Caption';
+
+  @override
+  String get adminSchedule => 'Schedule';
+
+  @override
+  String get adminCategory => 'Category';
+
+  @override
+  String get adminCityName => 'City Name';
+
+  @override
+  String get adminCountryName => 'Country Name';
+
+  @override
+  String get adminCityCode => 'City Code';
+
+  @override
+  String get adminPlaceId => 'Place ID';
+
+  @override
+  String get adminStartAtIso => 'Start At (ISO-8601)';
+
+  @override
+  String get adminEndAtIso => 'End At (ISO-8601)';
+
+  @override
+  String get adminFeatured => 'Featured';
+
+  @override
+  String get adminDetailText => 'Detail Text';
+
+  @override
   String get communityTabFollowing => 'Following';
 
   @override

@@ -16,11 +16,19 @@ import '../features/community/presentation/pages/create_post_page.dart';
 import '../features/community/presentation/pages/location_search_page.dart';
 import '../features/community/presentation/pages/post_detail_page.dart';
 import '../features/community/presentation/pages/user_profile_page.dart';
+import '../features/admin/domain/entities/admin_subcontent_kind.dart';
+import '../features/admin/presentation/pages/activity_admin_edit_page.dart';
+import '../features/admin/presentation/pages/activity_admin_list_page.dart';
+import '../features/admin/presentation/pages/admin_dashboard_page.dart';
+import '../features/admin/presentation/pages/place_admin_edit_page.dart';
+import '../features/admin/presentation/pages/place_admin_list_page.dart';
+import '../features/admin/presentation/pages/place_subcontent_admin_page.dart';
 import '../features/main_container/presentation/pages/main_container_page.dart';
 import '../features/main_container/presentation/pages/map_tab_page.dart';
 import '../features/main_container/presentation/pages/placeholder_tab_page.dart';
 import '../features/map_home/presentation/models/place_detail_ui_model.dart';
 import '../features/map_home/presentation/pages/place_details_page.dart';
+import '../features/profile/domain/entities/user_profile.dart';
 import '../features/profile/presentation/pages/me_page.dart';
 import '../features/profile/presentation/pages/profile_edit_page.dart';
 import '../features/profile/presentation/pages/profile_setup_page.dart';
@@ -44,6 +52,14 @@ class AppRouter {
   static const String locationSearch = 'location-search';
   static const String postDetail = 'post/:postId';
   static const String userProfile = 'user/:userId';
+  static const String adminDashboard = '/admin';
+  static const String adminPlaces = '/admin/places';
+  static const String adminPlaceEditPath = '/admin/places/edit/:placeId';
+  static const String adminPlaceSubcontentPath =
+      '/admin/places/:placeId/content/:kind';
+  static const String adminActivities = '/admin/activities';
+  static const String adminActivityEditPath =
+      '/admin/activities/edit/:activityId';
 
   static const String tabOne = '/tab-1';
   static const String tabTwo = activities;
@@ -63,6 +79,9 @@ class AppRouter {
     tabTwo,
     tabFour,
     tabMe,
+    adminDashboard,
+    adminPlaces,
+    adminActivities,
   };
 
   static String activityDetail(String eventId) {
@@ -87,6 +106,20 @@ class AppRouter {
 
   static String placeDetails(String placeId) {
     return '$home/${placeDetailsPath.replaceFirst(':placeId', placeId)}';
+  }
+
+  static String adminPlaceEdit(String placeId) {
+    return adminPlaceEditPath.replaceFirst(':placeId', placeId);
+  }
+
+  static String adminPlaceSubcontent(String placeId, String kind) {
+    return adminPlaceSubcontentPath
+        .replaceFirst(':placeId', placeId)
+        .replaceFirst(':kind', kind);
+  }
+
+  static String adminActivityEdit(String activityId) {
+    return adminActivityEditPath.replaceFirst(':activityId', activityId);
   }
 
   static final GoRouter router = GoRouter(
@@ -122,6 +155,13 @@ class AppRouter {
       final bool completed = profileController.cachedIsCompleted ?? false;
       if (!completed) {
         return _redirectAuthenticated(location: location, target: profileSetup);
+      }
+
+      final UserProfile? profile = profileController.getCachedProfile(user.uid);
+      final bool isAdmin = (profile?.role ?? 'user') == 'admin';
+      // 管理员权限统一在路由层拦截，避免页面内零散判断。
+      if (_isAdminRoute(location) && !isAdmin) {
+        return home;
       }
 
       return _redirectAuthenticated(location: location, target: home);
@@ -256,6 +296,43 @@ class AppRouter {
         path: profileEdit,
         builder: (context, state) => const ProfileEditPage(),
       ),
+      GoRoute(
+        path: adminDashboard,
+        builder: (context, state) => const AdminDashboardPage(),
+      ),
+      GoRoute(
+        path: adminPlaces,
+        builder: (context, state) => const PlaceAdminListPage(),
+      ),
+      GoRoute(
+        path: adminPlaceEditPath,
+        builder: (context, state) {
+          final placeId = state.pathParameters['placeId'] ?? 'new';
+          return PlaceAdminEditPage(placeId: placeId);
+        },
+      ),
+      GoRoute(
+        path: adminPlaceSubcontentPath,
+        builder: (context, state) {
+          final placeId = state.pathParameters['placeId'] ?? '';
+          final rawKind = state.pathParameters['kind'] ?? '';
+          final kind =
+              AdminSubcontentKind.fromRaw(rawKind) ??
+              AdminSubcontentKind.experiences;
+          return PlaceSubcontentAdminPage(placeId: placeId, kind: kind);
+        },
+      ),
+      GoRoute(
+        path: adminActivities,
+        builder: (context, state) => const ActivityAdminListPage(),
+      ),
+      GoRoute(
+        path: adminActivityEditPath,
+        builder: (context, state) {
+          final activityId = state.pathParameters['activityId'] ?? 'new';
+          return ActivityAdminEditPage(activityId: activityId);
+        },
+      ),
     ],
     errorBuilder: (BuildContext context, GoRouterState state) {
       return Scaffold(
@@ -304,6 +381,7 @@ class AppRouter {
 
     final bool canStayInAuthenticatedArea =
         _authenticatedExactRoutes.contains(location) ||
+        location.startsWith('$adminDashboard/') ||
         location.startsWith('$home/') ||
         location.startsWith('/me/') ||
         location.startsWith('$activities/') ||
@@ -313,6 +391,11 @@ class AppRouter {
     }
 
     return home;
+  }
+
+  static bool _isAdminRoute(String location) {
+    return location == adminDashboard ||
+        location.startsWith('$adminDashboard/');
   }
 }
 

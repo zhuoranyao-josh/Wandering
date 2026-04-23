@@ -98,6 +98,7 @@ class ProfileSetupController extends ChangeNotifier {
       email: currentUser.email,
       authProvider: authProvider,
       isAnonymous: currentUser.isAnonymous,
+      role: 'user',
       avatarUrl: currentUser.photoUrl,
       nickname: cleanNickname,
       birthday: birthday,

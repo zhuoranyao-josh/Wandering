@@ -499,6 +499,216 @@ class AppLocalizationsZh extends AppLocalizations {
   String get placeDetailsStartJourney => '开启旅程';
 
   @override
+  String get adminMode => '管理员模式';
+
+  @override
+  String get adminDashboardTitle => '管理控制台';
+
+  @override
+  String get adminManagePlaces => '管理地点';
+
+  @override
+  String get adminManageActivities => '管理活动';
+
+  @override
+  String get adminPlaceListTitle => '地点列表';
+
+  @override
+  String get adminPlaceEditTitle => '编辑地点';
+
+  @override
+  String get adminActivityListTitle => '活动列表';
+
+  @override
+  String get adminActivityEditTitle => '编辑活动';
+
+  @override
+  String get adminCreatePlace => '新建地点';
+
+  @override
+  String get adminCreateActivity => '新建活动';
+
+  @override
+  String get adminCreate => '新建';
+
+  @override
+  String get adminEdit => '编辑';
+
+  @override
+  String get adminEnable => '启用';
+
+  @override
+  String get adminDisable => '禁用';
+
+  @override
+  String get adminEnabled => '已启用';
+
+  @override
+  String get adminDisabled => '已禁用';
+
+  @override
+  String get adminSearchHint => '按 ID 或名称搜索';
+
+  @override
+  String get adminNoData => '暂无数据';
+
+  @override
+  String get adminLoadFailed => '加载管理数据失败。';
+
+  @override
+  String get adminSaveFailed => '保存失败。';
+
+  @override
+  String get adminDeleteFailed => '删除失败。';
+
+  @override
+  String get adminDeleteConfirmTitle => '确认删除此项？';
+
+  @override
+  String get adminDeleteConfirmMessage => '此操作无法撤销。';
+
+  @override
+  String get adminBasicInfo => '基础信息';
+
+  @override
+  String get adminMapSettings => '地图设置';
+
+  @override
+  String get adminMarkerSettings => '标记点设置';
+
+  @override
+  String get adminPreviewCard => '预览卡片';
+
+  @override
+  String get adminPlaceDetails => '地点详情';
+
+  @override
+  String get adminSubcontent => '子内容';
+
+  @override
+  String get adminExperiences => '体验内容';
+
+  @override
+  String get adminFlavors => '风味内容';
+
+  @override
+  String get adminStays => '住宿内容';
+
+  @override
+  String get adminGallery => '图集内容';
+
+  @override
+  String get adminName => '名称';
+
+  @override
+  String get adminTags => '标签';
+
+  @override
+  String get adminTagsHint => '使用逗号分隔标签';
+
+  @override
+  String get adminRegionId => '区域 ID';
+
+  @override
+  String get adminLatitude => '纬度';
+
+  @override
+  String get adminLongitude => '经度';
+
+  @override
+  String get adminFlyToZoom => '飞行动画缩放';
+
+  @override
+  String get adminFlyToPitch => '飞行动画倾角';
+
+  @override
+  String get adminFlyToBearing => '飞行动画朝向';
+
+  @override
+  String get adminMarkerType => '标记点类型';
+
+  @override
+  String get adminMarkerLatitude => '标记点纬度';
+
+  @override
+  String get adminMarkerLongitude => '标记点经度';
+
+  @override
+  String get adminCoverImageUrl => '封面图 URL';
+
+  @override
+  String get adminQuote => '引言';
+
+  @override
+  String get adminShortDescription => '短描述';
+
+  @override
+  String get adminLongDescription => '长描述';
+
+  @override
+  String get adminOrder => '排序';
+
+  @override
+  String get adminTitle => '标题';
+
+  @override
+  String get adminBadge => '标签';
+
+  @override
+  String get adminSubtitle => '副标题';
+
+  @override
+  String get adminImageUrl => '图片 URL';
+
+  @override
+  String get adminUploadImage => '选择并上传图片';
+
+  @override
+  String get adminUploadingImage => '正在上传图片...';
+
+  @override
+  String get adminImageUploadFailed => '图片上传失败。';
+
+  @override
+  String get adminImageUploadSuccess => '图片上传成功。';
+
+  @override
+  String get adminPriceRange => '价格区间';
+
+  @override
+  String get adminCaption => '说明文案';
+
+  @override
+  String get adminSchedule => '时间设置';
+
+  @override
+  String get adminCategory => '分类';
+
+  @override
+  String get adminCityName => '城市名';
+
+  @override
+  String get adminCountryName => '国家名';
+
+  @override
+  String get adminCityCode => '城市代码';
+
+  @override
+  String get adminPlaceId => '地点 ID';
+
+  @override
+  String get adminStartAtIso => '开始时间（ISO-8601）';
+
+  @override
+  String get adminEndAtIso => '结束时间（ISO-8601）';
+
+  @override
+  String get adminFeatured => '精选';
+
+  @override
+  String get adminDetailText => '详情文案';
+
+  @override
   String get communityTabFollowing => '关注';
 
   @override

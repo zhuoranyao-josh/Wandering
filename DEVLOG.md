@@ -142,6 +142,8 @@
 ### 🚀 Features
 - Added a new PlaceDetailsPage shell with hero, chips, section scaffolding, and a fixed bottom action bar.
 - Wired map preview card navigation to the new details page.
+- Added admin dashboard, place/activity management, and subcontent management.
+- Added image selection and auto-upload for admin forms.
 
 ### 🐛 Bug Fixes
 - Normalized Firestore language-map keys so zh/en variants resolve more reliably.
