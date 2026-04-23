@@ -17,6 +17,7 @@ PlaceEntity mapPlaceEntityFromFirestore(
         readTrimmedString(json, 'coverImage') ??
         readTrimmedString(json, 'previewAssetPath') ??
         '',
+    quote: readLanguageMap(json['quote']),
     shortDescription: readLanguageMap(json['shortDescription']),
     longDescription: readLanguageMap(json['longDescription']),
     tags: readStringList(json['tags']),

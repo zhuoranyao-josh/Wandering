@@ -1001,6 +1001,72 @@ abstract class AppLocalizations {
   /// **'View details'**
   String get viewDetails;
 
+  /// No description provided for @placeDetailsUniqueExperiences.
+  ///
+  /// In en, this message translates to:
+  /// **'Unique Experiences'**
+  String get placeDetailsUniqueExperiences;
+
+  /// No description provided for @placeDetailsNativeFlavors.
+  ///
+  /// In en, this message translates to:
+  /// **'Native Flavors'**
+  String get placeDetailsNativeFlavors;
+
+  /// No description provided for @placeDetailsCuratedStays.
+  ///
+  /// In en, this message translates to:
+  /// **'Curated Stays'**
+  String get placeDetailsCuratedStays;
+
+  /// No description provided for @placeDetailsCommunityMoments.
+  ///
+  /// In en, this message translates to:
+  /// **'Community Moments'**
+  String get placeDetailsCommunityMoments;
+
+  /// No description provided for @placeDetailsGallery.
+  ///
+  /// In en, this message translates to:
+  /// **'Gallery'**
+  String get placeDetailsGallery;
+
+  /// No description provided for @placeDetailsFindNearMe.
+  ///
+  /// In en, this message translates to:
+  /// **'Find Near Me'**
+  String get placeDetailsFindNearMe;
+
+  /// No description provided for @placeDetailsViewMap.
+  ///
+  /// In en, this message translates to:
+  /// **'View Map'**
+  String get placeDetailsViewMap;
+
+  /// No description provided for @placeDetailsViewMore.
+  ///
+  /// In en, this message translates to:
+  /// **'View more'**
+  String get placeDetailsViewMore;
+
+  /// No description provided for @placeDetailsViewFeed.
+  ///
+  /// In en, this message translates to:
+  /// **'View Feed'**
+  String get placeDetailsViewFeed;
+
+  /// No description provided for @placeDetailsViewAll.
+  ///
+  /// In en, this message translates to:
+  /// **'View All'**
+  String get placeDetailsViewAll;
+
+  /// No description provided for @placeDetailsStartJourney.
+  ///
+  /// In en, this message translates to:
+  /// **'Start Journey'**
+  String get placeDetailsStartJourney;
+
   /// No description provided for @communityTabFollowing.
   ///
   /// In en, this message translates to:

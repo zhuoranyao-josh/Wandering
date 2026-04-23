@@ -466,6 +466,39 @@ class AppLocalizationsZh extends AppLocalizations {
   String get viewDetails => '查看详情';
 
   @override
+  String get placeDetailsUniqueExperiences => '独特体验';
+
+  @override
+  String get placeDetailsNativeFlavors => '本地风味';
+
+  @override
+  String get placeDetailsCuratedStays => '精选住宿';
+
+  @override
+  String get placeDetailsCommunityMoments => '社区瞬间';
+
+  @override
+  String get placeDetailsGallery => '图库';
+
+  @override
+  String get placeDetailsFindNearMe => '附近找找';
+
+  @override
+  String get placeDetailsViewMap => '查看地图';
+
+  @override
+  String get placeDetailsViewMore => '查看更多';
+
+  @override
+  String get placeDetailsViewFeed => '查看动态';
+
+  @override
+  String get placeDetailsViewAll => '查看全部';
+
+  @override
+  String get placeDetailsStartJourney => '开启旅程';
+
+  @override
   String get communityTabFollowing => '关注';
 
   @override

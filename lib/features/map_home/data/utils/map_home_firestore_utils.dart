@@ -26,16 +26,27 @@ Map<String, String> readLanguageMap(Object? value) {
 
   final result = <String, String>{};
   for (final entry in value.entries) {
-    final key = entry.key.toString().trim().toLowerCase();
+    final key = _normalizeLanguageKey(entry.key.toString());
     final rawValue = entry.value;
-    if (rawValue is String) {
+    if (key != null && rawValue is String) {
       final trimmed = rawValue.trim();
-      if (trimmed.isNotEmpty && (key == 'zh' || key == 'en')) {
+      if (trimmed.isNotEmpty) {
         result[key] = trimmed;
       }
     }
   }
   return Map<String, String>.unmodifiable(result);
+}
+
+String? _normalizeLanguageKey(String rawKey) {
+  final normalized = rawKey.trim().toLowerCase().replaceAll('_', '-');
+  if (normalized.startsWith('zh')) {
+    return 'zh';
+  }
+  if (normalized.startsWith('en')) {
+    return 'en';
+  }
+  return null;
 }
 
 List<String> readStringList(Object? value) {

@@ -6,6 +6,7 @@ class PlaceEntity {
     required this.latitude,
     required this.longitude,
     required this.coverImage,
+    required this.quote,
     required this.shortDescription,
     required this.longDescription,
     required this.tags,
@@ -20,6 +21,7 @@ class PlaceEntity {
   final double latitude;
   final double longitude;
   final String coverImage;
+  final Map<String, String> quote;
   final Map<String, String> shortDescription;
   final Map<String, String> longDescription;
   final List<String> tags;
@@ -40,6 +42,10 @@ class PlaceEntity {
     return _localizedText(languageCode, longDescription);
   }
 
+  String localizedQuote(String languageCode) {
+    return _localizedText(languageCode, quote);
+  }
+
   factory PlaceEntity.fromMap(String documentId, Map<String, dynamic> json) {
     // 只支持语言 map 结构，不再兼容旧的扁平字段。
     return PlaceEntity(
@@ -52,6 +58,7 @@ class PlaceEntity {
           _readText(json['coverImage']) ??
           _readText(json['previewAssetPath']) ??
           '',
+      quote: _readLanguageMap(json['quote']),
       shortDescription: _readLanguageMap(json['shortDescription']),
       longDescription: _readLanguageMap(json['longDescription']),
       tags: _readTags(json['tags']),
@@ -92,16 +99,27 @@ class PlaceEntity {
 
     final result = <String, String>{};
     for (final entry in value.entries) {
-      final key = entry.key.toString().trim().toLowerCase();
+      final key = _normalizeLanguageKey(entry.key.toString());
       final rawValue = entry.value;
-      if (rawValue is String) {
+      if (key != null && rawValue is String) {
         final trimmed = rawValue.trim();
-        if (trimmed.isNotEmpty && (key == 'zh' || key == 'en')) {
+        if (trimmed.isNotEmpty) {
           result[key] = trimmed;
         }
       }
     }
     return Map<String, String>.unmodifiable(result);
+  }
+
+  static String? _normalizeLanguageKey(String rawKey) {
+    final normalized = rawKey.trim().toLowerCase().replaceAll('_', '-');
+    if (normalized.startsWith('zh')) {
+      return 'zh';
+    }
+    if (normalized.startsWith('en')) {
+      return 'en';
+    }
+    return null;
   }
 
   static List<String> _readTags(Object? value) {

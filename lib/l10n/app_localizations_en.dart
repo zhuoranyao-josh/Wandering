@@ -466,6 +466,39 @@ class AppLocalizationsEn extends AppLocalizations {
   String get viewDetails => 'View details';
 
   @override
+  String get placeDetailsUniqueExperiences => 'Unique Experiences';
+
+  @override
+  String get placeDetailsNativeFlavors => 'Native Flavors';
+
+  @override
+  String get placeDetailsCuratedStays => 'Curated Stays';
+
+  @override
+  String get placeDetailsCommunityMoments => 'Community Moments';
+
+  @override
+  String get placeDetailsGallery => 'Gallery';
+
+  @override
+  String get placeDetailsFindNearMe => 'Find Near Me';
+
+  @override
+  String get placeDetailsViewMap => 'View Map';
+
+  @override
+  String get placeDetailsViewMore => 'View more';
+
+  @override
+  String get placeDetailsViewFeed => 'View Feed';
+
+  @override
+  String get placeDetailsViewAll => 'View All';
+
+  @override
+  String get placeDetailsStartJourney => 'Start Journey';
+
+  @override
   String get communityTabFollowing => 'Following';
 
   @override

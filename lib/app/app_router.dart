@@ -19,6 +19,8 @@ import '../features/community/presentation/pages/user_profile_page.dart';
 import '../features/main_container/presentation/pages/main_container_page.dart';
 import '../features/main_container/presentation/pages/map_tab_page.dart';
 import '../features/main_container/presentation/pages/placeholder_tab_page.dart';
+import '../features/map_home/presentation/models/place_detail_ui_model.dart';
+import '../features/map_home/presentation/pages/place_details_page.dart';
 import '../features/profile/presentation/pages/me_page.dart';
 import '../features/profile/presentation/pages/profile_edit_page.dart';
 import '../features/profile/presentation/pages/profile_setup_page.dart';
@@ -46,6 +48,7 @@ class AppRouter {
   static const String tabOne = '/tab-1';
   static const String tabTwo = activities;
   static const String tabThree = home;
+  static const String placeDetailsPath = 'place/:placeId';
   static const String tabFour = community;
   static const String tabMe = '/me';
 
@@ -80,6 +83,10 @@ class AppRouter {
 
   static String communityUserProfile(String userId) {
     return '$community/${userProfile.replaceFirst(':userId', userId)}';
+  }
+
+  static String placeDetails(String placeId) {
+    return '$home/${placeDetailsPath.replaceFirst(':placeId', placeId)}';
   }
 
   static final GoRouter router = GoRouter(
@@ -175,6 +182,22 @@ class AppRouter {
               GoRoute(
                 path: tabThree,
                 builder: (context, state) => const MapTabPage(),
+                routes: <RouteBase>[
+                  GoRoute(
+                    path: placeDetailsPath,
+                    builder: (context, state) {
+                      final placeId = state.pathParameters['placeId'] ?? '';
+                      final extra = state.extra;
+                      final initialModel = extra is PlaceDetailUiModel
+                          ? extra
+                          : null;
+                      return PlaceDetailsPage(
+                        placeId: placeId,
+                        initialModel: initialModel,
+                      );
+                    },
+                  ),
+                ],
               ),
             ],
           ),
@@ -281,6 +304,7 @@ class AppRouter {
 
     final bool canStayInAuthenticatedArea =
         _authenticatedExactRoutes.contains(location) ||
+        location.startsWith('$home/') ||
         location.startsWith('/me/') ||
         location.startsWith('$activities/') ||
         location.startsWith('$community/');

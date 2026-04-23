@@ -2,14 +2,17 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:go_router/go_router.dart';
 import 'package:mapbox_maps_flutter/mapbox_maps_flutter.dart';
 
+import '../../../../app/app_router.dart';
 import '../../../../core/config/mapbox_config.dart';
 import '../../../../core/di/service_locator.dart';
 import '../../../../core/system_ui/app_system_ui.dart';
 import '../../../../core/widgets/app_button.dart';
 import '../../../../l10n/app_localizations.dart';
 import '../controllers/map_home_controller.dart';
+import '../models/place_detail_ui_model.dart';
 import '../support/place_localizations.dart';
 import '../widgets/map_home_status_panel.dart';
 import '../widgets/map_mode_toggle_button.dart';
@@ -255,7 +258,13 @@ class _MapHomePageState extends State<MapHomePage> {
           imageUrl: place.coverImage,
           buttonText: t.viewDetails,
           onClose: _controller.clearSelectedPlace,
-          onPressed: () {},
+          onPressed: () {
+            // 仅传递当前已有真实字段，详情数据后续由正式数据链路接管。
+            final initialModel = PlaceDetailUiModel.fromPlaceEntity(
+              place: place,
+            );
+            context.push(AppRouter.placeDetails(place.id), extra: initialModel);
+          },
         ),
       ),
     );

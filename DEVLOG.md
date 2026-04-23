@@ -108,13 +108,15 @@
 
 ---
 
-## 2026-04-15 ~ 2026-04-07
+## 2026-04-15 ~ 2026-04-22
 ### 🚀 Features
 - Added the Activity module with Firestore-backed event loading, bottom-tab entry, search, category filters, date/date-range filters, and a lightweight ActivityDetailPage placeholder.
 - Added the foundational structure of the Community module, including Community Page, Create Post Page, Post Detail Page, and User Profile Page.
 - Integrated real post list, real post detail, and basic comment flow (top-level comments + one-level replies).
 - Added real post like / unlike flow with Firebase-backed like state and count sync
 - Added Cloud Functions triggers for post likes and follow count maintenance
+- Migrated map home mock data to Firebase.
+- Added community image upload, location search, and delete flows.
 
 ### 🐛 Bug Fixes
 - Fixed activity detail taps being redirected to the globe/map page
@@ -124,8 +126,29 @@
 - improved event loading/filtering so activities with nullable `startAt` / `endAt` can still be displayed correctly.
 - Introduced a clearer layered architecture (domain / data / presentation) to support future features like likes, follow system, and real user profile data.
 - Extended repository and data source contracts to support likes, following, trending posts, and real profile queries
+- Extracted map_home mapper and utils files.
+- Added route and i18n support for the new community screens.
 
 ### 📚 Learnings
 - Gained a clearer understanding of the minimal scalable structure for the Community module.
 - Confirmed that “top-level comments + one-level replies” is sufficient for current needs, avoiding premature complexity.
 - Keeping counter fields like likeCount, followerCount, and followingCount in Cloud Functions makes client rules much simpler
+- Hardcoded mock data should be replaced early once the feature becomes real.
+- Structured language maps are cleaner than flat localized fields for content that keeps growing.
+
+---
+
+## 2026-04-15 ~ 2026-04-22
+### 🚀 Features
+- Added a new PlaceDetailsPage shell with hero, chips, section scaffolding, and a fixed bottom action bar.
+- Wired map preview card navigation to the new details page.
+
+### 🐛 Bug Fixes
+- Normalized Firestore language-map keys so zh/en variants resolve more reliably.
+
+### ⚡ Improvements
+- Added a pure UI model to prepare the future Firestore -> Repository -> Controller data flow.
+- Added empty-state and placeholder handling for sections without data.
+
+### 📚 Learnings
+- Only user-facing text should use language maps; structural fields should stay scalar.
