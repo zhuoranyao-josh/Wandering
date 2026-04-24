@@ -17,6 +17,11 @@ import '../../features/auth/data/datasources/firebase_auth_remote_data_source.da
 import '../../features/auth/data/repositories/auth_repository_impl.dart';
 import '../../features/auth/domain/repositories/auth_repository.dart';
 import '../../features/auth/presentation/controllers/auth_controller.dart';
+import '../../features/checklist/data/datasources/checklist_remote_data_source.dart';
+import '../../features/checklist/data/datasources/firebase_checklist_remote_data_source.dart';
+import '../../features/checklist/data/repositories/checklist_repository_impl.dart';
+import '../../features/checklist/domain/repositories/checklist_repository.dart';
+import '../../features/checklist/presentation/controllers/checklist_controller.dart';
 import '../../features/community/data/datasources/community_remote_data_source.dart';
 import '../../features/community/data/datasources/firebase_community_remote_data_source.dart';
 import '../../features/community/data/repositories/community_repository_impl.dart';
@@ -39,6 +44,7 @@ class ServiceLocator {
   static late final CommunityController communityController;
   static late final MapHomeRepository mapHomeRepository;
   static late final ProfileSetupController profileSetupController;
+  static late final ChecklistController checklistController;
   static late final AdminRepository adminRepository;
 
   static void setup() {
@@ -79,6 +85,17 @@ class ServiceLocator {
       profileRemoteDataSource,
     );
     profileSetupController = ProfileSetupController(profileRepository);
+
+    // Checklist 模块
+    final ChecklistRemoteDataSource checklistRemoteDataSource =
+        FirebaseChecklistRemoteDataSource(
+          firestore: firestore,
+          firebaseAuth: firebaseAuth,
+        );
+    final ChecklistRepository checklistRepository = ChecklistRepositoryImpl(
+      checklistRemoteDataSource,
+    );
+    checklistController = ChecklistController(repository: checklistRepository);
 
     // Community 模块
     final CommunityRemoteDataSource communityRemoteDataSource =

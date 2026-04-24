@@ -499,6 +499,39 @@ class AppLocalizationsEn extends AppLocalizations {
   String get placeDetailsStartJourney => 'Start Journey';
 
   @override
+  String get myTrips => 'My Trips';
+
+  @override
+  String get startYourFirstTrip => 'Start your first trip';
+
+  @override
+  String get createChecklist => 'Create Checklist';
+
+  @override
+  String get checklistLoadFailed => 'Failed to load trips.';
+
+  @override
+  String get checklistCreateFailed => 'Failed to create checklist.';
+
+  @override
+  String get checklistDeleteFailed => 'Failed to delete checklist.';
+
+  @override
+  String get checklistDeleteTitle => 'Delete this checklist?';
+
+  @override
+  String get checklistDeleteMessage => 'This action cannot be undone.';
+
+  @override
+  String get checklistDetailTitle => 'Checklist Details';
+
+  @override
+  String get checklistDetailComingSoon => 'Checklist details will be available soon.';
+
+  @override
+  String get checklistCreateComingSoon => 'Checklist creation form will be available soon.';
+
+  @override
   String get adminMode => 'Admin Mode';
 
   @override

@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../../../app/app_router.dart';
+import '../../../../core/di/service_locator.dart';
+import '../../../../features/checklist/presentation/controllers/checklist_controller.dart';
 import '../../../../l10n/app_localizations.dart';
 import '../models/place_detail_ui_model.dart';
 import '../widgets/bottom_action_bar.dart';
@@ -29,7 +32,10 @@ class _PlaceDetailsPageState extends State<PlaceDetailsPage> {
   static const double _bottomActionReservedSpace = 116;
   static const int _descriptionCollapsedMaxLines = 5;
 
+  late final ChecklistController _checklistController =
+      ServiceLocator.checklistController;
   bool _isDescriptionExpanded = false;
+  bool _isCreatingChecklist = false;
 
   PlaceDetailUiModel get _model =>
       widget.initialModel ?? PlaceDetailUiModel(placeId: widget.placeId);
@@ -149,7 +155,8 @@ class _PlaceDetailsPageState extends State<PlaceDetailsPage> {
               top: false,
               child: BottomActionBar(
                 startJourneyLabel: t.placeDetailsStartJourney,
-                onStartJourney: _noop,
+                isStartJourneyLoading: _isCreatingChecklist,
+                onStartJourney: _handleStartJourney,
                 onFavorite: _noop,
                 onShare: _noop,
               ),
@@ -323,6 +330,52 @@ class _PlaceDetailsPageState extends State<PlaceDetailsPage> {
   void _handleBackPressed() {
     if (context.canPop()) {
       context.pop();
+    }
+  }
+
+  Future<void> _handleStartJourney() async {
+    if (_isCreatingChecklist) {
+      return;
+    }
+
+    final t = AppLocalizations.of(context);
+    if (t == null) {
+      return;
+    }
+
+    final languageCode = Localizations.localeOf(context).languageCode;
+    final destination =
+        _model.resolvePlaceName(languageCode)?.trim() ?? widget.placeId;
+
+    setState(() {
+      _isCreatingChecklist = true;
+    });
+
+    try {
+      // 创建成功后直接跳转到 checklist 详情，避免用户还要再点一次列表项。
+      final checklistId = await _checklistController.createChecklistFromPlace(
+        placeId: widget.placeId,
+        destination: destination,
+        coverImageUrl: _model.heroImageUrl,
+      );
+      if (!mounted) {
+        return;
+      }
+
+      if (checklistId == null || checklistId.trim().isEmpty) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text(t.checklistCreateFailed)));
+        return;
+      }
+
+      context.go(AppRouter.checklistDetail(checklistId));
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isCreatingChecklist = false;
+        });
+      }
     }
   }
 

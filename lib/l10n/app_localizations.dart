@@ -1067,6 +1067,72 @@ abstract class AppLocalizations {
   /// **'Start Journey'**
   String get placeDetailsStartJourney;
 
+  /// No description provided for @myTrips.
+  ///
+  /// In en, this message translates to:
+  /// **'My Trips'**
+  String get myTrips;
+
+  /// No description provided for @startYourFirstTrip.
+  ///
+  /// In en, this message translates to:
+  /// **'Start your first trip'**
+  String get startYourFirstTrip;
+
+  /// No description provided for @createChecklist.
+  ///
+  /// In en, this message translates to:
+  /// **'Create Checklist'**
+  String get createChecklist;
+
+  /// No description provided for @checklistLoadFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Failed to load trips.'**
+  String get checklistLoadFailed;
+
+  /// No description provided for @checklistCreateFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Failed to create checklist.'**
+  String get checklistCreateFailed;
+
+  /// No description provided for @checklistDeleteFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Failed to delete checklist.'**
+  String get checklistDeleteFailed;
+
+  /// No description provided for @checklistDeleteTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete this checklist?'**
+  String get checklistDeleteTitle;
+
+  /// No description provided for @checklistDeleteMessage.
+  ///
+  /// In en, this message translates to:
+  /// **'This action cannot be undone.'**
+  String get checklistDeleteMessage;
+
+  /// No description provided for @checklistDetailTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Checklist Details'**
+  String get checklistDetailTitle;
+
+  /// No description provided for @checklistDetailComingSoon.
+  ///
+  /// In en, this message translates to:
+  /// **'Checklist details will be available soon.'**
+  String get checklistDetailComingSoon;
+
+  /// No description provided for @checklistCreateComingSoon.
+  ///
+  /// In en, this message translates to:
+  /// **'Checklist creation form will be available soon.'**
+  String get checklistCreateComingSoon;
+
   /// No description provided for @adminMode.
   ///
   /// In en, this message translates to:

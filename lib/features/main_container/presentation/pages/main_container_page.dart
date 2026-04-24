@@ -149,7 +149,10 @@ class MainContainerPage extends StatelessWidget {
               child: Row(
                 children: [
                   const Spacer(flex: 3),
-                  buildVisualIcon(tabSlot: 3, icon: Icons.chat_bubble_outline),
+                  buildVisualIcon(
+                    tabSlot: 3,
+                    icon: Icons.flight_takeoff_outlined,
+                  ),
                   const Spacer(flex: 3),
                   buildVisualIcon(tabSlot: 4, icon: Icons.person_outline),
                   const Spacer(flex: 2),

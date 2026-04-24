@@ -16,6 +16,9 @@ import '../features/community/presentation/pages/create_post_page.dart';
 import '../features/community/presentation/pages/location_search_page.dart';
 import '../features/community/presentation/pages/post_detail_page.dart';
 import '../features/community/presentation/pages/user_profile_page.dart';
+import '../features/checklist/presentation/pages/checklist_create_page.dart';
+import '../features/checklist/presentation/pages/checklist_detail_page.dart';
+import '../features/checklist/presentation/pages/checklist_list_page.dart';
 import '../features/admin/domain/entities/admin_subcontent_kind.dart';
 import '../features/admin/presentation/pages/activity_admin_edit_page.dart';
 import '../features/admin/presentation/pages/activity_admin_list_page.dart';
@@ -25,7 +28,6 @@ import '../features/admin/presentation/pages/place_admin_list_page.dart';
 import '../features/admin/presentation/pages/place_subcontent_admin_page.dart';
 import '../features/main_container/presentation/pages/main_container_page.dart';
 import '../features/main_container/presentation/pages/map_tab_page.dart';
-import '../features/main_container/presentation/pages/placeholder_tab_page.dart';
 import '../features/map_home/presentation/models/place_detail_ui_model.dart';
 import '../features/map_home/presentation/pages/place_details_page.dart';
 import '../features/profile/domain/entities/user_profile.dart';
@@ -52,6 +54,9 @@ class AppRouter {
   static const String locationSearch = 'location-search';
   static const String postDetail = 'post/:postId';
   static const String userProfile = 'user/:userId';
+  static const String checklists = '/checklists';
+  static const String checklistCreatePath = 'create';
+  static const String checklistDetailPath = 'detail/:checklistId';
   static const String adminDashboard = '/admin';
   static const String adminPlaces = '/admin/places';
   static const String adminPlaceEditPath = '/admin/places/edit/:placeId';
@@ -79,6 +84,7 @@ class AppRouter {
     tabTwo,
     tabFour,
     tabMe,
+    checklists,
     adminDashboard,
     adminPlaces,
     adminActivities,
@@ -102,6 +108,14 @@ class AppRouter {
 
   static String communityUserProfile(String userId) {
     return '$community/${userProfile.replaceFirst(':userId', userId)}';
+  }
+
+  static String checklistCreate() {
+    return '$checklists/$checklistCreatePath';
+  }
+
+  static String checklistDetail(String checklistId) {
+    return '$checklists/${checklistDetailPath.replaceFirst(':checklistId', checklistId)}';
   }
 
   static String placeDetails(String placeId) {
@@ -191,8 +205,7 @@ class AppRouter {
             routes: <RouteBase>[
               GoRoute(
                 path: tabOne,
-                builder: (context, state) =>
-                    const PlaceholderTabPage(title: 'Tab 1'),
+                builder: (context, state) => const ChecklistListPage(),
               ),
             ],
           ),
@@ -297,6 +310,23 @@ class AppRouter {
         builder: (context, state) => const ProfileEditPage(),
       ),
       GoRoute(
+        path: checklists,
+        builder: (context, state) => const ChecklistListPage(),
+        routes: <RouteBase>[
+          GoRoute(
+            path: checklistCreatePath,
+            builder: (context, state) => const ChecklistCreatePage(),
+          ),
+          GoRoute(
+            path: checklistDetailPath,
+            builder: (context, state) {
+              final checklistId = state.pathParameters['checklistId'] ?? '';
+              return ChecklistDetailPage(checklistId: checklistId);
+            },
+          ),
+        ],
+      ),
+      GoRoute(
         path: adminDashboard,
         builder: (context, state) => const AdminDashboardPage(),
       ),
@@ -382,6 +412,7 @@ class AppRouter {
     final bool canStayInAuthenticatedArea =
         _authenticatedExactRoutes.contains(location) ||
         location.startsWith('$adminDashboard/') ||
+        location.startsWith('$checklists/') ||
         location.startsWith('$home/') ||
         location.startsWith('/me/') ||
         location.startsWith('$activities/') ||

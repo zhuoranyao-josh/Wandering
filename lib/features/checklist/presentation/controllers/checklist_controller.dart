@@ -1,0 +1,74 @@
+import 'package:flutter/foundation.dart';
+
+import '../../domain/entities/checklist_item.dart';
+import '../../domain/repositories/checklist_repository.dart';
+
+class ChecklistController extends ChangeNotifier {
+  ChecklistController({required this.repository});
+
+  final ChecklistRepository repository;
+
+  bool _isLoading = false;
+  bool _isDeleting = false;
+  String? _errorKey;
+  List<ChecklistItem> _items = const <ChecklistItem>[];
+
+  bool get isLoading => _isLoading;
+  bool get isDeleting => _isDeleting;
+  String? get errorKey => _errorKey;
+  List<ChecklistItem> get items => _items;
+
+  Future<void> load() async {
+    _isLoading = true;
+    _errorKey = null;
+    notifyListeners();
+    try {
+      _items = await repository.getMyChecklists();
+    } catch (_) {
+      _errorKey = 'checklistLoadFailed';
+    } finally {
+      _isLoading = false;
+      notifyListeners();
+    }
+  }
+
+  Future<String?> createChecklistFromPlace({
+    required String placeId,
+    required String destination,
+    String? coverImageUrl,
+  }) async {
+    _errorKey = null;
+    notifyListeners();
+    try {
+      final checklistId = await repository.createChecklistFromPlace(
+        placeId: placeId,
+        destination: destination,
+        coverImageUrl: coverImageUrl,
+      );
+      await load();
+      return checklistId;
+    } catch (_) {
+      _errorKey = 'checklistCreateFailed';
+      notifyListeners();
+      return null;
+    }
+  }
+
+  Future<bool> deleteChecklist(String checklistId) async {
+    _isDeleting = true;
+    _errorKey = null;
+    notifyListeners();
+    try {
+      await repository.deleteChecklist(checklistId);
+      await load();
+      return true;
+    } catch (_) {
+      _errorKey = 'checklistDeleteFailed';
+      notifyListeners();
+      return false;
+    } finally {
+      _isDeleting = false;
+      notifyListeners();
+    }
+  }
+}

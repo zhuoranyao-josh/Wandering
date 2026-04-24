@@ -499,6 +499,39 @@ class AppLocalizationsZh extends AppLocalizations {
   String get placeDetailsStartJourney => '开启旅程';
 
   @override
+  String get myTrips => '我的行程';
+
+  @override
+  String get startYourFirstTrip => '开始你的第一段旅程';
+
+  @override
+  String get createChecklist => '新建清单';
+
+  @override
+  String get checklistLoadFailed => '加载行程失败。';
+
+  @override
+  String get checklistCreateFailed => '创建清单失败。';
+
+  @override
+  String get checklistDeleteFailed => '删除清单失败。';
+
+  @override
+  String get checklistDeleteTitle => '删除此清单？';
+
+  @override
+  String get checklistDeleteMessage => '此操作无法撤销。';
+
+  @override
+  String get checklistDetailTitle => '清单详情';
+
+  @override
+  String get checklistDetailComingSoon => '清单详情即将开放。';
+
+  @override
+  String get checklistCreateComingSoon => '清单创建表单即将开放。';
+
+  @override
   String get adminMode => '管理员模式';
 
   @override

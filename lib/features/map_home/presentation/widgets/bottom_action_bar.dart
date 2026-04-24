@@ -5,12 +5,14 @@ class BottomActionBar extends StatelessWidget {
     super.key,
     required this.startJourneyLabel,
     this.onStartJourney,
+    this.isStartJourneyLoading = false,
     this.onFavorite,
     this.onShare,
   });
 
   final String startJourneyLabel;
   final VoidCallback? onStartJourney;
+  final bool isStartJourneyLoading;
   final VoidCallback? onFavorite;
   final VoidCallback? onShare;
 
@@ -37,7 +39,7 @@ class BottomActionBar extends StatelessWidget {
               child: SizedBox(
                 height: 48,
                 child: ElevatedButton(
-                  onPressed: onStartJourney,
+                  onPressed: isStartJourneyLoading ? null : onStartJourney,
                   style: ElevatedButton.styleFrom(
                     backgroundColor: Colors.black,
                     foregroundColor: Colors.white,
@@ -46,13 +48,24 @@ class BottomActionBar extends StatelessWidget {
                       borderRadius: BorderRadius.circular(14),
                     ),
                   ),
-                  child: Text(
-                    startJourneyLabel,
-                    style: const TextStyle(
-                      fontSize: 15,
-                      fontWeight: FontWeight.w700,
-                    ),
-                  ),
+                  child: isStartJourneyLoading
+                      ? const SizedBox(
+                          width: 18,
+                          height: 18,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2,
+                            valueColor: AlwaysStoppedAnimation<Color>(
+                              Colors.white,
+                            ),
+                          ),
+                        )
+                      : Text(
+                          startJourneyLabel,
+                          style: const TextStyle(
+                            fontSize: 15,
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
                 ),
               ),
             ),
