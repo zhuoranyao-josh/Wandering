@@ -19,6 +19,7 @@ import '../features/community/presentation/pages/user_profile_page.dart';
 import '../features/checklist/presentation/pages/checklist_create_page.dart';
 import '../features/checklist/presentation/pages/checklist_detail_page.dart';
 import '../features/checklist/presentation/pages/checklist_list_page.dart';
+import '../features/checklist/presentation/pages/journey_wizard_page.dart';
 import '../features/admin/domain/entities/admin_subcontent_kind.dart';
 import '../features/admin/presentation/pages/activity_admin_edit_page.dart';
 import '../features/admin/presentation/pages/activity_admin_list_page.dart';
@@ -57,6 +58,7 @@ class AppRouter {
   static const String checklists = '/checklists';
   static const String checklistCreatePath = 'create';
   static const String checklistDetailPath = 'detail/:checklistId';
+  static const String checklistWizardPath = 'wizard/:checklistId';
   static const String adminDashboard = '/admin';
   static const String adminPlaces = '/admin/places';
   static const String adminPlaceEditPath = '/admin/places/edit/:placeId';
@@ -116,6 +118,10 @@ class AppRouter {
 
   static String checklistDetail(String checklistId) {
     return '$checklists/${checklistDetailPath.replaceFirst(':checklistId', checklistId)}';
+  }
+
+  static String checklistWizard(String checklistId) {
+    return '$checklists/${checklistWizardPath.replaceFirst(':checklistId', checklistId)}';
   }
 
   static String placeDetails(String placeId) {
@@ -322,6 +328,13 @@ class AppRouter {
             builder: (context, state) {
               final checklistId = state.pathParameters['checklistId'] ?? '';
               return ChecklistDetailPage(checklistId: checklistId);
+            },
+          ),
+          GoRoute(
+            path: checklistWizardPath,
+            builder: (context, state) {
+              final checklistId = state.pathParameters['checklistId'] ?? '';
+              return JourneyWizardPage(checklistId: checklistId);
             },
           ),
         ],

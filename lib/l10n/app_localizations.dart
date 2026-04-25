@@ -1121,6 +1121,186 @@ abstract class AppLocalizations {
   /// **'Checklist Details'**
   String get checklistDetailTitle;
 
+  /// No description provided for @checklistTripChecklist.
+  ///
+  /// In en, this message translates to:
+  /// **'Trip Checklist'**
+  String get checklistTripChecklist;
+
+  /// No description provided for @checklistTotalBudget.
+  ///
+  /// In en, this message translates to:
+  /// **'Total Budget'**
+  String get checklistTotalBudget;
+
+  /// No description provided for @checklistSetBudget.
+  ///
+  /// In en, this message translates to:
+  /// **'Set budget'**
+  String get checklistSetBudget;
+
+  /// No description provided for @checklistEdit.
+  ///
+  /// In en, this message translates to:
+  /// **'Edit'**
+  String get checklistEdit;
+
+  /// No description provided for @checklistBudgetSplit.
+  ///
+  /// In en, this message translates to:
+  /// **'Budget Split'**
+  String get checklistBudgetSplit;
+
+  /// No description provided for @checklistSplit.
+  ///
+  /// In en, this message translates to:
+  /// **'Split'**
+  String get checklistSplit;
+
+  /// No description provided for @checklistAdjust.
+  ///
+  /// In en, this message translates to:
+  /// **'Adjust'**
+  String get checklistAdjust;
+
+  /// No description provided for @checklistNotSet.
+  ///
+  /// In en, this message translates to:
+  /// **'Not set'**
+  String get checklistNotSet;
+
+  /// No description provided for @checklistTransport.
+  ///
+  /// In en, this message translates to:
+  /// **'Transport'**
+  String get checklistTransport;
+
+  /// No description provided for @checklistStay.
+  ///
+  /// In en, this message translates to:
+  /// **'Stay'**
+  String get checklistStay;
+
+  /// No description provided for @checklistFoodActivities.
+  ///
+  /// In en, this message translates to:
+  /// **'Food & Activities'**
+  String get checklistFoodActivities;
+
+  /// No description provided for @checklistTripEssentials.
+  ///
+  /// In en, this message translates to:
+  /// **'TRIP ESSENTIALS'**
+  String get checklistTripEssentials;
+
+  /// No description provided for @checklistProTip.
+  ///
+  /// In en, this message translates to:
+  /// **'PRO TIP'**
+  String get checklistProTip;
+
+  /// No description provided for @checklistChecklist.
+  ///
+  /// In en, this message translates to:
+  /// **'CHECKLIST'**
+  String get checklistChecklist;
+
+  /// No description provided for @checklistTransportation.
+  ///
+  /// In en, this message translates to:
+  /// **'Transportation'**
+  String get checklistTransportation;
+
+  /// No description provided for @checklistUpdatePlan.
+  ///
+  /// In en, this message translates to:
+  /// **'Update Plan'**
+  String get checklistUpdatePlan;
+
+  /// No description provided for @checklistNoItemsYet.
+  ///
+  /// In en, this message translates to:
+  /// **'No checklist items yet'**
+  String get checklistNoItemsYet;
+
+  /// No description provided for @checklistGenerateSuggestionsHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Set your budget and update the plan to generate suggestions.'**
+  String get checklistGenerateSuggestionsHint;
+
+  /// No description provided for @checklistPlanningPromptTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Ready to plan this trip?'**
+  String get checklistPlanningPromptTitle;
+
+  /// No description provided for @checklistPlanningPromptMessage.
+  ///
+  /// In en, this message translates to:
+  /// **'Add dates, budget, travelers, and travel style when you are ready.'**
+  String get checklistPlanningPromptMessage;
+
+  /// No description provided for @checklistStartPlanning.
+  ///
+  /// In en, this message translates to:
+  /// **'Start Planning'**
+  String get checklistStartPlanning;
+
+  /// No description provided for @checklistGeneratePlan.
+  ///
+  /// In en, this message translates to:
+  /// **'Generate Plan'**
+  String get checklistGeneratePlan;
+
+  /// No description provided for @checklistTravelStyleTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Travel Style'**
+  String get checklistTravelStyleTitle;
+
+  /// No description provided for @checklistAccommodationLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Accommodation'**
+  String get checklistAccommodationLabel;
+
+  /// No description provided for @checklistDateRangeLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Date'**
+  String get checklistDateRangeLabel;
+
+  /// No description provided for @checklistTravelerCountLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Travelers'**
+  String get checklistTravelerCountLabel;
+
+  /// No description provided for @checklistTripDaysValue.
+  ///
+  /// In en, this message translates to:
+  /// **'{count} days'**
+  String checklistTripDaysValue(Object count);
+
+  /// No description provided for @checklistTravelerCountValue.
+  ///
+  /// In en, this message translates to:
+  /// **'{count} travelers'**
+  String checklistTravelerCountValue(Object count);
+
+  /// No description provided for @checklistNotFound.
+  ///
+  /// In en, this message translates to:
+  /// **'Checklist not found.'**
+  String get checklistNotFound;
+
+  /// No description provided for @checklistRetry.
+  ///
+  /// In en, this message translates to:
+  /// **'Retry'**
+  String get checklistRetry;
+
   /// No description provided for @checklistDetailComingSoon.
   ///
   /// In en, this message translates to:
@@ -1132,6 +1312,342 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Checklist creation form will be available soon.'**
   String get checklistCreateComingSoon;
+
+  /// No description provided for @journeyWizardTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Plan your trip'**
+  String get journeyWizardTitle;
+
+  /// No description provided for @journeyWizardUnknownDestination.
+  ///
+  /// In en, this message translates to:
+  /// **'Your destination'**
+  String get journeyWizardUnknownDestination;
+
+  /// No description provided for @journeyWizardTripTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'{destination} Trip'**
+  String journeyWizardTripTitle(Object destination);
+
+  /// No description provided for @journeyWizardPlanToDestination.
+  ///
+  /// In en, this message translates to:
+  /// **'Plan your trip to {destination}'**
+  String journeyWizardPlanToDestination(Object destination);
+
+  /// No description provided for @journeyWizardStepOf.
+  ///
+  /// In en, this message translates to:
+  /// **'Step {current} of {total}'**
+  String journeyWizardStepOf(Object current, Object total);
+
+  /// No description provided for @journeyWizardTravelBasics.
+  ///
+  /// In en, this message translates to:
+  /// **'Travel Basics'**
+  String get journeyWizardTravelBasics;
+
+  /// No description provided for @journeyWizardDepartureCity.
+  ///
+  /// In en, this message translates to:
+  /// **'Departure city'**
+  String get journeyWizardDepartureCity;
+
+  /// No description provided for @journeyWizardDepartureCityHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter your departure city'**
+  String get journeyWizardDepartureCityHint;
+
+  /// No description provided for @journeyWizardStartDate.
+  ///
+  /// In en, this message translates to:
+  /// **'Start date'**
+  String get journeyWizardStartDate;
+
+  /// No description provided for @journeyWizardEndDate.
+  ///
+  /// In en, this message translates to:
+  /// **'End date'**
+  String get journeyWizardEndDate;
+
+  /// No description provided for @journeyWizardTripDays.
+  ///
+  /// In en, this message translates to:
+  /// **'{days} days'**
+  String journeyWizardTripDays(Object days);
+
+  /// No description provided for @journeyWizardTravelerCount.
+  ///
+  /// In en, this message translates to:
+  /// **'Traveler count'**
+  String get journeyWizardTravelerCount;
+
+  /// No description provided for @journeyWizardBudgetStyle.
+  ///
+  /// In en, this message translates to:
+  /// **'Budget + Travel Style'**
+  String get journeyWizardBudgetStyle;
+
+  /// No description provided for @journeyWizardTotalBudget.
+  ///
+  /// In en, this message translates to:
+  /// **'Total budget'**
+  String get journeyWizardTotalBudget;
+
+  /// No description provided for @journeyWizardTotalBudgetHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter your total budget'**
+  String get journeyWizardTotalBudgetHint;
+
+  /// No description provided for @journeyWizardCurrency.
+  ///
+  /// In en, this message translates to:
+  /// **'Currency'**
+  String get journeyWizardCurrency;
+
+  /// No description provided for @journeyWizardPreferences.
+  ///
+  /// In en, this message translates to:
+  /// **'Preferences'**
+  String get journeyWizardPreferences;
+
+  /// No description provided for @journeyWizardPace.
+  ///
+  /// In en, this message translates to:
+  /// **'Pace'**
+  String get journeyWizardPace;
+
+  /// No description provided for @journeyWizardAccommodationPreference.
+  ///
+  /// In en, this message translates to:
+  /// **'Accommodation preference'**
+  String get journeyWizardAccommodationPreference;
+
+  /// No description provided for @journeyWizardReview.
+  ///
+  /// In en, this message translates to:
+  /// **'Review'**
+  String get journeyWizardReview;
+
+  /// No description provided for @journeyWizardDestination.
+  ///
+  /// In en, this message translates to:
+  /// **'Destination'**
+  String get journeyWizardDestination;
+
+  /// No description provided for @journeyWizardDateRange.
+  ///
+  /// In en, this message translates to:
+  /// **'Date range'**
+  String get journeyWizardDateRange;
+
+  /// No description provided for @journeyWizardTripDaysLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Trip days'**
+  String get journeyWizardTripDaysLabel;
+
+  /// No description provided for @journeyWizardBack.
+  ///
+  /// In en, this message translates to:
+  /// **'Back'**
+  String get journeyWizardBack;
+
+  /// No description provided for @journeyWizardContinue.
+  ///
+  /// In en, this message translates to:
+  /// **'Continue'**
+  String get journeyWizardContinue;
+
+  /// No description provided for @journeyWizardStartAnalysis.
+  ///
+  /// In en, this message translates to:
+  /// **'Start Analysis'**
+  String get journeyWizardStartAnalysis;
+
+  /// No description provided for @journeyWizardSaveFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Failed to save journey info.'**
+  String get journeyWizardSaveFailed;
+
+  /// No description provided for @journeyWizardPreferenceFood.
+  ///
+  /// In en, this message translates to:
+  /// **'Food'**
+  String get journeyWizardPreferenceFood;
+
+  /// No description provided for @journeyWizardPreferenceShopping.
+  ///
+  /// In en, this message translates to:
+  /// **'Shopping'**
+  String get journeyWizardPreferenceShopping;
+
+  /// No description provided for @journeyWizardPreferenceCulture.
+  ///
+  /// In en, this message translates to:
+  /// **'Culture'**
+  String get journeyWizardPreferenceCulture;
+
+  /// No description provided for @journeyWizardPreferenceNature.
+  ///
+  /// In en, this message translates to:
+  /// **'Nature'**
+  String get journeyWizardPreferenceNature;
+
+  /// No description provided for @journeyWizardPreferenceMuseum.
+  ///
+  /// In en, this message translates to:
+  /// **'Museum'**
+  String get journeyWizardPreferenceMuseum;
+
+  /// No description provided for @journeyWizardPreferenceAnime.
+  ///
+  /// In en, this message translates to:
+  /// **'Anime'**
+  String get journeyWizardPreferenceAnime;
+
+  /// No description provided for @journeyWizardPreferenceNightlife.
+  ///
+  /// In en, this message translates to:
+  /// **'Nightlife'**
+  String get journeyWizardPreferenceNightlife;
+
+  /// No description provided for @journeyWizardPreferenceFamily.
+  ///
+  /// In en, this message translates to:
+  /// **'Family'**
+  String get journeyWizardPreferenceFamily;
+
+  /// No description provided for @journeyWizardPreferencePhotography.
+  ///
+  /// In en, this message translates to:
+  /// **'Photography'**
+  String get journeyWizardPreferencePhotography;
+
+  /// No description provided for @journeyWizardPreferenceRelaxation.
+  ///
+  /// In en, this message translates to:
+  /// **'Relaxation'**
+  String get journeyWizardPreferenceRelaxation;
+
+  /// No description provided for @journeyWizardPaceRelaxed.
+  ///
+  /// In en, this message translates to:
+  /// **'Relaxed'**
+  String get journeyWizardPaceRelaxed;
+
+  /// No description provided for @journeyWizardPaceBalanced.
+  ///
+  /// In en, this message translates to:
+  /// **'Balanced'**
+  String get journeyWizardPaceBalanced;
+
+  /// No description provided for @journeyWizardPaceIntensive.
+  ///
+  /// In en, this message translates to:
+  /// **'Intensive'**
+  String get journeyWizardPaceIntensive;
+
+  /// No description provided for @journeyWizardAccommodationBudget.
+  ///
+  /// In en, this message translates to:
+  /// **'Budget'**
+  String get journeyWizardAccommodationBudget;
+
+  /// No description provided for @journeyWizardAccommodationConvenient.
+  ///
+  /// In en, this message translates to:
+  /// **'Convenient'**
+  String get journeyWizardAccommodationConvenient;
+
+  /// No description provided for @journeyWizardAccommodationComfortable.
+  ///
+  /// In en, this message translates to:
+  /// **'Comfortable'**
+  String get journeyWizardAccommodationComfortable;
+
+  /// No description provided for @journeyWizardAccommodationPremium.
+  ///
+  /// In en, this message translates to:
+  /// **'Premium'**
+  String get journeyWizardAccommodationPremium;
+
+  /// No description provided for @journeyWizardErrorDepartureCityRequired.
+  ///
+  /// In en, this message translates to:
+  /// **'Please enter departure city.'**
+  String get journeyWizardErrorDepartureCityRequired;
+
+  /// No description provided for @journeyWizardErrorStartDateRequired.
+  ///
+  /// In en, this message translates to:
+  /// **'Please select start date.'**
+  String get journeyWizardErrorStartDateRequired;
+
+  /// No description provided for @journeyWizardErrorEndDateRequired.
+  ///
+  /// In en, this message translates to:
+  /// **'Please select end date.'**
+  String get journeyWizardErrorEndDateRequired;
+
+  /// No description provided for @journeyWizardErrorEndDateBeforeStartDate.
+  ///
+  /// In en, this message translates to:
+  /// **'End date cannot be earlier than start date.'**
+  String get journeyWizardErrorEndDateBeforeStartDate;
+
+  /// No description provided for @journeyWizardErrorTravelerCountMin.
+  ///
+  /// In en, this message translates to:
+  /// **'Traveler count must be at least 1.'**
+  String get journeyWizardErrorTravelerCountMin;
+
+  /// No description provided for @journeyWizardErrorTravelerCountMax.
+  ///
+  /// In en, this message translates to:
+  /// **'Traveler count cannot exceed 20.'**
+  String get journeyWizardErrorTravelerCountMax;
+
+  /// No description provided for @journeyWizardErrorBudgetRequired.
+  ///
+  /// In en, this message translates to:
+  /// **'Total budget must be greater than 0.'**
+  String get journeyWizardErrorBudgetRequired;
+
+  /// No description provided for @journeyWizardErrorCurrencyRequired.
+  ///
+  /// In en, this message translates to:
+  /// **'Please select currency.'**
+  String get journeyWizardErrorCurrencyRequired;
+
+  /// No description provided for @journeyWizardErrorPreferencesRequired.
+  ///
+  /// In en, this message translates to:
+  /// **'Select at least one preference.'**
+  String get journeyWizardErrorPreferencesRequired;
+
+  /// No description provided for @journeyWizardErrorPreferencesMax.
+  ///
+  /// In en, this message translates to:
+  /// **'You can select up to 5 preferences.'**
+  String get journeyWizardErrorPreferencesMax;
+
+  /// No description provided for @journeyWizardErrorPaceRequired.
+  ///
+  /// In en, this message translates to:
+  /// **'Please select pace.'**
+  String get journeyWizardErrorPaceRequired;
+
+  /// No description provided for @journeyWizardErrorAccommodationRequired.
+  ///
+  /// In en, this message translates to:
+  /// **'Please select accommodation preference.'**
+  String get journeyWizardErrorAccommodationRequired;
 
   /// No description provided for @adminMode.
   ///

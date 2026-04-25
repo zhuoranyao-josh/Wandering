@@ -526,10 +526,280 @@ class AppLocalizationsZh extends AppLocalizations {
   String get checklistDetailTitle => '清单详情';
 
   @override
+  String get checklistTripChecklist => '行程清单';
+
+  @override
+  String get checklistTotalBudget => '总预算';
+
+  @override
+  String get checklistSetBudget => '设置预算';
+
+  @override
+  String get checklistEdit => '编辑';
+
+  @override
+  String get checklistBudgetSplit => '预算分配';
+
+  @override
+  String get checklistSplit => '分配';
+
+  @override
+  String get checklistAdjust => '调整';
+
+  @override
+  String get checklistNotSet => '未设置';
+
+  @override
+  String get checklistTransport => '交通';
+
+  @override
+  String get checklistStay => '住宿';
+
+  @override
+  String get checklistFoodActivities => '餐饮与活动';
+
+  @override
+  String get checklistTripEssentials => '旅行要点';
+
+  @override
+  String get checklistProTip => '行前建议';
+
+  @override
+  String get checklistChecklist => '执行清单';
+
+  @override
+  String get checklistTransportation => '交通安排';
+
+  @override
+  String get checklistUpdatePlan => '更新计划';
+
+  @override
+  String get checklistNoItemsYet => '暂无清单项';
+
+  @override
+  String get checklistGenerateSuggestionsHint => '先设置预算，再更新计划以生成建议。';
+
+  @override
+  String get checklistPlanningPromptTitle => '准备开始规划这次旅行了吗？';
+
+  @override
+  String get checklistPlanningPromptMessage => '当你准备好时，补充日期、预算、人数和旅行风格。';
+
+  @override
+  String get checklistStartPlanning => '开始规划';
+
+  @override
+  String get checklistGeneratePlan => '生成计划';
+
+  @override
+  String get checklistTravelStyleTitle => '旅行风格';
+
+  @override
+  String get checklistAccommodationLabel => '住宿';
+
+  @override
+  String get checklistDateRangeLabel => '日期';
+
+  @override
+  String get checklistTravelerCountLabel => '人数';
+
+  @override
+  String checklistTripDaysValue(Object count) {
+    return '$count 天';
+  }
+
+  @override
+  String checklistTravelerCountValue(Object count) {
+    return '$count 人';
+  }
+
+  @override
+  String get checklistNotFound => '未找到该清单。';
+
+  @override
+  String get checklistRetry => '重试';
+
+  @override
   String get checklistDetailComingSoon => '清单详情即将开放。';
 
   @override
   String get checklistCreateComingSoon => '清单创建表单即将开放。';
+
+  @override
+  String get journeyWizardTitle => '完善行程信息';
+
+  @override
+  String get journeyWizardUnknownDestination => '你的目的地';
+
+  @override
+  String journeyWizardTripTitle(Object destination) {
+    return '$destination 行程';
+  }
+
+  @override
+  String journeyWizardPlanToDestination(Object destination) {
+    return '为 $destination 规划旅程';
+  }
+
+  @override
+  String journeyWizardStepOf(Object current, Object total) {
+    return '第 $current 步，共 $total 步';
+  }
+
+  @override
+  String get journeyWizardTravelBasics => '基础出行信息';
+
+  @override
+  String get journeyWizardDepartureCity => '出发城市';
+
+  @override
+  String get journeyWizardDepartureCityHint => '请输入出发城市';
+
+  @override
+  String get journeyWizardStartDate => '出发日期';
+
+  @override
+  String get journeyWizardEndDate => '返回日期';
+
+  @override
+  String journeyWizardTripDays(Object days) {
+    return '$days 天';
+  }
+
+  @override
+  String get journeyWizardTravelerCount => '出行人数';
+
+  @override
+  String get journeyWizardBudgetStyle => '预算与旅行风格';
+
+  @override
+  String get journeyWizardTotalBudget => '总预算';
+
+  @override
+  String get journeyWizardTotalBudgetHint => '请输入总预算';
+
+  @override
+  String get journeyWizardCurrency => '货币';
+
+  @override
+  String get journeyWizardPreferences => '偏好';
+
+  @override
+  String get journeyWizardPace => '行程节奏';
+
+  @override
+  String get journeyWizardAccommodationPreference => '住宿偏好';
+
+  @override
+  String get journeyWizardReview => '信息确认';
+
+  @override
+  String get journeyWizardDestination => '目的地';
+
+  @override
+  String get journeyWizardDateRange => '日期范围';
+
+  @override
+  String get journeyWizardTripDaysLabel => '行程天数';
+
+  @override
+  String get journeyWizardBack => '返回';
+
+  @override
+  String get journeyWizardContinue => '继续';
+
+  @override
+  String get journeyWizardStartAnalysis => '开始分析';
+
+  @override
+  String get journeyWizardSaveFailed => '保存行程信息失败。';
+
+  @override
+  String get journeyWizardPreferenceFood => '美食';
+
+  @override
+  String get journeyWizardPreferenceShopping => '购物';
+
+  @override
+  String get journeyWizardPreferenceCulture => '文化';
+
+  @override
+  String get journeyWizardPreferenceNature => '自然';
+
+  @override
+  String get journeyWizardPreferenceMuseum => '博物馆';
+
+  @override
+  String get journeyWizardPreferenceAnime => '动漫';
+
+  @override
+  String get journeyWizardPreferenceNightlife => '夜生活';
+
+  @override
+  String get journeyWizardPreferenceFamily => '亲子';
+
+  @override
+  String get journeyWizardPreferencePhotography => '摄影';
+
+  @override
+  String get journeyWizardPreferenceRelaxation => '放松';
+
+  @override
+  String get journeyWizardPaceRelaxed => '轻松';
+
+  @override
+  String get journeyWizardPaceBalanced => '均衡';
+
+  @override
+  String get journeyWizardPaceIntensive => '紧凑';
+
+  @override
+  String get journeyWizardAccommodationBudget => '经济';
+
+  @override
+  String get journeyWizardAccommodationConvenient => '便捷';
+
+  @override
+  String get journeyWizardAccommodationComfortable => '舒适';
+
+  @override
+  String get journeyWizardAccommodationPremium => '高端';
+
+  @override
+  String get journeyWizardErrorDepartureCityRequired => '请输入出发城市。';
+
+  @override
+  String get journeyWizardErrorStartDateRequired => '请选择出发日期。';
+
+  @override
+  String get journeyWizardErrorEndDateRequired => '请选择返回日期。';
+
+  @override
+  String get journeyWizardErrorEndDateBeforeStartDate => '返回日期不能早于出发日期。';
+
+  @override
+  String get journeyWizardErrorTravelerCountMin => '出行人数至少为 1。';
+
+  @override
+  String get journeyWizardErrorTravelerCountMax => '出行人数不能超过 20。';
+
+  @override
+  String get journeyWizardErrorBudgetRequired => '总预算必须大于 0。';
+
+  @override
+  String get journeyWizardErrorCurrencyRequired => '请选择货币。';
+
+  @override
+  String get journeyWizardErrorPreferencesRequired => '请至少选择 1 个偏好。';
+
+  @override
+  String get journeyWizardErrorPreferencesMax => '最多可选择 5 个偏好。';
+
+  @override
+  String get journeyWizardErrorPaceRequired => '请选择行程节奏。';
+
+  @override
+  String get journeyWizardErrorAccommodationRequired => '请选择住宿偏好。';
 
   @override
   String get adminMode => '管理员模式';

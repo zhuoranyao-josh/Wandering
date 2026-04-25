@@ -22,6 +22,8 @@ import '../../features/checklist/data/datasources/firebase_checklist_remote_data
 import '../../features/checklist/data/repositories/checklist_repository_impl.dart';
 import '../../features/checklist/domain/repositories/checklist_repository.dart';
 import '../../features/checklist/presentation/controllers/checklist_controller.dart';
+import '../../features/checklist/presentation/controllers/checklist_detail_controller.dart';
+import '../../features/checklist/presentation/controllers/journey_wizard_controller.dart';
 import '../../features/community/data/datasources/community_remote_data_source.dart';
 import '../../features/community/data/datasources/firebase_community_remote_data_source.dart';
 import '../../features/community/data/repositories/community_repository_impl.dart';
@@ -44,6 +46,7 @@ class ServiceLocator {
   static late final CommunityController communityController;
   static late final MapHomeRepository mapHomeRepository;
   static late final ProfileSetupController profileSetupController;
+  static late final ChecklistRepository checklistRepository;
   static late final ChecklistController checklistController;
   static late final AdminRepository adminRepository;
 
@@ -92,9 +95,7 @@ class ServiceLocator {
           firestore: firestore,
           firebaseAuth: firebaseAuth,
         );
-    final ChecklistRepository checklistRepository = ChecklistRepositoryImpl(
-      checklistRemoteDataSource,
-    );
+    checklistRepository = ChecklistRepositoryImpl(checklistRemoteDataSource);
     checklistController = ChecklistController(repository: checklistRepository);
 
     // Community 模块
@@ -125,6 +126,19 @@ class ServiceLocator {
     return MapHomeController(
       mapHomeRepository: mapHomeRepository,
       initialMarkerZoom: initialMarkerZoom,
+    );
+  }
+
+  static ChecklistDetailController createChecklistDetailController() {
+    return ChecklistDetailController(repository: checklistRepository);
+  }
+
+  static JourneyWizardController createJourneyWizardController({
+    required String checklistId,
+  }) {
+    return JourneyWizardController(
+      repository: checklistRepository,
+      checklistId: checklistId,
     );
   }
 }

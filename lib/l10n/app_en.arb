@@ -181,8 +181,125 @@
   "checklistDeleteTitle": "Delete this checklist?",
   "checklistDeleteMessage": "This action cannot be undone.",
   "checklistDetailTitle": "Checklist Details",
+  "checklistTripChecklist": "Trip Checklist",
+  "checklistTotalBudget": "Total Budget",
+  "checklistSetBudget": "Set budget",
+  "checklistEdit": "Edit",
+  "checklistBudgetSplit": "Budget Split",
+  "checklistSplit": "Split",
+  "checklistAdjust": "Adjust",
+  "checklistNotSet": "Not set",
+  "checklistTransport": "Transport",
+  "checklistStay": "Stay",
+  "checklistFoodActivities": "Food & Activities",
+  "checklistTripEssentials": "TRIP ESSENTIALS",
+  "checklistProTip": "PRO TIP",
+  "checklistChecklist": "CHECKLIST",
+  "checklistTransportation": "Transportation",
+  "checklistUpdatePlan": "Update Plan",
+  "checklistNoItemsYet": "No checklist items yet",
+  "checklistGenerateSuggestionsHint": "Set your budget and update the plan to generate suggestions.",
+  "checklistPlanningPromptTitle": "Ready to plan this trip?",
+  "checklistPlanningPromptMessage": "Add dates, budget, travelers, and travel style when you are ready.",
+  "checklistStartPlanning": "Start Planning",
+  "checklistGeneratePlan": "Generate Plan",
+  "checklistTravelStyleTitle": "Travel Style",
+  "checklistAccommodationLabel": "Accommodation",
+  "checklistDateRangeLabel": "Date",
+  "checklistTravelerCountLabel": "Travelers",
+  "checklistTripDaysValue": "{count} days",
+  "@checklistTripDaysValue": {
+    "placeholders": {
+      "count": {}
+    }
+  },
+  "checklistTravelerCountValue": "{count} travelers",
+  "@checklistTravelerCountValue": {
+    "placeholders": {
+      "count": {}
+    }
+  },
+  "checklistNotFound": "Checklist not found.",
+  "checklistRetry": "Retry",
   "checklistDetailComingSoon": "Checklist details will be available soon.",
   "checklistCreateComingSoon": "Checklist creation form will be available soon.",
+  "journeyWizardTitle": "Plan your trip",
+  "journeyWizardUnknownDestination": "Your destination",
+  "journeyWizardTripTitle": "{destination} Trip",
+  "@journeyWizardTripTitle": {
+    "placeholders": {
+      "destination": {}
+    }
+  },
+  "journeyWizardPlanToDestination": "Plan your trip to {destination}",
+  "@journeyWizardPlanToDestination": {
+    "placeholders": {
+      "destination": {}
+    }
+  },
+  "journeyWizardStepOf": "Step {current} of {total}",
+  "@journeyWizardStepOf": {
+    "placeholders": {
+      "current": {},
+      "total": {}
+    }
+  },
+  "journeyWizardTravelBasics": "Travel Basics",
+  "journeyWizardDepartureCity": "Departure city",
+  "journeyWizardDepartureCityHint": "Enter your departure city",
+  "journeyWizardStartDate": "Start date",
+  "journeyWizardEndDate": "End date",
+  "journeyWizardTripDays": "{days} days",
+  "@journeyWizardTripDays": {
+    "placeholders": {
+      "days": {}
+    }
+  },
+  "journeyWizardTravelerCount": "Traveler count",
+  "journeyWizardBudgetStyle": "Budget + Travel Style",
+  "journeyWizardTotalBudget": "Total budget",
+  "journeyWizardTotalBudgetHint": "Enter your total budget",
+  "journeyWizardCurrency": "Currency",
+  "journeyWizardPreferences": "Preferences",
+  "journeyWizardPace": "Pace",
+  "journeyWizardAccommodationPreference": "Accommodation preference",
+  "journeyWizardReview": "Review",
+  "journeyWizardDestination": "Destination",
+  "journeyWizardDateRange": "Date range",
+  "journeyWizardTripDaysLabel": "Trip days",
+  "journeyWizardBack": "Back",
+  "journeyWizardContinue": "Continue",
+  "journeyWizardStartAnalysis": "Start Analysis",
+  "journeyWizardSaveFailed": "Failed to save journey info.",
+  "journeyWizardPreferenceFood": "Food",
+  "journeyWizardPreferenceShopping": "Shopping",
+  "journeyWizardPreferenceCulture": "Culture",
+  "journeyWizardPreferenceNature": "Nature",
+  "journeyWizardPreferenceMuseum": "Museum",
+  "journeyWizardPreferenceAnime": "Anime",
+  "journeyWizardPreferenceNightlife": "Nightlife",
+  "journeyWizardPreferenceFamily": "Family",
+  "journeyWizardPreferencePhotography": "Photography",
+  "journeyWizardPreferenceRelaxation": "Relaxation",
+  "journeyWizardPaceRelaxed": "Relaxed",
+  "journeyWizardPaceBalanced": "Balanced",
+  "journeyWizardPaceIntensive": "Intensive",
+  "journeyWizardAccommodationBudget": "Budget",
+  "journeyWizardAccommodationConvenient": "Convenient",
+  "journeyWizardAccommodationComfortable": "Comfortable",
+  "journeyWizardAccommodationPremium": "Premium",
+  "journeyWizardErrorDepartureCityRequired": "Please enter departure city.",
+  "journeyWizardErrorStartDateRequired": "Please select start date.",
+  "journeyWizardErrorEndDateRequired": "Please select end date.",
+  "journeyWizardErrorEndDateBeforeStartDate": "End date cannot be earlier than start date.",
+  "journeyWizardErrorTravelerCountMin": "Traveler count must be at least 1.",
+  "journeyWizardErrorTravelerCountMax": "Traveler count cannot exceed 20.",
+  "journeyWizardErrorBudgetRequired": "Total budget must be greater than 0.",
+  "journeyWizardErrorCurrencyRequired": "Please select currency.",
+  "journeyWizardErrorPreferencesRequired": "Select at least one preference.",
+  "journeyWizardErrorPreferencesMax": "You can select up to 5 preferences.",
+  "journeyWizardErrorPaceRequired": "Please select pace.",
+  "journeyWizardErrorAccommodationRequired": "Please select accommodation preference.",
   "adminMode": "Admin Mode",
   "adminDashboardTitle": "Admin Dashboard",
   "adminManagePlaces": "Manage Places",

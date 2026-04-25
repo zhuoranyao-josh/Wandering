@@ -138,12 +138,17 @@
 
 ---
 
-## 2026-04-15 ~ 2026-04-22
+## 2026-04-23~ 2026-04-2
 ### 🚀 Features
 - Added a new PlaceDetailsPage shell with hero, chips, section scaffolding, and a fixed bottom action bar.
 - Wired map preview card navigation to the new details page.
 - Added admin dashboard, place/activity management, and subcontent management.
 - Added image selection and auto-upload for admin forms.
+- Added checklist trip flow scaffolding and place-to-checklist navigation.
+- Added new localization keys for checklist pages and actions.
+- Added journey wizard UI and save flow.
+- Added checklist detail unplanned state with planning prompt.
+- Added new checklist detail fields and route handling.
 
 ### 🐛 Bug Fixes
 - Normalized Firestore language-map keys so zh/en variants resolve more reliably.
@@ -151,6 +156,10 @@
 ### ⚡ Improvements
 - Added a pure UI model to prepare the future Firestore -> Repository -> Controller data flow.
 - Added empty-state and placeholder handling for sections without data.
+- Added a loading state to the Start Journey button for better feedback.
+- Removed the forced wizard entry from checklist card taps.
+- Prevented empty/missing trip info from blocking checklist viewing.
+- Reworked checklist detail header and travel style summary to reduce repeated information.
 
 ### 📚 Learnings
 - Only user-facing text should use language maps; structural fields should stay scalar.

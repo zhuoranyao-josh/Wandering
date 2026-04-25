@@ -526,10 +526,280 @@ class AppLocalizationsEn extends AppLocalizations {
   String get checklistDetailTitle => 'Checklist Details';
 
   @override
+  String get checklistTripChecklist => 'Trip Checklist';
+
+  @override
+  String get checklistTotalBudget => 'Total Budget';
+
+  @override
+  String get checklistSetBudget => 'Set budget';
+
+  @override
+  String get checklistEdit => 'Edit';
+
+  @override
+  String get checklistBudgetSplit => 'Budget Split';
+
+  @override
+  String get checklistSplit => 'Split';
+
+  @override
+  String get checklistAdjust => 'Adjust';
+
+  @override
+  String get checklistNotSet => 'Not set';
+
+  @override
+  String get checklistTransport => 'Transport';
+
+  @override
+  String get checklistStay => 'Stay';
+
+  @override
+  String get checklistFoodActivities => 'Food & Activities';
+
+  @override
+  String get checklistTripEssentials => 'TRIP ESSENTIALS';
+
+  @override
+  String get checklistProTip => 'PRO TIP';
+
+  @override
+  String get checklistChecklist => 'CHECKLIST';
+
+  @override
+  String get checklistTransportation => 'Transportation';
+
+  @override
+  String get checklistUpdatePlan => 'Update Plan';
+
+  @override
+  String get checklistNoItemsYet => 'No checklist items yet';
+
+  @override
+  String get checklistGenerateSuggestionsHint => 'Set your budget and update the plan to generate suggestions.';
+
+  @override
+  String get checklistPlanningPromptTitle => 'Ready to plan this trip?';
+
+  @override
+  String get checklistPlanningPromptMessage => 'Add dates, budget, travelers, and travel style when you are ready.';
+
+  @override
+  String get checklistStartPlanning => 'Start Planning';
+
+  @override
+  String get checklistGeneratePlan => 'Generate Plan';
+
+  @override
+  String get checklistTravelStyleTitle => 'Travel Style';
+
+  @override
+  String get checklistAccommodationLabel => 'Accommodation';
+
+  @override
+  String get checklistDateRangeLabel => 'Date';
+
+  @override
+  String get checklistTravelerCountLabel => 'Travelers';
+
+  @override
+  String checklistTripDaysValue(Object count) {
+    return '$count days';
+  }
+
+  @override
+  String checklistTravelerCountValue(Object count) {
+    return '$count travelers';
+  }
+
+  @override
+  String get checklistNotFound => 'Checklist not found.';
+
+  @override
+  String get checklistRetry => 'Retry';
+
+  @override
   String get checklistDetailComingSoon => 'Checklist details will be available soon.';
 
   @override
   String get checklistCreateComingSoon => 'Checklist creation form will be available soon.';
+
+  @override
+  String get journeyWizardTitle => 'Plan your trip';
+
+  @override
+  String get journeyWizardUnknownDestination => 'Your destination';
+
+  @override
+  String journeyWizardTripTitle(Object destination) {
+    return '$destination Trip';
+  }
+
+  @override
+  String journeyWizardPlanToDestination(Object destination) {
+    return 'Plan your trip to $destination';
+  }
+
+  @override
+  String journeyWizardStepOf(Object current, Object total) {
+    return 'Step $current of $total';
+  }
+
+  @override
+  String get journeyWizardTravelBasics => 'Travel Basics';
+
+  @override
+  String get journeyWizardDepartureCity => 'Departure city';
+
+  @override
+  String get journeyWizardDepartureCityHint => 'Enter your departure city';
+
+  @override
+  String get journeyWizardStartDate => 'Start date';
+
+  @override
+  String get journeyWizardEndDate => 'End date';
+
+  @override
+  String journeyWizardTripDays(Object days) {
+    return '$days days';
+  }
+
+  @override
+  String get journeyWizardTravelerCount => 'Traveler count';
+
+  @override
+  String get journeyWizardBudgetStyle => 'Budget + Travel Style';
+
+  @override
+  String get journeyWizardTotalBudget => 'Total budget';
+
+  @override
+  String get journeyWizardTotalBudgetHint => 'Enter your total budget';
+
+  @override
+  String get journeyWizardCurrency => 'Currency';
+
+  @override
+  String get journeyWizardPreferences => 'Preferences';
+
+  @override
+  String get journeyWizardPace => 'Pace';
+
+  @override
+  String get journeyWizardAccommodationPreference => 'Accommodation preference';
+
+  @override
+  String get journeyWizardReview => 'Review';
+
+  @override
+  String get journeyWizardDestination => 'Destination';
+
+  @override
+  String get journeyWizardDateRange => 'Date range';
+
+  @override
+  String get journeyWizardTripDaysLabel => 'Trip days';
+
+  @override
+  String get journeyWizardBack => 'Back';
+
+  @override
+  String get journeyWizardContinue => 'Continue';
+
+  @override
+  String get journeyWizardStartAnalysis => 'Start Analysis';
+
+  @override
+  String get journeyWizardSaveFailed => 'Failed to save journey info.';
+
+  @override
+  String get journeyWizardPreferenceFood => 'Food';
+
+  @override
+  String get journeyWizardPreferenceShopping => 'Shopping';
+
+  @override
+  String get journeyWizardPreferenceCulture => 'Culture';
+
+  @override
+  String get journeyWizardPreferenceNature => 'Nature';
+
+  @override
+  String get journeyWizardPreferenceMuseum => 'Museum';
+
+  @override
+  String get journeyWizardPreferenceAnime => 'Anime';
+
+  @override
+  String get journeyWizardPreferenceNightlife => 'Nightlife';
+
+  @override
+  String get journeyWizardPreferenceFamily => 'Family';
+
+  @override
+  String get journeyWizardPreferencePhotography => 'Photography';
+
+  @override
+  String get journeyWizardPreferenceRelaxation => 'Relaxation';
+
+  @override
+  String get journeyWizardPaceRelaxed => 'Relaxed';
+
+  @override
+  String get journeyWizardPaceBalanced => 'Balanced';
+
+  @override
+  String get journeyWizardPaceIntensive => 'Intensive';
+
+  @override
+  String get journeyWizardAccommodationBudget => 'Budget';
+
+  @override
+  String get journeyWizardAccommodationConvenient => 'Convenient';
+
+  @override
+  String get journeyWizardAccommodationComfortable => 'Comfortable';
+
+  @override
+  String get journeyWizardAccommodationPremium => 'Premium';
+
+  @override
+  String get journeyWizardErrorDepartureCityRequired => 'Please enter departure city.';
+
+  @override
+  String get journeyWizardErrorStartDateRequired => 'Please select start date.';
+
+  @override
+  String get journeyWizardErrorEndDateRequired => 'Please select end date.';
+
+  @override
+  String get journeyWizardErrorEndDateBeforeStartDate => 'End date cannot be earlier than start date.';
+
+  @override
+  String get journeyWizardErrorTravelerCountMin => 'Traveler count must be at least 1.';
+
+  @override
+  String get journeyWizardErrorTravelerCountMax => 'Traveler count cannot exceed 20.';
+
+  @override
+  String get journeyWizardErrorBudgetRequired => 'Total budget must be greater than 0.';
+
+  @override
+  String get journeyWizardErrorCurrencyRequired => 'Please select currency.';
+
+  @override
+  String get journeyWizardErrorPreferencesRequired => 'Select at least one preference.';
+
+  @override
+  String get journeyWizardErrorPreferencesMax => 'You can select up to 5 preferences.';
+
+  @override
+  String get journeyWizardErrorPaceRequired => 'Please select pace.';
+
+  @override
+  String get journeyWizardErrorAccommodationRequired => 'Please select accommodation preference.';
 
   @override
   String get adminMode => 'Admin Mode';

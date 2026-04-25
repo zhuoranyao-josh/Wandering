@@ -181,8 +181,125 @@
   "checklistDeleteTitle": "删除此清单？",
   "checklistDeleteMessage": "此操作无法撤销。",
   "checklistDetailTitle": "清单详情",
+  "checklistTripChecklist": "行程清单",
+  "checklistTotalBudget": "总预算",
+  "checklistSetBudget": "设置预算",
+  "checklistEdit": "编辑",
+  "checklistBudgetSplit": "预算分配",
+  "checklistSplit": "分配",
+  "checklistAdjust": "调整",
+  "checklistNotSet": "未设置",
+  "checklistTransport": "交通",
+  "checklistStay": "住宿",
+  "checklistFoodActivities": "餐饮与活动",
+  "checklistTripEssentials": "旅行要点",
+  "checklistProTip": "行前建议",
+  "checklistChecklist": "执行清单",
+  "checklistTransportation": "交通安排",
+  "checklistUpdatePlan": "更新计划",
+  "checklistNoItemsYet": "暂无清单项",
+  "checklistGenerateSuggestionsHint": "先设置预算，再更新计划以生成建议。",
+  "checklistPlanningPromptTitle": "准备开始规划这次旅行了吗？",
+  "checklistPlanningPromptMessage": "当你准备好时，补充日期、预算、人数和旅行风格。",
+  "checklistStartPlanning": "开始规划",
+  "checklistGeneratePlan": "生成计划",
+  "checklistTravelStyleTitle": "旅行风格",
+  "checklistAccommodationLabel": "住宿",
+  "checklistDateRangeLabel": "日期",
+  "checklistTravelerCountLabel": "人数",
+  "checklistTripDaysValue": "{count} 天",
+  "@checklistTripDaysValue": {
+    "placeholders": {
+      "count": {}
+    }
+  },
+  "checklistTravelerCountValue": "{count} 人",
+  "@checklistTravelerCountValue": {
+    "placeholders": {
+      "count": {}
+    }
+  },
+  "checklistNotFound": "未找到该清单。",
+  "checklistRetry": "重试",
   "checklistDetailComingSoon": "清单详情即将开放。",
   "checklistCreateComingSoon": "清单创建表单即将开放。",
+  "journeyWizardTitle": "完善行程信息",
+  "journeyWizardUnknownDestination": "你的目的地",
+  "journeyWizardTripTitle": "{destination} 行程",
+  "@journeyWizardTripTitle": {
+    "placeholders": {
+      "destination": {}
+    }
+  },
+  "journeyWizardPlanToDestination": "为 {destination} 规划旅程",
+  "@journeyWizardPlanToDestination": {
+    "placeholders": {
+      "destination": {}
+    }
+  },
+  "journeyWizardStepOf": "第 {current} 步，共 {total} 步",
+  "@journeyWizardStepOf": {
+    "placeholders": {
+      "current": {},
+      "total": {}
+    }
+  },
+  "journeyWizardTravelBasics": "基础出行信息",
+  "journeyWizardDepartureCity": "出发城市",
+  "journeyWizardDepartureCityHint": "请输入出发城市",
+  "journeyWizardStartDate": "出发日期",
+  "journeyWizardEndDate": "返回日期",
+  "journeyWizardTripDays": "{days} 天",
+  "@journeyWizardTripDays": {
+    "placeholders": {
+      "days": {}
+    }
+  },
+  "journeyWizardTravelerCount": "出行人数",
+  "journeyWizardBudgetStyle": "预算与旅行风格",
+  "journeyWizardTotalBudget": "总预算",
+  "journeyWizardTotalBudgetHint": "请输入总预算",
+  "journeyWizardCurrency": "货币",
+  "journeyWizardPreferences": "偏好",
+  "journeyWizardPace": "行程节奏",
+  "journeyWizardAccommodationPreference": "住宿偏好",
+  "journeyWizardReview": "信息确认",
+  "journeyWizardDestination": "目的地",
+  "journeyWizardDateRange": "日期范围",
+  "journeyWizardTripDaysLabel": "行程天数",
+  "journeyWizardBack": "返回",
+  "journeyWizardContinue": "继续",
+  "journeyWizardStartAnalysis": "开始分析",
+  "journeyWizardSaveFailed": "保存行程信息失败。",
+  "journeyWizardPreferenceFood": "美食",
+  "journeyWizardPreferenceShopping": "购物",
+  "journeyWizardPreferenceCulture": "文化",
+  "journeyWizardPreferenceNature": "自然",
+  "journeyWizardPreferenceMuseum": "博物馆",
+  "journeyWizardPreferenceAnime": "动漫",
+  "journeyWizardPreferenceNightlife": "夜生活",
+  "journeyWizardPreferenceFamily": "亲子",
+  "journeyWizardPreferencePhotography": "摄影",
+  "journeyWizardPreferenceRelaxation": "放松",
+  "journeyWizardPaceRelaxed": "轻松",
+  "journeyWizardPaceBalanced": "均衡",
+  "journeyWizardPaceIntensive": "紧凑",
+  "journeyWizardAccommodationBudget": "经济",
+  "journeyWizardAccommodationConvenient": "便捷",
+  "journeyWizardAccommodationComfortable": "舒适",
+  "journeyWizardAccommodationPremium": "高端",
+  "journeyWizardErrorDepartureCityRequired": "请输入出发城市。",
+  "journeyWizardErrorStartDateRequired": "请选择出发日期。",
+  "journeyWizardErrorEndDateRequired": "请选择返回日期。",
+  "journeyWizardErrorEndDateBeforeStartDate": "返回日期不能早于出发日期。",
+  "journeyWizardErrorTravelerCountMin": "出行人数至少为 1。",
+  "journeyWizardErrorTravelerCountMax": "出行人数不能超过 20。",
+  "journeyWizardErrorBudgetRequired": "总预算必须大于 0。",
+  "journeyWizardErrorCurrencyRequired": "请选择货币。",
+  "journeyWizardErrorPreferencesRequired": "请至少选择 1 个偏好。",
+  "journeyWizardErrorPreferencesMax": "最多可选择 5 个偏好。",
+  "journeyWizardErrorPaceRequired": "请选择行程节奏。",
+  "journeyWizardErrorAccommodationRequired": "请选择住宿偏好。",
   "adminMode": "管理员模式",
   "adminDashboardTitle": "管理控制台",
   "adminManagePlaces": "管理地点",
