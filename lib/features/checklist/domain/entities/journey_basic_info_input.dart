@@ -8,6 +8,7 @@ class JourneyBasicInfoInput {
     required this.startDate,
     required this.endDate,
     required this.tripDays,
+    required this.nightCount,
     required this.travelerCount,
     required this.totalBudget,
     required this.currency,
@@ -25,6 +26,7 @@ class JourneyBasicInfoInput {
   final DateTime startDate;
   final DateTime endDate;
   final int tripDays;
+  final int nightCount;
   final int travelerCount;
   final double totalBudget;
   final String currency;

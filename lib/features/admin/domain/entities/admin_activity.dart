@@ -2,7 +2,7 @@ class AdminActivity {
   const AdminActivity({
     required this.id,
     required this.title,
-    required this.category,
+    required this.categories,
     required this.cityName,
     required this.countryName,
     required this.cityCode,
@@ -16,38 +16,70 @@ class AdminActivity {
   });
 
   final String id;
-  final String title;
-  final String category;
-  final String cityName;
-  final String countryName;
+  final Map<String, String> title;
+  final List<String> categories;
+  final Map<String, String> cityName;
+  final Map<String, String> countryName;
   final String cityCode;
   final String coverImageUrl;
   final DateTime? startAt;
   final DateTime? endAt;
   final bool isPublished;
   final bool isFeatured;
-  final String detailText;
+  final Map<String, String> detailText;
   final String? placeId;
+
+  String localizedTitle(String languageCode) => _localizedText(title, languageCode);
+
+  String localizedCityName(String languageCode) => _localizedText(cityName, languageCode);
+
+  String localizedCountryName(String languageCode) => _localizedText(countryName, languageCode);
+
+  String localizedDetailText(String languageCode) => _localizedText(detailText, languageCode);
+
+  String get categoryLabel => categories.join(', ');
+
+  String _localizedText(Map<String, String> map, String languageCode) {
+    final isZh = languageCode.toLowerCase().startsWith('zh');
+    final zh = map['zh']?.trim() ?? '';
+    final en = map['en']?.trim() ?? '';
+    if (isZh) {
+      if (zh.isNotEmpty) {
+        return zh;
+      }
+      if (en.isNotEmpty) {
+        return en;
+      }
+    } else {
+      if (en.isNotEmpty) {
+        return en;
+      }
+      if (zh.isNotEmpty) {
+        return zh;
+      }
+    }
+    return '';
+  }
 
   AdminActivity copyWith({
     String? id,
-    String? title,
-    String? category,
-    String? cityName,
-    String? countryName,
+    Map<String, String>? title,
+    List<String>? categories,
+    Map<String, String>? cityName,
+    Map<String, String>? countryName,
     String? cityCode,
     String? coverImageUrl,
     DateTime? startAt,
     DateTime? endAt,
     bool? isPublished,
     bool? isFeatured,
-    String? detailText,
+    Map<String, String>? detailText,
     String? placeId,
   }) {
     return AdminActivity(
       id: id ?? this.id,
       title: title ?? this.title,
-      category: category ?? this.category,
+      categories: categories ?? this.categories,
       cityName: cityName ?? this.cityName,
       countryName: countryName ?? this.countryName,
       cityCode: cityCode ?? this.cityCode,

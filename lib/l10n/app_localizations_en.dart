@@ -908,10 +908,19 @@ class AppLocalizationsEn extends AppLocalizations {
   String get adminManageActivities => 'Manage Activities';
 
   @override
+  String get adminManageRegions => 'Manage Regions';
+
+  @override
   String get adminPlaceListTitle => 'Places';
 
   @override
   String get adminPlaceEditTitle => 'Edit Place';
+
+  @override
+  String get adminRegionListTitle => 'Regions';
+
+  @override
+  String get adminRegionEditTitle => 'Edit Region';
 
   @override
   String get adminActivityListTitle => 'Activities';
@@ -924,6 +933,9 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get adminCreateActivity => 'Create Activity';
+
+  @override
+  String get adminCreateRegion => 'Create Region';
 
   @override
   String get adminCreate => 'Create';
@@ -957,6 +969,9 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get adminDeleteFailed => 'Failed to delete item.';
+
+  @override
+  String get adminRegionInUse => 'This region is still used by one or more places. Update those places first.';
 
   @override
   String get adminDeleteConfirmTitle => 'Delete this item?';
@@ -1005,6 +1020,33 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get adminRegionId => 'Region ID';
+
+  @override
+  String get adminFocusZoom => 'Focus Zoom';
+
+  @override
+  String get adminStatusNotSupported => 'Status unsupported';
+
+  @override
+  String get adminRegionIdRequired => 'Region ID is required.';
+
+  @override
+  String get adminRegionIdLowercaseOnly => 'Region ID must use lowercase letters only (a-z).';
+
+  @override
+  String get adminPlaceUidLowercaseOnly => 'UID must use lowercase letters only (a-z).';
+
+  @override
+  String get adminPlaceSelectRegionHint => 'Please select a region';
+
+  @override
+  String get adminPlaceRegionMissingCurrent => 'Current region does not exist. Please select a valid region.';
+
+  @override
+  String get adminPlaceRegionRequired => 'Please select a region.';
+
+  @override
+  String get adminPlaceRegionInvalid => 'Selected region does not exist.';
 
   @override
   String get adminLatitude => 'Latitude';

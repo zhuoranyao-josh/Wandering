@@ -25,9 +25,15 @@ class AdminActivityListController extends ChangeNotifier {
     }
     return _items
         .where((item) {
+          final titleMatches = item.title.values.any(
+            (value) => value.toLowerCase().contains(query),
+          );
+          final cityMatches = item.cityName.values.any(
+            (value) => value.toLowerCase().contains(query),
+          );
           return item.id.toLowerCase().contains(query) ||
-              item.title.toLowerCase().contains(query) ||
-              item.cityName.toLowerCase().contains(query);
+              titleMatches ||
+              cityMatches;
         })
         .toList(growable: false);
   }

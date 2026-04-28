@@ -35,6 +35,14 @@ class AdminDashboardPage extends StatelessWidget {
               onTap: () => context.push(AppRouter.adminActivities),
             ),
           ),
+          Card(
+            child: ListTile(
+              leading: const Icon(Icons.public_outlined),
+              title: Text(t.adminManageRegions),
+              trailing: const Icon(Icons.chevron_right),
+              onTap: () => context.push(AppRouter.adminRegions),
+            ),
+          ),
         ],
       ),
     );

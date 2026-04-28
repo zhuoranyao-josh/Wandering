@@ -908,10 +908,19 @@ class AppLocalizationsZh extends AppLocalizations {
   String get adminManageActivities => '管理活动';
 
   @override
+  String get adminManageRegions => '管理区域';
+
+  @override
   String get adminPlaceListTitle => '地点列表';
 
   @override
   String get adminPlaceEditTitle => '编辑地点';
+
+  @override
+  String get adminRegionListTitle => '区域列表';
+
+  @override
+  String get adminRegionEditTitle => '编辑区域';
 
   @override
   String get adminActivityListTitle => '活动列表';
@@ -924,6 +933,9 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get adminCreateActivity => '新建活动';
+
+  @override
+  String get adminCreateRegion => '新建区域';
 
   @override
   String get adminCreate => '新建';
@@ -957,6 +969,9 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get adminDeleteFailed => '删除失败。';
+
+  @override
+  String get adminRegionInUse => '该区域仍被地点引用，请先修改相关地点。';
 
   @override
   String get adminDeleteConfirmTitle => '确认删除此项？';
@@ -1005,6 +1020,33 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get adminRegionId => '区域 ID';
+
+  @override
+  String get adminFocusZoom => '聚焦缩放';
+
+  @override
+  String get adminStatusNotSupported => '状态字段未配置';
+
+  @override
+  String get adminRegionIdRequired => '区域 ID 不能为空。';
+
+  @override
+  String get adminRegionIdLowercaseOnly => '区域 ID 只能使用小写字母（a-z）。';
+
+  @override
+  String get adminPlaceUidLowercaseOnly => 'UID 只能使用小写字母（a-z）。';
+
+  @override
+  String get adminPlaceSelectRegionHint => '请选择区域';
+
+  @override
+  String get adminPlaceRegionMissingCurrent => '当前区域不存在，请重新选择有效区域。';
+
+  @override
+  String get adminPlaceRegionRequired => '请选择区域。';
+
+  @override
+  String get adminPlaceRegionInvalid => '所选区域不存在。';
 
   @override
   String get adminLatitude => '纬度';

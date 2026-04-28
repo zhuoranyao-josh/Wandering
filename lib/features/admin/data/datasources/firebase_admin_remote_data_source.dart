@@ -1,10 +1,13 @@
 import 'dart:io';
+import 'dart:math';
 
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 
+import '../../../../core/error/app_exception.dart';
 import '../../domain/entities/admin_activity.dart';
 import '../../domain/entities/admin_place.dart';
+import '../../domain/entities/admin_region.dart';
 import '../../domain/entities/admin_subcontent_item.dart';
 import '../../domain/entities/admin_subcontent_kind.dart';
 import 'admin_remote_data_source.dart';
@@ -17,6 +20,8 @@ class FirebaseAdminRemoteDataSource implements AdminRemoteDataSource {
 
   final FirebaseFirestore firestore;
   final FirebaseStorage storage;
+  final Random _random = Random();
+  static const String _base36Alphabet = 'abcdefghijklmnopqrstuvwxyz0123456789';
 
   @override
   Future<String> uploadPlaceCoverImage({
@@ -102,13 +107,20 @@ class FirebaseAdminRemoteDataSource implements AdminRemoteDataSource {
     final placeId = place.id.trim().isEmpty
         ? placeCollection.doc().id
         : place.id;
+    final regionId = place.regionId.trim();
+    if (regionId.isEmpty) {
+      throw AppException('adminPlaceRegionRequired');
+    }
+    if (!await _regionExistsInternal(regionId)) {
+      throw AppException('adminPlaceRegionInvalid');
+    }
     final placeRef = placeCollection.doc(placeId);
 
     // 统一维护 place 文档，marker/preview/details 共享同一数据源。
     final placeData = <String, dynamic>{
       'id': placeId,
       'name': _sanitizeLanguageMap(place.name),
-      'regionId': place.regionId.trim(),
+      'regionId': regionId,
       'latitude': place.latitude,
       'longitude': place.longitude,
       'coverImage': place.coverImage.trim(),
@@ -195,6 +207,79 @@ class FirebaseAdminRemoteDataSource implements AdminRemoteDataSource {
         'updatedAt': FieldValue.serverTimestamp(),
       }, SetOptions(merge: true));
     }
+  }
+
+  @override
+  Future<List<AdminRegion>> getRegions() async {
+    final snapshot = await firestore.collection('regions').get();
+    final regions = snapshot.docs
+        .map((doc) => _mapRegion(doc.id, doc.data()))
+        .toList(growable: false);
+    regions.sort((a, b) => a.id.compareTo(b.id));
+    return regions;
+  }
+
+  @override
+  Future<AdminRegion?> getRegionById(String regionId) async {
+    final doc = await firestore.collection('regions').doc(regionId.trim()).get();
+    if (!doc.exists) {
+      return null;
+    }
+    return _mapRegion(doc.id, doc.data() ?? <String, dynamic>{});
+  }
+
+  @override
+  Future<String> upsertRegion(AdminRegion region) async {
+    final collection = firestore.collection('regions');
+    final id = region.id.trim().isEmpty ? collection.doc().id : region.id.trim();
+    final isNew = region.id.trim().isEmpty;
+    final payload = <String, dynamic>{
+      'id': id,
+      'focusZoom': region.focusZoom,
+      'updatedAt': FieldValue.serverTimestamp(),
+    };
+    if (isNew) {
+      payload['createdAt'] = FieldValue.serverTimestamp();
+    }
+    if (region.hasName) {
+      payload['name'] = _sanitizeLanguageMap(region.name);
+    }
+    if (region.enabled != null) {
+      payload['enabled'] = region.enabled;
+    }
+
+    await collection.doc(id).set(payload, SetOptions(merge: true));
+    return id;
+  }
+
+  @override
+  Future<void> deleteRegion(String regionId) async {
+    final trimmedId = regionId.trim();
+    final inUseSnapshot = await firestore
+        .collection('places')
+        .where('regionId', isEqualTo: trimmedId)
+        .limit(1)
+        .get();
+    if (inUseSnapshot.docs.isNotEmpty) {
+      throw AppException('adminRegionInUse');
+    }
+    await firestore.collection('regions').doc(trimmedId).delete();
+  }
+
+  @override
+  Future<void> setRegionEnabled({
+    required String regionId,
+    required bool enabled,
+  }) async {
+    await firestore.collection('regions').doc(regionId.trim()).set({
+      'enabled': enabled,
+      'updatedAt': FieldValue.serverTimestamp(),
+    }, SetOptions(merge: true));
+  }
+
+  @override
+  Future<bool> regionExists(String regionId) {
+    return _regionExistsInternal(regionId);
   }
 
   @override
@@ -326,27 +411,30 @@ class FirebaseAdminRemoteDataSource implements AdminRemoteDataSource {
   @override
   Future<String> upsertActivity(AdminActivity activity) async {
     final collection = firestore.collection('events');
-    final id = activity.id.trim().isEmpty
-        ? collection.doc().id
-        : activity.id.trim();
+    final id = await _resolveActivityDocId(collection: collection, activity: activity);
     final ref = collection.doc(id);
+    final normalizedCategories = _normalizeActivityCategories(
+      activity.categories,
+    );
 
     final payload = <String, dynamic>{
-      'title': activity.title.trim(),
-      'category': activity.category.trim(),
-      'cityName': activity.cityName.trim(),
-      'countryName': activity.countryName.trim(),
+      'id': id,
+      'title': _sanitizeLanguageMap(activity.title),
+      'categories': normalizedCategories,
+      'category': normalizedCategories.isEmpty ? '' : normalizedCategories.first,
+      'cityName': _sanitizeLanguageMap(activity.cityName),
+      'countryName': _sanitizeLanguageMap(activity.countryName),
       'cityCode': activity.cityCode.trim(),
       'coverImageUrl': activity.coverImageUrl.trim(),
       'startAt': activity.startAt,
       'endAt': activity.endAt,
       'isPublished': activity.isPublished,
       'isFeatured': activity.isFeatured,
-      'detailText': activity.detailText.trim(),
+      'detailText': _sanitizeLanguageMap(activity.detailText),
       'placeId': activity.placeId?.trim(),
       'updatedAt': FieldValue.serverTimestamp(),
     };
-    if (activity.id.trim().isEmpty) {
+    if (activity.id.trim().isEmpty || activity.id.trim() != id) {
       payload['createdAt'] = FieldValue.serverTimestamp();
     }
 
@@ -403,6 +491,18 @@ class FirebaseAdminRemoteDataSource implements AdminRemoteDataSource {
     );
   }
 
+  AdminRegion _mapRegion(String docId, Map<String, dynamic> data) {
+    final rawEnabled = data['enabled'];
+    return AdminRegion(
+      id: (data['id'] as String?)?.trim().isNotEmpty == true
+          ? (data['id'] as String).trim()
+          : docId,
+      focusZoom: _toDouble(data['focusZoom']) ?? 4.8,
+      name: _readLanguageMap(data['name']),
+      enabled: rawEnabled is bool ? rawEnabled : null,
+    );
+  }
+
   AdminSubcontentItem _mapSubcontentItem(String id, Map<String, dynamic> data) {
     return AdminSubcontentItem(
       id: id,
@@ -421,17 +521,17 @@ class FirebaseAdminRemoteDataSource implements AdminRemoteDataSource {
   AdminActivity _mapActivity(String id, Map<String, dynamic> data) {
     return AdminActivity(
       id: id,
-      title: (data['title'] as String?)?.trim() ?? '',
-      category: (data['category'] as String?)?.trim() ?? '',
-      cityName: (data['cityName'] as String?)?.trim() ?? '',
-      countryName: (data['countryName'] as String?)?.trim() ?? '',
+      title: _readLanguageMapWithStringFallback(data['title']),
+      categories: _readActivityCategories(data),
+      cityName: _readLanguageMapWithStringFallback(data['cityName']),
+      countryName: _readLanguageMapWithStringFallback(data['countryName']),
       cityCode: (data['cityCode'] as String?)?.trim() ?? '',
       coverImageUrl: (data['coverImageUrl'] as String?)?.trim() ?? '',
       startAt: _readDateTime(data['startAt']),
       endAt: _readDateTime(data['endAt']),
       isPublished: (data['isPublished'] as bool?) ?? false,
       isFeatured: (data['isFeatured'] as bool?) ?? false,
-      detailText: (data['detailText'] as String?)?.trim() ?? '',
+      detailText: _readLanguageMapWithStringFallback(data['detailText']),
       placeId: (data['placeId'] as String?)?.trim(),
     );
   }
@@ -504,6 +604,120 @@ class FirebaseAdminRemoteDataSource implements AdminRemoteDataSource {
       return fallback;
     }
     return value.replaceAll(RegExp(r'[\\/]+'), '_');
+  }
+
+  Future<String> _resolveActivityDocId({
+    required CollectionReference<Map<String, dynamic>> collection,
+    required AdminActivity activity,
+  }) async {
+    final rawId = activity.id.trim();
+    if (rawId.isEmpty) {
+      return _generateLowercaseActivityId();
+    }
+
+    // 若是编辑已有文档，保持原 docId 不变，避免破坏历史引用。
+    final existing = await collection.doc(rawId).get();
+    if (existing.exists) {
+      return rawId;
+    }
+
+    final normalized = _normalizeActivityId(rawId);
+    if (normalized.isNotEmpty) {
+      return normalized;
+    }
+    return _generateLowercaseActivityId();
+  }
+
+  String _normalizeActivityId(String value) {
+    final lower = value.trim().toLowerCase();
+    var normalized = lower.replaceAll(RegExp(r'[^a-z0-9_-]+'), '_');
+    normalized = normalized.replaceAll(RegExp(r'_+'), '_');
+    normalized = normalized.replaceAll(RegExp(r'^[_-]+|[_-]+$'), '');
+    return normalized;
+  }
+
+  String _generateLowercaseActivityId() {
+    final randomPart = List<String>.generate(
+      6,
+      (_) => _base36Alphabet[_random.nextInt(_base36Alphabet.length)],
+    ).join();
+    return 'event_${DateTime.now().millisecondsSinceEpoch}_$randomPart';
+  }
+
+  List<String> _normalizeActivityCategories(Iterable<String> categories) {
+    final normalized = <String>{};
+    for (final category in categories) {
+      final key = _normalizeActivityCategory(category);
+      if (key != null) {
+        normalized.add(key);
+      }
+    }
+    return normalized.toList(growable: false);
+  }
+
+  List<String> _readActivityCategories(Map<String, dynamic> data) {
+    final rawValues = <String>[];
+    final rawList = data['categories'];
+    if (rawList is List) {
+      for (final value in rawList) {
+        if (value is String && value.trim().isNotEmpty) {
+          rawValues.add(value.trim());
+        }
+      }
+    }
+    final rawCategory = data['category'];
+    if (rawCategory is String && rawCategory.trim().isNotEmpty) {
+      rawValues.add(rawCategory.trim());
+    }
+    return _normalizeActivityCategories(rawValues);
+  }
+
+  String? _normalizeActivityCategory(String value) {
+    final normalized = value
+        .trim()
+        .toLowerCase()
+        .replaceAll(RegExp(r'[\s_-]+'), ' ')
+        .trim();
+    switch (normalized) {
+      case 'traditional festival':
+      case 'traditionalfestival':
+      case 'traditional':
+      case 'festival':
+      case '传统节日':
+        return 'traditional_festival';
+      case 'music':
+      case '音乐':
+        return 'music';
+      case 'exhibition':
+      case 'exhibit':
+      case '展览':
+        return 'exhibition';
+      case 'entertainment':
+      case 'fun':
+      case '娱乐':
+        return 'entertainment';
+      case 'nature':
+      case 'natural':
+      case '自然':
+        return 'nature';
+      default:
+        return null;
+    }
+  }
+
+  Map<String, String> _readLanguageMapWithStringFallback(Object? value) {
+    if (value is String) {
+      final text = value.trim();
+      if (text.isEmpty) {
+        return const <String, String>{'zh': '', 'en': ''};
+      }
+      return <String, String>{'zh': text, 'en': text};
+    }
+    final map = _readLanguageMap(value);
+    return <String, String>{
+      'zh': map['zh']?.trim() ?? '',
+      'en': map['en']?.trim() ?? '',
+    };
   }
 
   Map<String, String> _readLanguageMap(Object? value) {
@@ -586,5 +800,14 @@ class FirebaseAdminRemoteDataSource implements AdminRemoteDataSource {
       return DateTime.tryParse(value.trim());
     }
     return null;
+  }
+
+  Future<bool> _regionExistsInternal(String regionId) async {
+    final trimmed = regionId.trim();
+    if (trimmed.isEmpty) {
+      return false;
+    }
+    final doc = await firestore.collection('regions').doc(trimmed).get();
+    return doc.exists;
   }
 }

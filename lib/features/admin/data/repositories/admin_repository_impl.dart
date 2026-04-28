@@ -1,5 +1,6 @@
 import '../../domain/entities/admin_activity.dart';
 import '../../domain/entities/admin_place.dart';
+import '../../domain/entities/admin_region.dart';
 import '../../domain/entities/admin_subcontent_item.dart';
 import '../../domain/entities/admin_subcontent_kind.dart';
 import '../../domain/repositories/admin_repository.dart';
@@ -71,6 +72,42 @@ class AdminRepositoryImpl implements AdminRepository {
     required bool enabled,
   }) {
     return remoteDataSource.setPlaceEnabled(placeId: placeId, enabled: enabled);
+  }
+
+  @override
+  Future<List<AdminRegion>> getRegions() {
+    return remoteDataSource.getRegions();
+  }
+
+  @override
+  Future<AdminRegion?> getRegionById(String regionId) {
+    return remoteDataSource.getRegionById(regionId);
+  }
+
+  @override
+  Future<String> upsertRegion(AdminRegion region) {
+    return remoteDataSource.upsertRegion(region);
+  }
+
+  @override
+  Future<void> deleteRegion(String regionId) {
+    return remoteDataSource.deleteRegion(regionId);
+  }
+
+  @override
+  Future<void> setRegionEnabled({
+    required String regionId,
+    required bool enabled,
+  }) {
+    return remoteDataSource.setRegionEnabled(
+      regionId: regionId,
+      enabled: enabled,
+    );
+  }
+
+  @override
+  Future<bool> regionExists(String regionId) {
+    return remoteDataSource.regionExists(regionId);
   }
 
   @override

@@ -21,7 +21,8 @@ class ActivityDetailPage extends StatelessWidget {
       return const Scaffold(body: Center(child: CircularProgressIndicator()));
     }
 
-    final title = initialEvent?.title.trim();
+    final languageCode = Localizations.localeOf(context).languageCode;
+    final title = initialEvent?.localizedTitle(languageCode).trim();
     final displayTitle = (title != null && title.isNotEmpty)
         ? title
         : t.activityDetailTitle;

@@ -149,9 +149,16 @@
 - Added journey wizard UI and save flow.
 - Added checklist detail unplanned state with planning prompt.
 - Added new checklist detail fields and route handling.
+- Added OpenWeather API integration for accurate weather info.
+- Implemented checklist plan generation with mock output.
+- Added timeline-based checklist item presentation and richer item card variants.
+- Activity fields now support bilingual display data.
+- Admin activity form supports bilingual text inputs.
 
 ### 🐛 Bug Fixes
 - Normalized Firestore language-map keys so zh/en variants resolve more reliably.
+- Fixed crashes caused by legacy string values in events.
+- Fixed category handling by removing free-text input.
 
 ### ⚡ Improvements
 - Added a pure UI model to prepare the future Firestore -> Repository -> Controller data flow.
@@ -160,6 +167,12 @@
 - Removed the forced wizard entry from checklist card taps.
 - Prevented empty/missing trip info from blocking checklist viewing.
 - Reworked checklist detail header and travel style summary to reduce repeated information.
+- Refreshed weather essentials on locale changes.
+- Expanded i18n coverage for weather, errors, and estimate labels.
+- Improved activity search and display to use localized values.
+- Improved admin activity list display for localized titles and cities.
 
 ### 📚 Learnings
 - Only user-facing text should use language maps; structural fields should stay scalar.
+- OpenWeather forecast data needs date-range filtering and fallback handling.
+- Normalize IDs before save to avoid unstable document paths.

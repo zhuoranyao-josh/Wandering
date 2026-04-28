@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
 import 'package:image_picker/image_picker.dart';
 
@@ -31,16 +32,13 @@ class _PlaceAdminEditPageState extends State<PlaceAdminEditPage> {
   final TextEditingController _idController = TextEditingController();
   final TextEditingController _nameZhController = TextEditingController();
   final TextEditingController _nameEnController = TextEditingController();
-  final TextEditingController _regionIdController = TextEditingController();
   final TextEditingController _latitudeController = TextEditingController();
   final TextEditingController _longitudeController = TextEditingController();
-  final TextEditingController _markerTypeController = TextEditingController();
   final TextEditingController _markerLatitudeController =
       TextEditingController();
   final TextEditingController _markerLongitudeController =
       TextEditingController();
   final TextEditingController _coverImageController = TextEditingController();
-  final TextEditingController _tagsController = TextEditingController();
   final TextEditingController _flyToZoomController = TextEditingController();
   final TextEditingController _flyToPitchController = TextEditingController();
   final TextEditingController _flyToBearingController = TextEditingController();
@@ -52,8 +50,31 @@ class _PlaceAdminEditPageState extends State<PlaceAdminEditPage> {
   final TextEditingController _longEnController = TextEditingController();
   final ImagePicker _imagePicker = ImagePicker();
 
+  static const List<String> _defaultTagOptions = <String>[
+    'city',
+    'official',
+    'community',
+    'culture',
+    'food',
+    'shopping',
+    'nature',
+    'nightlife',
+    'family',
+  ];
+  static const List<String> _defaultMarkerTypeOptions = <String>[
+    'official',
+    'community',
+    'mixed',
+  ];
+  static final RegExp _lowercaseLettersPattern = RegExp(r'^[a-z]+$');
+
   bool _enabled = true;
   String? _markerId;
+  String? _selectedRegionId;
+  String? _selectedMarkerType;
+  List<String> _selectedTags = <String>[];
+  String? _pendingTag;
+  String? _lastHandledErrorKey;
   bool _initialized = false;
 
   @override
@@ -62,12 +83,13 @@ class _PlaceAdminEditPageState extends State<PlaceAdminEditPage> {
     _controller.addListener(_handleControllerChange);
     if (widget.isCreating) {
       _initialized = true;
-      _markerTypeController.text = 'official';
+      _selectedMarkerType = 'official';
       _flyToZoomController.text = '10.8';
       _flyToPitchController.text = '48.0';
       _flyToBearingController.text = '12.0';
       _latitudeController.text = '0';
       _longitudeController.text = '0';
+      _controller.loadRegions();
     } else {
       _controller.load(widget.placeId);
     }
@@ -80,14 +102,11 @@ class _PlaceAdminEditPageState extends State<PlaceAdminEditPage> {
     _idController.dispose();
     _nameZhController.dispose();
     _nameEnController.dispose();
-    _regionIdController.dispose();
     _latitudeController.dispose();
     _longitudeController.dispose();
-    _markerTypeController.dispose();
     _markerLatitudeController.dispose();
     _markerLongitudeController.dispose();
     _coverImageController.dispose();
-    _tagsController.dispose();
     _flyToZoomController.dispose();
     _flyToPitchController.dispose();
     _flyToBearingController.dispose();
@@ -106,9 +125,17 @@ class _PlaceAdminEditPageState extends State<PlaceAdminEditPage> {
       _initialized = true;
     }
     if (!mounted) return;
+    final key = _controller.errorKey;
+    if (key == null) {
+      _lastHandledErrorKey = null;
+      return;
+    }
+    if (key == _lastHandledErrorKey) {
+      return;
+    }
+    _lastHandledErrorKey = key;
     final t = AppLocalizations.of(context);
     if (t == null) return;
-    final key = _controller.errorKey;
     if (key == 'adminLoadFailed') {
       _showSnack(t.adminLoadFailed);
     } else if (key == 'adminSaveFailed') {
@@ -117,6 +144,10 @@ class _PlaceAdminEditPageState extends State<PlaceAdminEditPage> {
       _showSnack(t.adminDeleteFailed);
     } else if (key == 'adminImageUploadFailed') {
       _showSnack(t.adminImageUploadFailed);
+    } else if (key == 'adminPlaceRegionRequired') {
+      _showSnack(t.adminPlaceRegionRequired);
+    } else if (key == 'adminPlaceRegionInvalid') {
+      _showSnack(t.adminPlaceRegionInvalid);
     }
   }
 
@@ -124,14 +155,21 @@ class _PlaceAdminEditPageState extends State<PlaceAdminEditPage> {
     _idController.text = place.id;
     _nameZhController.text = place.name['zh'] ?? '';
     _nameEnController.text = place.name['en'] ?? '';
-    _regionIdController.text = place.regionId;
+    _selectedRegionId = place.regionId.trim().isEmpty
+        ? null
+        : place.regionId.trim();
     _latitudeController.text = place.latitude.toString();
     _longitudeController.text = place.longitude.toString();
-    _markerTypeController.text = place.markerType;
+    _selectedMarkerType = place.markerType.trim().isEmpty
+        ? 'official'
+        : place.markerType.trim();
     _markerLatitudeController.text = place.markerLatitude?.toString() ?? '';
     _markerLongitudeController.text = place.markerLongitude?.toString() ?? '';
     _coverImageController.text = place.coverImage;
-    _tagsController.text = place.tags.join(', ');
+    _selectedTags = place.tags
+        .map((tag) => tag.trim())
+        .where((tag) => tag.isNotEmpty)
+        .toList(growable: false);
     _flyToZoomController.text = place.flyToZoom.toString();
     _flyToPitchController.text = place.flyToPitch.toString();
     _flyToBearingController.text = place.flyToBearing.toString();
@@ -146,22 +184,18 @@ class _PlaceAdminEditPageState extends State<PlaceAdminEditPage> {
   }
 
   void _showSnack(String message) {
-    ScaffoldMessenger.of(
-      context,
-    ).showSnackBar(SnackBar(content: Text(message)));
+    final messenger = ScaffoldMessenger.of(context);
+    messenger
+      ..hideCurrentSnackBar()
+      ..showSnackBar(
+        SnackBar(content: Text(message), duration: const Duration(seconds: 2)),
+      );
   }
 
   double _parseDouble(String value, double fallback) {
     return double.tryParse(value.trim()) ?? fallback;
   }
 
-  List<String> _parseTags(String value) {
-    return value
-        .split(RegExp(r'[,;，\n\r]+'))
-        .map((entry) => entry.trim())
-        .where((entry) => entry.isNotEmpty)
-        .toList(growable: false);
-  }
 
   AdminPlace _buildDraft() {
     return AdminPlace(
@@ -170,7 +204,7 @@ class _PlaceAdminEditPageState extends State<PlaceAdminEditPage> {
         'zh': _nameZhController.text.trim(),
         'en': _nameEnController.text.trim(),
       },
-      regionId: _regionIdController.text.trim(),
+      regionId: _selectedRegionId?.trim() ?? '',
       latitude: _parseDouble(_latitudeController.text, 0),
       longitude: _parseDouble(_longitudeController.text, 0),
       coverImage: _coverImageController.text.trim(),
@@ -186,13 +220,13 @@ class _PlaceAdminEditPageState extends State<PlaceAdminEditPage> {
         'zh': _longZhController.text.trim(),
         'en': _longEnController.text.trim(),
       },
-      tags: _parseTags(_tagsController.text),
+      tags: _selectedTags.toList(growable: false),
       flyToZoom: _parseDouble(_flyToZoomController.text, 10.8),
       flyToPitch: _parseDouble(_flyToPitchController.text, 48.0),
       flyToBearing: _parseDouble(_flyToBearingController.text, 12.0),
       enabled: _enabled,
       markerId: _markerId,
-      markerType: _markerTypeController.text.trim(),
+      markerType: (_selectedMarkerType ?? 'official').trim(),
       markerLatitude: _markerLatitudeController.text.trim().isEmpty
           ? null
           : _parseDouble(_markerLatitudeController.text, 0),
@@ -203,6 +237,23 @@ class _PlaceAdminEditPageState extends State<PlaceAdminEditPage> {
   }
 
   Future<void> _save(AppLocalizations t) async {
+    // 新建时限制 UID 只能是小写字母，避免写入不符合约束的文档 ID。
+    if (widget.isCreating &&
+        !_lowercaseLettersPattern.hasMatch(_idController.text.trim())) {
+      _showSnack(t.adminPlaceUidLowercaseOnly);
+      return;
+    }
+
+    final selectedRegionId = _selectedRegionId?.trim() ?? '';
+    if (selectedRegionId.isEmpty) {
+      _showSnack(t.adminPlaceRegionRequired);
+      return;
+    }
+    if (!_controller.regionIds.contains(selectedRegionId)) {
+      _showSnack(t.adminPlaceRegionInvalid);
+      return;
+    }
+
     final savedId = await _controller.save(_buildDraft());
     if (savedId == null || !mounted) {
       return;
@@ -265,6 +316,37 @@ class _PlaceAdminEditPageState extends State<PlaceAdminEditPage> {
     _showSnack(t.adminImageUploadSuccess);
   }
 
+  bool _isCurrentRegionMissing() {
+    final regionId = _selectedRegionId?.trim() ?? '';
+    if (regionId.isEmpty) {
+      return false;
+    }
+    return !_controller.regionIds.contains(regionId);
+  }
+
+  List<String> _resolveTagOptions() {
+    final options = <String>{
+      ..._defaultTagOptions,
+      ..._selectedTags,
+    };
+    final pending = _pendingTag?.trim() ?? '';
+    if (pending.isNotEmpty) {
+      options.remove(pending);
+    }
+    return options.toList(growable: false)..sort();
+  }
+
+  List<String> _resolveMarkerTypeOptions() {
+    final options = <String>{
+      ..._defaultMarkerTypeOptions,
+    };
+    final current = _selectedMarkerType?.trim() ?? '';
+    if (current.isNotEmpty) {
+      options.add(current);
+    }
+    return options.toList(growable: false)..sort();
+  }
+
   @override
   Widget build(BuildContext context) {
     final t = AppLocalizations.of(context);
@@ -293,6 +375,18 @@ class _PlaceAdminEditPageState extends State<PlaceAdminEditPage> {
             return const Center(child: CircularProgressIndicator());
           }
 
+          final languageCode = Localizations.localeOf(context).languageCode;
+          final regions = _controller.regions.toList(growable: false)
+            ..sort((a, b) => a.id.compareTo(b.id));
+          final regionIds = _controller.regionIds;
+          final hasSelectedRegion =
+              _selectedRegionId != null &&
+              _selectedRegionId!.isNotEmpty &&
+              regionIds.contains(_selectedRegionId!);
+          final missingRegion = _isCurrentRegionMissing();
+          final markerTypeOptions = _resolveMarkerTypeOptions();
+          final tagOptions = _resolveTagOptions();
+
           return ListView(
             padding: const EdgeInsets.all(16),
             children: <Widget>[
@@ -303,6 +397,13 @@ class _PlaceAdminEditPageState extends State<PlaceAdminEditPage> {
                     TextField(
                       controller: _idController,
                       readOnly: !widget.isCreating,
+                      inputFormatters: widget.isCreating
+                          ? <TextInputFormatter>[
+                              FilteringTextInputFormatter.allow(
+                                RegExp(r'[a-z]'),
+                              ),
+                            ]
+                          : null,
                       decoration: InputDecoration(
                         labelText: t.uidLabel,
                         border: const OutlineInputBorder(),
@@ -317,14 +418,62 @@ class _PlaceAdminEditPageState extends State<PlaceAdminEditPage> {
                       enController: _nameEnController,
                     ),
                     const SizedBox(height: 12),
-                    TextField(
-                      controller: _tagsController,
+                    DropdownButtonFormField<String>(
+                      key: ValueKey<String?>('tag-${_pendingTag ?? ''}'),
+                      initialValue: _pendingTag,
+                      items: tagOptions
+                          .map(
+                            (tag) => DropdownMenuItem<String>(
+                              value: tag,
+                              child: Text(tag),
+                            ),
+                          )
+                          .toList(growable: false),
+                      onChanged: (value) {
+                        if (value == null) {
+                          return;
+                        }
+                        if (_selectedTags.contains(value)) {
+                          setState(() {
+                            _pendingTag = null;
+                          });
+                          return;
+                        }
+                        setState(() {
+                          _selectedTags = <String>[..._selectedTags, value];
+                          _pendingTag = null;
+                        });
+                      },
                       decoration: InputDecoration(
                         labelText: t.adminTags,
                         hintText: t.adminTagsHint,
                         border: const OutlineInputBorder(),
                       ),
                     ),
+                    if (_selectedTags.isNotEmpty) ...<Widget>[
+                      const SizedBox(height: 8),
+                      Align(
+                        alignment: Alignment.centerLeft,
+                        child: Wrap(
+                          spacing: 8,
+                          runSpacing: 6,
+                          children: _selectedTags
+                              .map(
+                                (tag) => InputChip(
+                                  label: Text(tag),
+                                  onDeleted: () {
+                                    setState(() {
+                                      _selectedTags = _selectedTags
+                                          .where((item) => item != tag)
+                                          .toList(growable: false);
+                                    });
+                                  },
+                                ),
+                              )
+                              .toList(growable: false),
+                        ),
+                      ),
+                    ],
                     const SizedBox(height: 8),
                     SwitchListTile(
                       contentPadding: EdgeInsets.zero,
@@ -339,14 +488,47 @@ class _PlaceAdminEditPageState extends State<PlaceAdminEditPage> {
                 title: t.adminMapSettings,
                 child: Column(
                   children: <Widget>[
-                    // 地图参数直接写 place 与 marker 的现有字段，避免 UI 层拼装 Firebase 结构。
-                    TextField(
-                      controller: _regionIdController,
+                    // 区域只能从真实 regions 集合中选择，避免写入无效 regionId。
+                    DropdownButtonFormField<String>(
+                      key: ValueKey<String?>(
+                        'region-${hasSelectedRegion ? _selectedRegionId : ''}',
+                      ),
+                      initialValue: hasSelectedRegion ? _selectedRegionId : null,
+                      items: regions
+                          .map(
+                            (region) => DropdownMenuItem<String>(
+                              value: region.id,
+                              child: Text(
+                                '${region.localizedName(languageCode).trim().isEmpty ? region.id : region.localizedName(languageCode)} (${region.id})',
+                              ),
+                            ),
+                          )
+                          .toList(growable: false),
+                      onChanged: (value) {
+                        setState(() {
+                          _selectedRegionId = value;
+                        });
+                      },
                       decoration: InputDecoration(
                         labelText: t.adminRegionId,
+                        hintText: t.adminPlaceSelectRegionHint,
                         border: const OutlineInputBorder(),
                       ),
                     ),
+                    if (missingRegion) ...<Widget>[
+                      const SizedBox(height: 8),
+                      Align(
+                        alignment: Alignment.centerLeft,
+                        child: Text(
+                          t.adminPlaceRegionMissingCurrent,
+                          style: TextStyle(
+                            color: Colors.red.shade600,
+                            fontSize: 12.5,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ),
+                    ],
                     const SizedBox(height: 12),
                     TextField(
                       controller: _latitudeController,
@@ -414,13 +596,43 @@ class _PlaceAdminEditPageState extends State<PlaceAdminEditPage> {
                 title: t.adminMarkerSettings,
                 child: Column(
                   children: <Widget>[
-                    TextField(
-                      controller: _markerTypeController,
+                    DropdownButtonFormField<String>(
+                      key: ValueKey<String?>(
+                        'marker-${_selectedMarkerType ?? ''}',
+                      ),
+                      initialValue: _selectedMarkerType,
+                      items: markerTypeOptions
+                          .map(
+                            (markerType) => DropdownMenuItem<String>(
+                              value: markerType,
+                              child: Text(markerType),
+                            ),
+                          )
+                          .toList(growable: false),
+                      onChanged: (value) {
+                        setState(() {
+                          _selectedMarkerType = value;
+                        });
+                      },
                       decoration: InputDecoration(
                         labelText: t.adminMarkerType,
                         border: const OutlineInputBorder(),
                       ),
                     ),
+                    if ((_selectedMarkerType ?? '').isNotEmpty) ...<Widget>[
+                      const SizedBox(height: 8),
+                      Align(
+                        alignment: Alignment.centerLeft,
+                        child: InputChip(
+                          label: Text(_selectedMarkerType!),
+                          onDeleted: () {
+                            setState(() {
+                              _selectedMarkerType = null;
+                            });
+                          },
+                        ),
+                      ),
+                    ],
                     const SizedBox(height: 12),
                     TextField(
                       controller: _markerLatitudeController,

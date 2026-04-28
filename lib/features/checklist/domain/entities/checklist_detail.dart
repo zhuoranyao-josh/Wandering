@@ -9,6 +9,7 @@ class ChecklistDetail {
     this.startDate,
     this.endDate,
     this.tripDays,
+    this.nightCount,
     this.durationText,
     this.travelerCount,
     this.totalBudget,
@@ -34,6 +35,7 @@ class ChecklistDetail {
   final DateTime? startDate;
   final DateTime? endDate;
   final int? tripDays;
+  final int? nightCount;
   final String? durationText;
   final int? travelerCount;
   final double? totalBudget;
@@ -72,6 +74,7 @@ class ChecklistDetail {
     DateTime? startDate,
     DateTime? endDate,
     int? tripDays,
+    int? nightCount,
     String? durationText,
     int? travelerCount,
     double? totalBudget,
@@ -97,6 +100,7 @@ class ChecklistDetail {
       startDate: startDate ?? this.startDate,
       endDate: endDate ?? this.endDate,
       tripDays: tripDays ?? this.tripDays,
+      nightCount: nightCount ?? this.nightCount,
       durationText: durationText ?? this.durationText,
       travelerCount: travelerCount ?? this.travelerCount,
       totalBudget: totalBudget ?? this.totalBudget,

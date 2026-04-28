@@ -94,6 +94,18 @@ class JourneyWizardController extends ChangeNotifier {
     return end.difference(start).inDays + 1;
   }
 
+  int? get nightCount {
+    final start = _startDate;
+    final end = _endDate;
+    if (start == null || end == null) {
+      return null;
+    }
+    if (end.isBefore(start)) {
+      return null;
+    }
+    return end.difference(start).inDays;
+  }
+
   String? fieldErrorKey(String field) => _fieldErrorKeys[field];
 
   Future<void> loadJourney() async {
@@ -277,6 +289,7 @@ class JourneyWizardController extends ChangeNotifier {
         startDate: input.startDate,
         endDate: input.endDate,
         tripDays: input.tripDays,
+        nightCount: input.nightCount,
         travelerCount: input.travelerCount,
         totalBudget: input.totalBudget,
         currency: input.currency,
@@ -302,8 +315,13 @@ class JourneyWizardController extends ChangeNotifier {
     final start = _startDate;
     final end = _endDate;
     final days = tripDays;
+    final nights = nightCount;
     final budget = _totalBudget;
-    if (start == null || end == null || days == null || budget == null) {
+    if (start == null ||
+        end == null ||
+        days == null ||
+        nights == null ||
+        budget == null) {
       return null;
     }
     return JourneyBasicInfoInput(
@@ -315,6 +333,7 @@ class JourneyWizardController extends ChangeNotifier {
       startDate: start,
       endDate: end,
       tripDays: days,
+      nightCount: nights,
       travelerCount: _travelerCount,
       totalBudget: budget,
       currency: _currency.trim(),

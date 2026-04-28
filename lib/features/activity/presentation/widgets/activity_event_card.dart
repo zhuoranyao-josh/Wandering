@@ -22,6 +22,9 @@ class ActivityEventCard extends StatelessWidget {
     }
 
     final localeTag = Localizations.localeOf(context).toLanguageTag();
+    final languageCode = Localizations.localeOf(context).languageCode;
+    final title = event.localizedTitle(languageCode);
+    final locationLabel = event.localizedLocationLabel(languageCode);
 
     return Material(
       color: Colors.transparent,
@@ -66,7 +69,7 @@ class ActivityEventCard extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      event.title,
+                      title,
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                       style: const TextStyle(
@@ -75,10 +78,10 @@ class ActivityEventCard extends StatelessWidget {
                         color: Color(0xFF111827),
                       ),
                     ),
-                    if (event.locationLabel.isNotEmpty) ...[
+                    if (locationLabel.isNotEmpty) ...[
                       const SizedBox(height: 4),
                       Text(
-                        event.locationLabel,
+                        locationLabel,
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                         style: const TextStyle(

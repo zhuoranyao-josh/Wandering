@@ -1,5 +1,6 @@
 import '../entities/admin_activity.dart';
 import '../entities/admin_place.dart';
+import '../entities/admin_region.dart';
 import '../entities/admin_subcontent_item.dart';
 import '../entities/admin_subcontent_kind.dart';
 
@@ -32,6 +33,21 @@ abstract class AdminRepository {
     required String placeId,
     required bool enabled,
   });
+
+  Future<List<AdminRegion>> getRegions();
+
+  Future<AdminRegion?> getRegionById(String regionId);
+
+  Future<String> upsertRegion(AdminRegion region);
+
+  Future<void> deleteRegion(String regionId);
+
+  Future<void> setRegionEnabled({
+    required String regionId,
+    required bool enabled,
+  });
+
+  Future<bool> regionExists(String regionId);
 
   Future<List<AdminSubcontentItem>> getPlaceSubcontent({
     required String placeId,

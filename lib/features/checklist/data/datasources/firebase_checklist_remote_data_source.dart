@@ -177,6 +177,7 @@ class FirebaseChecklistRemoteDataSource implements ChecklistRemoteDataSource {
         'startDate': Timestamp.fromDate(input.startDate),
         'endDate': Timestamp.fromDate(input.endDate),
         'tripDays': input.tripDays,
+        'nightCount': input.nightCount,
         'travelerCount': input.travelerCount,
         'totalBudget': input.totalBudget,
         'currency': input.currency.trim(),
@@ -382,6 +383,7 @@ class FirebaseChecklistRemoteDataSource implements ChecklistRemoteDataSource {
       startDate: _readDateTime(data['startDate']),
       endDate: _readDateTime(data['endDate']),
       tripDays: _readInt(data['tripDays']),
+      nightCount: _readInt(data['nightCount']),
       travelerCount: _readInt(data['travelerCount']),
       totalBudget: _readDouble(data['totalBudget']),
       currency:
@@ -412,6 +414,7 @@ class FirebaseChecklistRemoteDataSource implements ChecklistRemoteDataSource {
       startDate: _readDateTime(data['startDate']),
       endDate: _readDateTime(data['endDate']),
       tripDays: _readInt(data['tripDays']),
+      nightCount: _readInt(data['nightCount']),
       durationText: (data['durationText'] as String?)?.trim(),
       travelerCount: _readInt(data['travelerCount']),
       totalBudget: _readDouble(data['totalBudget']),

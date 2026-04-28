@@ -104,6 +104,7 @@ class _ActivityAdminListPageState extends State<ActivityAdminListPage> {
         animation: _controller,
         builder: (context, _) {
           final items = _controller.filteredItems;
+          final languageCode = Localizations.localeOf(context).languageCode;
           return Column(
             children: <Widget>[
               Padding(
@@ -131,9 +132,11 @@ class _ActivityAdminListPageState extends State<ActivityAdminListPage> {
                           final item = items[index];
                           return ListTile(
                             title: Text(
-                              item.title.isEmpty ? item.id : item.title,
+                              item.localizedTitle(languageCode).trim().isEmpty
+                                  ? item.id
+                                  : item.localizedTitle(languageCode),
                             ),
-                            subtitle: Text(item.cityName),
+                            subtitle: Text(item.localizedCityName(languageCode)),
                             leading: Icon(
                               item.isPublished
                                   ? Icons.check_circle_outline

@@ -124,301 +124,19 @@ class _PlaceSubcontentAdminPageState extends State<PlaceSubcontentAdminPage> {
     required AppLocalizations t,
     AdminSubcontentItem? existing,
   }) async {
-    final orderController = TextEditingController(
-      text: (existing?.order ?? 0).toString(),
-    );
-    final imageController = TextEditingController(
-      text: existing?.imageUrl ?? '',
-    );
-    final priceController = TextEditingController(
-      text: existing?.priceRange ?? '',
-    );
-
-    final titleZhController = TextEditingController(
-      text: existing?.title['zh'] ?? '',
-    );
-    final titleEnController = TextEditingController(
-      text: existing?.title['en'] ?? '',
-    );
-    final badgeZhController = TextEditingController(
-      text: existing?.badge['zh'] ?? '',
-    );
-    final badgeEnController = TextEditingController(
-      text: existing?.badge['en'] ?? '',
-    );
-    final nameZhController = TextEditingController(
-      text: existing?.name['zh'] ?? '',
-    );
-    final nameEnController = TextEditingController(
-      text: existing?.name['en'] ?? '',
-    );
-    final subtitleZhController = TextEditingController(
-      text: existing?.subtitle['zh'] ?? '',
-    );
-    final subtitleEnController = TextEditingController(
-      text: existing?.subtitle['en'] ?? '',
-    );
-    final captionZhController = TextEditingController(
-      text: existing?.caption['zh'] ?? '',
-    );
-    final captionEnController = TextEditingController(
-      text: existing?.caption['en'] ?? '',
-    );
-
-    bool enabled = existing?.enabled ?? true;
-    bool isUploadingImage = false;
-
-    Future<void> doSave() async {
-      final order = int.tryParse(orderController.text.trim()) ?? 0;
-      final item = AdminSubcontentItem(
-        id: existing?.id ?? '',
-        enabled: enabled,
-        order: order,
-        title: <String, String>{
-          'zh': titleZhController.text.trim(),
-          'en': titleEnController.text.trim(),
-        },
-        badge: <String, String>{
-          'zh': badgeZhController.text.trim(),
-          'en': badgeEnController.text.trim(),
-        },
-        name: <String, String>{
-          'zh': nameZhController.text.trim(),
-          'en': nameEnController.text.trim(),
-        },
-        subtitle: <String, String>{
-          'zh': subtitleZhController.text.trim(),
-          'en': subtitleEnController.text.trim(),
-        },
-        caption: <String, String>{
-          'zh': captionZhController.text.trim(),
-          'en': captionEnController.text.trim(),
-        },
-        imageUrl: imageController.text.trim(),
-        priceRange: priceController.text.trim(),
-      );
-      await _controller.save(item);
-      if (!mounted) return;
-      Navigator.of(context).pop();
-    }
-
-    Future<void> pickAndUploadImage(StateSetter setDialogState) async {
-      final picked = await _imagePicker.pickImage(
-        source: ImageSource.gallery,
-        imageQuality: 85,
-      );
-      if (picked == null) {
-        return;
-      }
-      setDialogState(() => isUploadingImage = true);
-      final url = await _controller.uploadImage(picked.path);
-      if (!mounted) return;
-      setDialogState(() => isUploadingImage = false);
-      if (url == null) {
-        return;
-      }
-      imageController.text = url;
-      _showSnack(t.adminImageUploadSuccess);
-    }
-
     await showDialog<void>(
       context: context,
-      builder: (context) {
-        return StatefulBuilder(
-          builder: (context, setDialogState) {
-            // 子内容编辑使用同一弹窗骨架，按 kind 决定字段区块。
-            return AlertDialog(
-              title: Text(existing == null ? t.adminCreate : t.adminEdit),
-              content: SizedBox(
-                width: 560,
-                child: SingleChildScrollView(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: <Widget>[
-                      SwitchListTile(
-                        contentPadding: EdgeInsets.zero,
-                        value: enabled,
-                        title: Text(enabled ? t.adminEnabled : t.adminDisabled),
-                        onChanged: (value) =>
-                            setDialogState(() => enabled = value),
-                      ),
-                      TextField(
-                        controller: orderController,
-                        keyboardType: TextInputType.number,
-                        decoration: InputDecoration(
-                          labelText: t.adminOrder,
-                          border: const OutlineInputBorder(),
-                        ),
-                      ),
-                      const SizedBox(height: 12),
-                      ..._buildKindFields(
-                        t: t,
-                        titleZhController: titleZhController,
-                        titleEnController: titleEnController,
-                        badgeZhController: badgeZhController,
-                        badgeEnController: badgeEnController,
-                        nameZhController: nameZhController,
-                        nameEnController: nameEnController,
-                        subtitleZhController: subtitleZhController,
-                        subtitleEnController: subtitleEnController,
-                        captionZhController: captionZhController,
-                        captionEnController: captionEnController,
-                        imageController: imageController,
-                        priceController: priceController,
-                        isUploadingImage: isUploadingImage,
-                        onUploadImage: () => pickAndUploadImage(setDialogState),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-              actions: <Widget>[
-                TextButton(
-                  onPressed: () => Navigator.of(context).pop(),
-                  child: Text(t.cancel),
-                ),
-                TextButton(onPressed: doSave, child: Text(t.save)),
-              ],
-            );
-          },
+      builder: (dialogContext) {
+        return _SubcontentEditDialog(
+          t: t,
+          kind: widget.kind,
+          existing: existing,
+          controller: _controller,
+          imagePicker: _imagePicker,
+          onUploadSuccess: () => _showSnack(t.adminImageUploadSuccess),
         );
       },
     );
-
-    orderController.dispose();
-    imageController.dispose();
-    priceController.dispose();
-    titleZhController.dispose();
-    titleEnController.dispose();
-    badgeZhController.dispose();
-    badgeEnController.dispose();
-    nameZhController.dispose();
-    nameEnController.dispose();
-    subtitleZhController.dispose();
-    subtitleEnController.dispose();
-    captionZhController.dispose();
-    captionEnController.dispose();
-  }
-
-  List<Widget> _buildKindFields({
-    required AppLocalizations t,
-    required TextEditingController titleZhController,
-    required TextEditingController titleEnController,
-    required TextEditingController badgeZhController,
-    required TextEditingController badgeEnController,
-    required TextEditingController nameZhController,
-    required TextEditingController nameEnController,
-    required TextEditingController subtitleZhController,
-    required TextEditingController subtitleEnController,
-    required TextEditingController captionZhController,
-    required TextEditingController captionEnController,
-    required TextEditingController imageController,
-    required TextEditingController priceController,
-    required bool isUploadingImage,
-    required VoidCallback onUploadImage,
-  }) {
-    switch (widget.kind) {
-      case AdminSubcontentKind.experiences:
-        return <Widget>[
-          BilingualTextField(
-            label: t.adminTitle,
-            zhLabel: t.languageChinese,
-            enLabel: t.languageEnglish,
-            zhController: titleZhController,
-            enController: titleEnController,
-          ),
-          const SizedBox(height: 12),
-          BilingualTextField(
-            label: t.adminBadge,
-            zhLabel: t.languageChinese,
-            enLabel: t.languageEnglish,
-            zhController: badgeZhController,
-            enController: badgeEnController,
-          ),
-        ];
-      case AdminSubcontentKind.flavors:
-        return <Widget>[
-          BilingualTextField(
-            label: t.adminName,
-            zhLabel: t.languageChinese,
-            enLabel: t.languageEnglish,
-            zhController: nameZhController,
-            enController: nameEnController,
-          ),
-          const SizedBox(height: 12),
-          BilingualTextField(
-            label: t.adminSubtitle,
-            zhLabel: t.languageChinese,
-            enLabel: t.languageEnglish,
-            zhController: subtitleZhController,
-            enController: subtitleEnController,
-          ),
-          const SizedBox(height: 12),
-          TextField(
-            controller: imageController,
-            decoration: InputDecoration(
-              labelText: t.adminImageUrl,
-              border: const OutlineInputBorder(),
-            ),
-          ),
-          const SizedBox(height: 8),
-          _buildImageUploadButton(
-            t: t,
-            isUploading: isUploadingImage,
-            onUpload: onUploadImage,
-          ),
-        ];
-      case AdminSubcontentKind.stays:
-        return <Widget>[
-          BilingualTextField(
-            label: t.adminName,
-            zhLabel: t.languageChinese,
-            enLabel: t.languageEnglish,
-            zhController: nameZhController,
-            enController: nameEnController,
-          ),
-          const SizedBox(height: 12),
-          BilingualTextField(
-            label: t.adminBadge,
-            zhLabel: t.languageChinese,
-            enLabel: t.languageEnglish,
-            zhController: badgeZhController,
-            enController: badgeEnController,
-          ),
-          const SizedBox(height: 12),
-          _buildImageUrlEditor(
-            t: t,
-            controller: imageController,
-            isUploading: isUploadingImage,
-            onUpload: onUploadImage,
-          ),
-          const SizedBox(height: 12),
-          TextField(
-            controller: priceController,
-            decoration: InputDecoration(
-              labelText: t.adminPriceRange,
-              border: const OutlineInputBorder(),
-            ),
-          ),
-        ];
-      case AdminSubcontentKind.gallery:
-        return <Widget>[
-          _buildImageUrlEditor(
-            t: t,
-            controller: imageController,
-            isUploading: isUploadingImage,
-            onUpload: onUploadImage,
-          ),
-          const SizedBox(height: 12),
-          BilingualTextField(
-            label: t.adminCaption,
-            zhLabel: t.languageChinese,
-            enLabel: t.languageEnglish,
-            zhController: captionZhController,
-            enController: captionEnController,
-          ),
-        ];
-    }
   }
 
   Future<void> _confirmDelete(
@@ -529,50 +247,301 @@ class _PlaceSubcontentAdminPageState extends State<PlaceSubcontentAdminPage> {
       ),
     );
   }
+}
 
-  Widget _buildImageUrlEditor({
-    required AppLocalizations t,
-    required TextEditingController controller,
-    required bool isUploading,
-    required VoidCallback onUpload,
-  }) {
+class _SubcontentEditDialog extends StatefulWidget {
+  const _SubcontentEditDialog({
+    required this.t,
+    required this.kind,
+    required this.controller,
+    required this.imagePicker,
+    required this.onUploadSuccess,
+    this.existing,
+  });
+
+  final AppLocalizations t;
+  final AdminSubcontentKind kind;
+  final AdminSubcontentItem? existing;
+  final AdminPlaceSubcontentController controller;
+  final ImagePicker imagePicker;
+  final VoidCallback onUploadSuccess;
+
+  @override
+  State<_SubcontentEditDialog> createState() => _SubcontentEditDialogState();
+}
+
+class _SubcontentEditDialogState extends State<_SubcontentEditDialog> {
+  late final TextEditingController _orderController = TextEditingController(
+    text: (widget.existing?.order ?? 0).toString(),
+  );
+  late final TextEditingController _imageController = TextEditingController(
+    text: widget.existing?.imageUrl ?? '',
+  );
+  late final TextEditingController _priceController = TextEditingController(
+    text: widget.existing?.priceRange ?? '',
+  );
+  late final TextEditingController _titleZhController = TextEditingController(
+    text: widget.existing?.title['zh'] ?? '',
+  );
+  late final TextEditingController _titleEnController = TextEditingController(
+    text: widget.existing?.title['en'] ?? '',
+  );
+  late final TextEditingController _badgeZhController = TextEditingController(
+    text: widget.existing?.badge['zh'] ?? '',
+  );
+  late final TextEditingController _badgeEnController = TextEditingController(
+    text: widget.existing?.badge['en'] ?? '',
+  );
+  late final TextEditingController _nameZhController = TextEditingController(
+    text: widget.existing?.name['zh'] ?? '',
+  );
+  late final TextEditingController _nameEnController = TextEditingController(
+    text: widget.existing?.name['en'] ?? '',
+  );
+  late final TextEditingController _subtitleZhController =
+      TextEditingController(text: widget.existing?.subtitle['zh'] ?? '');
+  late final TextEditingController _subtitleEnController =
+      TextEditingController(text: widget.existing?.subtitle['en'] ?? '');
+  late final TextEditingController _captionZhController = TextEditingController(
+    text: widget.existing?.caption['zh'] ?? '',
+  );
+  late final TextEditingController _captionEnController = TextEditingController(
+    text: widget.existing?.caption['en'] ?? '',
+  );
+
+  late bool _enabled = widget.existing?.enabled ?? true;
+  bool _isUploadingImage = false;
+  bool _isSaving = false;
+
+  @override
+  void dispose() {
+    _orderController.dispose();
+    _imageController.dispose();
+    _priceController.dispose();
+    _titleZhController.dispose();
+    _titleEnController.dispose();
+    _badgeZhController.dispose();
+    _badgeEnController.dispose();
+    _nameZhController.dispose();
+    _nameEnController.dispose();
+    _subtitleZhController.dispose();
+    _subtitleEnController.dispose();
+    _captionZhController.dispose();
+    _captionEnController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _save() async {
+    if (_isSaving) return;
+    FocusManager.instance.primaryFocus?.unfocus();
+    setState(() => _isSaving = true);
+    final order = int.tryParse(_orderController.text.trim()) ?? 0;
+    final item = AdminSubcontentItem(
+      id: widget.existing?.id ?? '',
+      enabled: _enabled,
+      order: order,
+      title: <String, String>{
+        'zh': _titleZhController.text.trim(),
+        'en': _titleEnController.text.trim(),
+      },
+      badge: <String, String>{
+        'zh': _badgeZhController.text.trim(),
+        'en': _badgeEnController.text.trim(),
+      },
+      name: <String, String>{
+        'zh': _nameZhController.text.trim(),
+        'en': _nameEnController.text.trim(),
+      },
+      subtitle: <String, String>{
+        'zh': _subtitleZhController.text.trim(),
+        'en': _subtitleEnController.text.trim(),
+      },
+      caption: <String, String>{
+        'zh': _captionZhController.text.trim(),
+        'en': _captionEnController.text.trim(),
+      },
+      imageUrl: _imageController.text.trim(),
+      priceRange: _priceController.text.trim(),
+    );
+    await widget.controller.save(item);
+    if (!mounted) return;
+    Navigator.of(context).pop();
+  }
+
+  Future<void> _pickAndUploadImage() async {
+    final picked = await widget.imagePicker.pickImage(
+      source: ImageSource.gallery,
+      imageQuality: 85,
+    );
+    if (picked == null || !mounted) {
+      return;
+    }
+    setState(() => _isUploadingImage = true);
+    final url = await widget.controller.uploadImage(picked.path);
+    if (!mounted) return;
+    setState(() => _isUploadingImage = false);
+    if (url == null) {
+      return;
+    }
+    _imageController.text = url;
+    widget.onUploadSuccess();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final t = widget.t;
+    return AlertDialog(
+      title: Text(widget.existing == null ? t.adminCreate : t.adminEdit),
+      content: SizedBox(
+        width: 560,
+        child: SingleChildScrollView(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: <Widget>[
+              SwitchListTile(
+                contentPadding: EdgeInsets.zero,
+                value: _enabled,
+                title: Text(_enabled ? t.adminEnabled : t.adminDisabled),
+                onChanged: (value) => setState(() => _enabled = value),
+              ),
+              TextField(
+                controller: _orderController,
+                keyboardType: TextInputType.number,
+                decoration: InputDecoration(
+                  labelText: t.adminOrder,
+                  border: const OutlineInputBorder(),
+                ),
+              ),
+              const SizedBox(height: 12),
+              ..._buildKindFields(t),
+            ],
+          ),
+        ),
+      ),
+      actions: <Widget>[
+        TextButton(
+          onPressed: () {
+            FocusManager.instance.primaryFocus?.unfocus();
+            Navigator.of(context).pop();
+          },
+          child: Text(t.cancel),
+        ),
+        TextButton(onPressed: _isSaving ? null : _save, child: Text(t.save)),
+      ],
+    );
+  }
+
+  List<Widget> _buildKindFields(AppLocalizations t) {
+    switch (widget.kind) {
+      case AdminSubcontentKind.experiences:
+        return <Widget>[
+          BilingualTextField(
+            label: t.adminTitle,
+            zhLabel: t.languageChinese,
+            enLabel: t.languageEnglish,
+            zhController: _titleZhController,
+            enController: _titleEnController,
+          ),
+          const SizedBox(height: 12),
+          BilingualTextField(
+            label: t.adminBadge,
+            zhLabel: t.languageChinese,
+            enLabel: t.languageEnglish,
+            zhController: _badgeZhController,
+            enController: _badgeEnController,
+          ),
+        ];
+      case AdminSubcontentKind.flavors:
+        return <Widget>[
+          BilingualTextField(
+            label: t.adminName,
+            zhLabel: t.languageChinese,
+            enLabel: t.languageEnglish,
+            zhController: _nameZhController,
+            enController: _nameEnController,
+          ),
+          const SizedBox(height: 12),
+          BilingualTextField(
+            label: t.adminSubtitle,
+            zhLabel: t.languageChinese,
+            enLabel: t.languageEnglish,
+            zhController: _subtitleZhController,
+            enController: _subtitleEnController,
+          ),
+          const SizedBox(height: 12),
+          _buildImageUrlEditor(t),
+        ];
+      case AdminSubcontentKind.stays:
+        return <Widget>[
+          BilingualTextField(
+            label: t.adminName,
+            zhLabel: t.languageChinese,
+            enLabel: t.languageEnglish,
+            zhController: _nameZhController,
+            enController: _nameEnController,
+          ),
+          const SizedBox(height: 12),
+          BilingualTextField(
+            label: t.adminBadge,
+            zhLabel: t.languageChinese,
+            enLabel: t.languageEnglish,
+            zhController: _badgeZhController,
+            enController: _badgeEnController,
+          ),
+          const SizedBox(height: 12),
+          _buildImageUrlEditor(t),
+          const SizedBox(height: 12),
+          TextField(
+            controller: _priceController,
+            decoration: InputDecoration(
+              labelText: t.adminPriceRange,
+              border: const OutlineInputBorder(),
+            ),
+          ),
+        ];
+      case AdminSubcontentKind.gallery:
+        return <Widget>[
+          _buildImageUrlEditor(t),
+          const SizedBox(height: 12),
+          BilingualTextField(
+            label: t.adminCaption,
+            zhLabel: t.languageChinese,
+            enLabel: t.languageEnglish,
+            zhController: _captionZhController,
+            enController: _captionEnController,
+          ),
+        ];
+    }
+  }
+
+  Widget _buildImageUrlEditor(AppLocalizations t) {
     return Column(
       children: <Widget>[
         TextField(
-          controller: controller,
+          controller: _imageController,
           decoration: InputDecoration(
             labelText: t.adminImageUrl,
             border: const OutlineInputBorder(),
           ),
         ),
         const SizedBox(height: 8),
-        _buildImageUploadButton(
-          t: t,
-          isUploading: isUploading,
-          onUpload: onUpload,
+        Align(
+          alignment: Alignment.centerLeft,
+          child: OutlinedButton.icon(
+            onPressed: _isUploadingImage ? null : _pickAndUploadImage,
+            icon: _isUploadingImage
+                ? const SizedBox(
+                    width: 16,
+                    height: 16,
+                    child: CircularProgressIndicator(strokeWidth: 2),
+                  )
+                : const Icon(Icons.upload_file_outlined),
+            label: Text(
+              _isUploadingImage ? t.adminUploadingImage : t.adminUploadImage,
+            ),
+          ),
         ),
       ],
-    );
-  }
-
-  Widget _buildImageUploadButton({
-    required AppLocalizations t,
-    required bool isUploading,
-    required VoidCallback onUpload,
-  }) {
-    return Align(
-      alignment: Alignment.centerLeft,
-      child: OutlinedButton.icon(
-        onPressed: isUploading ? null : onUpload,
-        icon: isUploading
-            ? const SizedBox(
-                width: 16,
-                height: 16,
-                child: CircularProgressIndicator(strokeWidth: 2),
-              )
-            : const Icon(Icons.upload_file_outlined),
-        label: Text(isUploading ? t.adminUploadingImage : t.adminUploadImage),
-      ),
     );
   }
 }

@@ -105,10 +105,13 @@ class ActivityController extends ChangeNotifier {
         _allEvents
             .where((event) {
               if (_selectedCategory != null) {
-                final rawCategory = ActivityCategories.fromRawCategory(
-                  event.category,
-                );
-                if (rawCategory?.key != _selectedCategory?.key) {
+                final matched = event.categories.any((rawCategory) {
+                  final normalized = ActivityCategories.fromRawCategory(
+                    rawCategory,
+                  );
+                  return normalized?.key == _selectedCategory?.key;
+                });
+                if (!matched) {
                   return false;
                 }
               }
@@ -119,10 +122,10 @@ class ActivityController extends ChangeNotifier {
               }
 
               if (normalizedQuery.isNotEmpty) {
-                final title = _normalize(event.title);
-                final cityName = _normalize(event.cityName);
-                if (!title.contains(normalizedQuery) &&
-                    !cityName.contains(normalizedQuery)) {
+                final matchesSearch = event.searchableTexts.any((text) {
+                  return _normalize(text).contains(normalizedQuery);
+                });
+                if (!matchesSearch) {
                   return false;
                 }
               }
@@ -167,7 +170,9 @@ class ActivityController extends ChangeNotifier {
       return 1;
     }
 
-    return a.title.toLowerCase().compareTo(b.title.toLowerCase());
+    final aTitle = _normalize(a.localizedTitle('en'));
+    final bTitle = _normalize(b.localizedTitle('en'));
+    return aTitle.compareTo(bTitle);
   }
 
   bool _isWithinDateRange(ActivityEvent event, DateTimeRange range) {

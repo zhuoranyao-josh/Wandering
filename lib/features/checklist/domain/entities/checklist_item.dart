@@ -12,6 +12,7 @@ class ChecklistItem {
     this.startDate,
     this.endDate,
     this.tripDays,
+    this.nightCount,
     this.travelerCount,
     this.totalBudget,
     this.currency,
@@ -34,6 +35,7 @@ class ChecklistItem {
   final DateTime? startDate;
   final DateTime? endDate;
   final int? tripDays;
+  final int? nightCount;
   final int? travelerCount;
   final double? totalBudget;
   final String? currency;
@@ -70,6 +72,7 @@ class ChecklistItem {
     DateTime? startDate,
     DateTime? endDate,
     int? tripDays,
+    int? nightCount,
     int? travelerCount,
     double? totalBudget,
     String? currency,
@@ -92,6 +95,7 @@ class ChecklistItem {
       startDate: startDate ?? this.startDate,
       endDate: endDate ?? this.endDate,
       tripDays: tripDays ?? this.tripDays,
+      nightCount: nightCount ?? this.nightCount,
       travelerCount: travelerCount ?? this.travelerCount,
       totalBudget: totalBudget ?? this.totalBudget,
       currency: currency ?? this.currency,

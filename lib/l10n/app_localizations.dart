@@ -1853,6 +1853,12 @@ abstract class AppLocalizations {
   /// **'Manage Activities'**
   String get adminManageActivities;
 
+  /// No description provided for @adminManageRegions.
+  ///
+  /// In en, this message translates to:
+  /// **'Manage Regions'**
+  String get adminManageRegions;
+
   /// No description provided for @adminPlaceListTitle.
   ///
   /// In en, this message translates to:
@@ -1864,6 +1870,18 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Edit Place'**
   String get adminPlaceEditTitle;
+
+  /// No description provided for @adminRegionListTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Regions'**
+  String get adminRegionListTitle;
+
+  /// No description provided for @adminRegionEditTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Edit Region'**
+  String get adminRegionEditTitle;
 
   /// No description provided for @adminActivityListTitle.
   ///
@@ -1888,6 +1906,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Create Activity'**
   String get adminCreateActivity;
+
+  /// No description provided for @adminCreateRegion.
+  ///
+  /// In en, this message translates to:
+  /// **'Create Region'**
+  String get adminCreateRegion;
 
   /// No description provided for @adminCreate.
   ///
@@ -1954,6 +1978,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Failed to delete item.'**
   String get adminDeleteFailed;
+
+  /// No description provided for @adminRegionInUse.
+  ///
+  /// In en, this message translates to:
+  /// **'This region is still used by one or more places. Update those places first.'**
+  String get adminRegionInUse;
 
   /// No description provided for @adminDeleteConfirmTitle.
   ///
@@ -2050,6 +2080,60 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Region ID'**
   String get adminRegionId;
+
+  /// No description provided for @adminFocusZoom.
+  ///
+  /// In en, this message translates to:
+  /// **'Focus Zoom'**
+  String get adminFocusZoom;
+
+  /// No description provided for @adminStatusNotSupported.
+  ///
+  /// In en, this message translates to:
+  /// **'Status unsupported'**
+  String get adminStatusNotSupported;
+
+  /// No description provided for @adminRegionIdRequired.
+  ///
+  /// In en, this message translates to:
+  /// **'Region ID is required.'**
+  String get adminRegionIdRequired;
+
+  /// No description provided for @adminRegionIdLowercaseOnly.
+  ///
+  /// In en, this message translates to:
+  /// **'Region ID must use lowercase letters only (a-z).'**
+  String get adminRegionIdLowercaseOnly;
+
+  /// No description provided for @adminPlaceUidLowercaseOnly.
+  ///
+  /// In en, this message translates to:
+  /// **'UID must use lowercase letters only (a-z).'**
+  String get adminPlaceUidLowercaseOnly;
+
+  /// No description provided for @adminPlaceSelectRegionHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Please select a region'**
+  String get adminPlaceSelectRegionHint;
+
+  /// No description provided for @adminPlaceRegionMissingCurrent.
+  ///
+  /// In en, this message translates to:
+  /// **'Current region does not exist. Please select a valid region.'**
+  String get adminPlaceRegionMissingCurrent;
+
+  /// No description provided for @adminPlaceRegionRequired.
+  ///
+  /// In en, this message translates to:
+  /// **'Please select a region.'**
+  String get adminPlaceRegionRequired;
+
+  /// No description provided for @adminPlaceRegionInvalid.
+  ///
+  /// In en, this message translates to:
+  /// **'Selected region does not exist.'**
+  String get adminPlaceRegionInvalid;
 
   /// No description provided for @adminLatitude.
   ///

@@ -5,35 +5,35 @@ import '../../domain/entities/activity_event.dart';
 import 'activity_remote_data_source.dart';
 
 class FirebaseActivityRemoteDataSource implements ActivityRemoteDataSource {
-  final FirebaseFirestore firestore;
-
   FirebaseActivityRemoteDataSource({required this.firestore});
+
+  final FirebaseFirestore firestore;
 
   @override
   Stream<List<ActivityEvent>> watchPublishedEvents() {
-    // 这里只保留“已发布”这一层 Firestore 过滤。
-    // startAt 允许为空时，不再在查询层直接 orderBy(startAt)，
-    // 避免缺少该字段的长期活动被查询排除，排序改由本地处理。
+    // 只做 isPublished 过滤，排序与兼容策略交由本地处理。
     return firestore
         .collection('events')
         .where('isPublished', isEqualTo: true)
         .snapshots()
-        .map((snapshot) {
-          return snapshot.docs
+        .map(
+          (snapshot) => snapshot.docs
               .map((doc) => _mapDocToEvent(doc.id, doc.data()))
-              .toList(growable: false);
-        });
+              .toList(growable: false),
+        );
   }
 
   @override
   Future<ActivityEvent?> getEventById(String id) async {
     try {
       final doc = await firestore.collection('events').doc(id).get();
-      if (!doc.exists) return null;
-
+      if (!doc.exists) {
+        return null;
+      }
       final data = doc.data();
-      if (data == null) return null;
-
+      if (data == null) {
+        return null;
+      }
       return _mapDocToEvent(doc.id, data);
     } catch (_) {
       throw AppException('activity_load_failed');
@@ -44,18 +44,18 @@ class FirebaseActivityRemoteDataSource implements ActivityRemoteDataSource {
     try {
       return ActivityEvent(
         id: id,
-        title: (data['title'] as String?)?.trim() ?? '',
-        category: (data['category'] as String?)?.trim() ?? '',
-        cityName: (data['cityName'] as String?)?.trim() ?? '',
-        countryName: (data['countryName'] as String?)?.trim() ?? '',
+        title: _readLocalizedTextMap(data['title']),
+        categories: _readCategories(data),
+        cityName: _readLocalizedTextMap(data['cityName']),
+        countryName: _readLocalizedTextMap(data['countryName']),
         cityCode: (data['cityCode'] as String?)?.trim() ?? '',
         coverImageUrl: (data['coverImageUrl'] as String?)?.trim() ?? '',
-        // startAt / endAt 都允许为空，表示长期营业或时间待定的活动。
+        // startAt / endAt 均允许为空，支持长期开放或待定活动。
         startAt: _readDateTime(data['startAt']),
         endAt: _readDateTime(data['endAt']),
         isPublished: (data['isPublished'] as bool?) ?? false,
         isFeatured: (data['isFeatured'] as bool?) ?? false,
-        detailText: (data['detailText'] as String?)?.trim() ?? '',
+        detailText: _readLocalizedTextMap(data['detailText']),
         createdAt: _readDateTime(data['createdAt']),
         updatedAt: _readDateTime(data['updatedAt']),
       );
@@ -64,8 +64,10 @@ class FirebaseActivityRemoteDataSource implements ActivityRemoteDataSource {
     }
   }
 
-  DateTime? _readDateTime(dynamic value) {
-    if (value == null) return null;
+  DateTime? _readDateTime(Object? value) {
+    if (value == null) {
+      return null;
+    }
     if (value is Timestamp) {
       return value.toDate();
     }
@@ -73,8 +75,86 @@ class FirebaseActivityRemoteDataSource implements ActivityRemoteDataSource {
       return value;
     }
     if (value is String) {
-      return DateTime.tryParse(value);
+      return DateTime.tryParse(value.trim());
     }
     return null;
+  }
+
+  // 兼容旧 string 数据，统一转为 bilingual map。
+  Map<String, String> _readLocalizedTextMap(Object? value) {
+    if (value is String) {
+      final text = value.trim();
+      if (text.isEmpty) {
+        return const <String, String>{'zh': '', 'en': ''};
+      }
+      return <String, String>{'zh': text, 'en': text};
+    }
+    if (value is Map) {
+      final zh = value['zh']?.toString().trim() ?? '';
+      final en = value['en']?.toString().trim() ?? '';
+      return <String, String>{'zh': zh, 'en': en};
+    }
+    return const <String, String>{'zh': '', 'en': ''};
+  }
+
+  List<String> _readCategories(Map<String, dynamic> data) {
+    final rawCategories = <String>[];
+    final categoriesValue = data['categories'];
+    if (categoriesValue is List) {
+      for (final item in categoriesValue) {
+        if (item is String && item.trim().isNotEmpty) {
+          rawCategories.add(item.trim());
+        }
+      }
+    }
+    final categoryValue = data['category'];
+    if (categoryValue is String && categoryValue.trim().isNotEmpty) {
+      rawCategories.add(categoryValue.trim());
+    }
+    return _normalizeRawCategories(rawCategories);
+  }
+
+  List<String> _normalizeRawCategories(Iterable<String> values) {
+    final normalized = <String>{};
+    for (final value in values) {
+      final category = _normalizeCategory(value);
+      if (category != null) {
+        normalized.add(category);
+      }
+    }
+    return normalized.toList(growable: false);
+  }
+
+  String? _normalizeCategory(String value) {
+    final normalized = value
+        .trim()
+        .toLowerCase()
+        .replaceAll(RegExp(r'[\s_-]+'), ' ')
+        .trim();
+    switch (normalized) {
+      case 'traditional festival':
+      case 'traditionalfestival':
+      case 'traditional':
+      case 'festival':
+      case '传统节日':
+        return 'traditional_festival';
+      case 'music':
+      case '音乐':
+        return 'music';
+      case 'exhibition':
+      case 'exhibit':
+      case '展览':
+        return 'exhibition';
+      case 'entertainment':
+      case 'fun':
+      case '娱乐':
+        return 'entertainment';
+      case 'nature':
+      case 'natural':
+      case '自然':
+        return 'nature';
+      default:
+        return null;
+    }
   }
 }

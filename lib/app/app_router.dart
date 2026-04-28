@@ -27,6 +27,8 @@ import '../features/admin/presentation/pages/admin_dashboard_page.dart';
 import '../features/admin/presentation/pages/place_admin_edit_page.dart';
 import '../features/admin/presentation/pages/place_admin_list_page.dart';
 import '../features/admin/presentation/pages/place_subcontent_admin_page.dart';
+import '../features/admin/presentation/pages/region_admin_edit_page.dart';
+import '../features/admin/presentation/pages/region_admin_list_page.dart';
 import '../features/main_container/presentation/pages/main_container_page.dart';
 import '../features/main_container/presentation/pages/map_tab_page.dart';
 import '../features/map_home/presentation/models/place_detail_ui_model.dart';
@@ -67,6 +69,9 @@ class AppRouter {
   static const String adminActivities = '/admin/activities';
   static const String adminActivityEditPath =
       '/admin/activities/edit/:activityId';
+  static const String adminRegions = '/admin/regions';
+  static const String adminRegionCreate = '/admin/regions/new';
+  static const String adminRegionEditPath = '/admin/regions/:regionId/edit';
 
   static const String tabOne = '/tab-1';
   static const String tabTwo = activities;
@@ -90,6 +95,7 @@ class AppRouter {
     adminDashboard,
     adminPlaces,
     adminActivities,
+    adminRegions,
   };
 
   static String activityDetail(String eventId) {
@@ -140,6 +146,10 @@ class AppRouter {
 
   static String adminActivityEdit(String activityId) {
     return adminActivityEditPath.replaceFirst(':activityId', activityId);
+  }
+
+  static String adminRegionEdit(String regionId) {
+    return adminRegionEditPath.replaceFirst(':regionId', regionId);
   }
 
   static final GoRouter router = GoRouter(
@@ -374,6 +384,21 @@ class AppRouter {
         builder: (context, state) {
           final activityId = state.pathParameters['activityId'] ?? 'new';
           return ActivityAdminEditPage(activityId: activityId);
+        },
+      ),
+      GoRoute(
+        path: adminRegions,
+        builder: (context, state) => const RegionAdminListPage(),
+      ),
+      GoRoute(
+        path: adminRegionCreate,
+        builder: (context, state) => const RegionAdminEditPage(regionId: 'new'),
+      ),
+      GoRoute(
+        path: adminRegionEditPath,
+        builder: (context, state) {
+          final regionId = state.pathParameters['regionId'] ?? 'new';
+          return RegionAdminEditPage(regionId: regionId);
         },
       ),
     ],
