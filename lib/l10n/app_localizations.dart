@@ -1199,6 +1199,168 @@ abstract class AppLocalizations {
   /// **'PRO TIP'**
   String get checklistProTip;
 
+  /// No description provided for @checklistEssentialWeatherTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'WEATHER'**
+  String get checklistEssentialWeatherTitle;
+
+  /// No description provided for @checklistEssentialTradeOffTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'TRADE OFF'**
+  String get checklistEssentialTradeOffTitle;
+
+  /// No description provided for @checklistEssentialStrategyTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'STRATEGY'**
+  String get checklistEssentialStrategyTitle;
+
+  /// No description provided for @checklistEssentialTipsTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'TIPS'**
+  String get checklistEssentialTipsTitle;
+
+  /// No description provided for @checklistEssentialWeatherMockValue.
+  ///
+  /// In en, this message translates to:
+  /// **'18°C — 24°C'**
+  String get checklistEssentialWeatherMockValue;
+
+  /// No description provided for @checklistEssentialWeatherMockDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'Mostly sunny'**
+  String get checklistEssentialWeatherMockDescription;
+
+  /// No description provided for @checklistWeatherUnavailableMain.
+  ///
+  /// In en, this message translates to:
+  /// **'Weather unavailable'**
+  String get checklistWeatherUnavailableMain;
+
+  /// No description provided for @checklistWeatherUnavailableForecastLimit.
+  ///
+  /// In en, this message translates to:
+  /// **'Forecast is only available for the next 5 days.'**
+  String get checklistWeatherUnavailableForecastLimit;
+
+  /// No description provided for @checklistWeatherUnavailableNoData.
+  ///
+  /// In en, this message translates to:
+  /// **'No forecast data for selected dates.'**
+  String get checklistWeatherUnavailableNoData;
+
+  /// No description provided for @checklistWeatherUnavailableApiKeyMissing.
+  ///
+  /// In en, this message translates to:
+  /// **'OpenWeather API key is missing.'**
+  String get checklistWeatherUnavailableApiKeyMissing;
+
+  /// No description provided for @checklistWeatherUnavailableLoadFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Unable to load forecast right now.'**
+  String get checklistWeatherUnavailableLoadFailed;
+
+  /// No description provided for @checklistWeatherUnavailableMissingInput.
+  ///
+  /// In en, this message translates to:
+  /// **'Missing trip location or dates.'**
+  String get checklistWeatherUnavailableMissingInput;
+
+  /// No description provided for @checklistWeatherMostlyClear.
+  ///
+  /// In en, this message translates to:
+  /// **'Mostly clear'**
+  String get checklistWeatherMostlyClear;
+
+  /// No description provided for @checklistWeatherRainExpected.
+  ///
+  /// In en, this message translates to:
+  /// **'Rain expected'**
+  String get checklistWeatherRainExpected;
+
+  /// No description provided for @checklistWeatherSnowExpected.
+  ///
+  /// In en, this message translates to:
+  /// **'Snow expected'**
+  String get checklistWeatherSnowExpected;
+
+  /// No description provided for @checklistWeatherConditionRainy.
+  ///
+  /// In en, this message translates to:
+  /// **'Rainy'**
+  String get checklistWeatherConditionRainy;
+
+  /// No description provided for @checklistWeatherConditionSnow.
+  ///
+  /// In en, this message translates to:
+  /// **'Snow'**
+  String get checklistWeatherConditionSnow;
+
+  /// No description provided for @checklistWeatherTempRange.
+  ///
+  /// In en, this message translates to:
+  /// **'{min}°C – {max}°C'**
+  String checklistWeatherTempRange(Object min, Object max);
+
+  /// No description provided for @checklistWeatherTempRangeWithCondition.
+  ///
+  /// In en, this message translates to:
+  /// **'{min}°C – {max}°C · {condition}'**
+  String checklistWeatherTempRangeWithCondition(Object min, Object max, Object condition);
+
+  /// No description provided for @checklistEssentialTradeOffMockValue.
+  ///
+  /// In en, this message translates to:
+  /// **'Cost vs. Time'**
+  String get checklistEssentialTradeOffMockValue;
+
+  /// No description provided for @checklistEssentialTradeOffMockDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'Optimized for value'**
+  String get checklistEssentialTradeOffMockDescription;
+
+  /// No description provided for @checklistEssentialStrategyMockValue.
+  ///
+  /// In en, this message translates to:
+  /// **'Cluster by area'**
+  String get checklistEssentialStrategyMockValue;
+
+  /// No description provided for @checklistEssentialStrategyMockDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'One anchor stop per day'**
+  String get checklistEssentialStrategyMockDescription;
+
+  /// No description provided for @checklistEssentialTipsMockValue.
+  ///
+  /// In en, this message translates to:
+  /// **'Carry essentials'**
+  String get checklistEssentialTipsMockValue;
+
+  /// No description provided for @checklistEssentialTipsMockDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'Umbrella, power bank, passport'**
+  String get checklistEssentialTipsMockDescription;
+
+  /// No description provided for @checklistProTipMockTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Lock in the high-priority parts first'**
+  String get checklistProTipMockTitle;
+
+  /// No description provided for @checklistProTipMockDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'Use your first booking decisions on transport and stay, then shape food and attraction plans around those fixed anchors.'**
+  String get checklistProTipMockDescription;
+
   /// No description provided for @checklistChecklist.
   ///
   /// In en, this message translates to:
@@ -1252,6 +1414,24 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Generate Plan'**
   String get checklistGeneratePlan;
+
+  /// No description provided for @checklistGenerateFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Failed to generate plan.'**
+  String get checklistGenerateFailed;
+
+  /// No description provided for @checklistEstimateShort.
+  ///
+  /// In en, this message translates to:
+  /// **'EST.'**
+  String get checklistEstimateShort;
+
+  /// No description provided for @checklistDemoEstimateBadge.
+  ///
+  /// In en, this message translates to:
+  /// **'Demo estimate'**
+  String get checklistDemoEstimateBadge;
 
   /// No description provided for @checklistTravelStyleTitle.
   ///

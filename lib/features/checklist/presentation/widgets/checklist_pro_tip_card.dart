@@ -38,7 +38,7 @@ class ChecklistProTipCard extends StatelessWidget {
                 tagLabel,
                 style: const TextStyle(
                   color: Colors.white,
-                  fontSize: 11,
+                  fontSize: 9,
                   fontWeight: FontWeight.w700,
                   letterSpacing: 0.8,
                 ),
@@ -51,18 +51,18 @@ class ChecklistProTipCard extends StatelessWidget {
               overflow: TextOverflow.ellipsis,
               style: const TextStyle(
                 color: Colors.white,
-                fontSize: 18.5,
+                fontSize: 16.5,
                 fontWeight: FontWeight.w700,
               ),
             ),
             const SizedBox(height: 8),
             Text(
               tipDescription,
-              maxLines: 3,
+              maxLines: 4,
               overflow: TextOverflow.ellipsis,
               style: const TextStyle(
                 color: Color(0xFFD1D5DB),
-                fontSize: 16.5,
+                fontSize: 14.5,
                 height: 1.45,
                 fontWeight: FontWeight.w500,
               ),

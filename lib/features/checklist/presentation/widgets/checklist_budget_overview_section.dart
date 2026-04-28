@@ -40,7 +40,7 @@ class ChecklistBudgetOverviewSection extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // 预算区域采用双卡并排布局，左右卡片等高。
+    // 棰勭畻鍖哄煙閲囩敤鍙屽崱骞舵帓甯冨眬锛屽乏鍙冲崱鐗囩瓑楂樸€?
     return IntrinsicHeight(
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.stretch,

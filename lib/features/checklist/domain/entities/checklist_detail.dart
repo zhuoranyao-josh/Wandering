@@ -2,6 +2,9 @@ class ChecklistDetail {
   const ChecklistDetail({
     required this.id,
     required this.destination,
+    this.placeId,
+    this.latitude,
+    this.longitude,
     this.departureCity,
     this.startDate,
     this.endDate,
@@ -24,6 +27,9 @@ class ChecklistDetail {
 
   final String id;
   final String destination;
+  final String? placeId;
+  final double? latitude;
+  final double? longitude;
   final String? departureCity;
   final DateTime? startDate;
   final DateTime? endDate;
@@ -43,7 +49,7 @@ class ChecklistDetail {
   final ChecklistProTip? proTip;
   final List<ChecklistDetailItem> items;
 
-  // 是否满足“开始规划/生成计划”的基础信息完整性要求。
+  // 是否满足“开始规划 / 生成计划”的基础信息完整性要求。
   bool get isBasicInfoComplete {
     return startDate != null &&
         endDate != null &&
@@ -59,6 +65,9 @@ class ChecklistDetail {
   ChecklistDetail copyWith({
     String? id,
     String? destination,
+    String? placeId,
+    double? latitude,
+    double? longitude,
     String? departureCity,
     DateTime? startDate,
     DateTime? endDate,
@@ -81,6 +90,9 @@ class ChecklistDetail {
     return ChecklistDetail(
       id: id ?? this.id,
       destination: destination ?? this.destination,
+      placeId: placeId ?? this.placeId,
+      latitude: latitude ?? this.latitude,
+      longitude: longitude ?? this.longitude,
       departureCity: departureCity ?? this.departureCity,
       startDate: startDate ?? this.startDate,
       endDate: endDate ?? this.endDate,
@@ -109,14 +121,73 @@ class ChecklistBudgetSplit {
     this.transportRatio,
     this.stayRatio,
     this.foodActivityRatio,
+    this.flightBudgetMax,
+    this.remainingBudget,
+    this.hotelBudget,
+    this.foodBudget,
+    this.activityBudget,
+    this.localTransportBudget,
+    this.bufferBudget,
+    this.currency,
+    this.budgetWarning,
   });
 
   final double? transportRatio;
   final double? stayRatio;
   final double? foodActivityRatio;
+  final double? flightBudgetMax;
+  final double? remainingBudget;
+  final double? hotelBudget;
+  final double? foodBudget;
+  final double? activityBudget;
+  final double? localTransportBudget;
+  final double? bufferBudget;
+  final String? currency;
+  final String? budgetWarning;
 
   bool get hasAnyValue =>
-      transportRatio != null || stayRatio != null || foodActivityRatio != null;
+      transportRatio != null ||
+      stayRatio != null ||
+      foodActivityRatio != null ||
+      flightBudgetMax != null ||
+      remainingBudget != null ||
+      hotelBudget != null ||
+      foodBudget != null ||
+      activityBudget != null ||
+      localTransportBudget != null ||
+      bufferBudget != null ||
+      (currency?.trim().isNotEmpty ?? false) ||
+      (budgetWarning?.trim().isNotEmpty ?? false);
+
+  ChecklistBudgetSplit copyWith({
+    double? transportRatio,
+    double? stayRatio,
+    double? foodActivityRatio,
+    double? flightBudgetMax,
+    double? remainingBudget,
+    double? hotelBudget,
+    double? foodBudget,
+    double? activityBudget,
+    double? localTransportBudget,
+    double? bufferBudget,
+    String? currency,
+    String? budgetWarning,
+  }) {
+    return ChecklistBudgetSplit(
+      transportRatio: transportRatio ?? this.transportRatio,
+      stayRatio: stayRatio ?? this.stayRatio,
+      foodActivityRatio: foodActivityRatio ?? this.foodActivityRatio,
+      flightBudgetMax: flightBudgetMax ?? this.flightBudgetMax,
+      remainingBudget: remainingBudget ?? this.remainingBudget,
+      hotelBudget: hotelBudget ?? this.hotelBudget,
+      foodBudget: foodBudget ?? this.foodBudget,
+      activityBudget: activityBudget ?? this.activityBudget,
+      localTransportBudget: localTransportBudget ?? this.localTransportBudget,
+      bufferBudget: bufferBudget ?? this.bufferBudget,
+      currency: currency ?? this.currency,
+      budgetWarning: budgetWarning ?? this.budgetWarning,
+    );
+  }
 }
 
 class ChecklistEssential {
@@ -154,6 +225,24 @@ class ChecklistDetailItem {
     this.subtitle,
     required this.isCompleted,
     this.detailRouteTarget,
+    this.type,
+    this.estimatedPriceMin,
+    this.estimatedPriceMax,
+    this.estimatedCostMin,
+    this.estimatedCostMax,
+    this.costUnit,
+    this.currency,
+    this.routeText,
+    this.suggestedAirports = const <String>[],
+    this.providerName,
+    this.externalUrl,
+    this.dataSource,
+    this.accuracyNote,
+    this.status,
+    this.displayOrder,
+    this.dayIndex,
+    this.estimatedPriceText,
+    this.budgetWarning,
   });
 
   final String id;
@@ -162,6 +251,24 @@ class ChecklistDetailItem {
   final String? subtitle;
   final bool isCompleted;
   final String? detailRouteTarget;
+  final String? type;
+  final double? estimatedPriceMin;
+  final double? estimatedPriceMax;
+  final double? estimatedCostMin;
+  final double? estimatedCostMax;
+  final String? costUnit;
+  final String? currency;
+  final String? routeText;
+  final List<String> suggestedAirports;
+  final String? providerName;
+  final String? externalUrl;
+  final String? dataSource;
+  final String? accuracyNote;
+  final String? status;
+  final int? displayOrder;
+  final int? dayIndex;
+  final String? estimatedPriceText;
+  final String? budgetWarning;
 
   ChecklistDetailItem copyWith({
     String? id,
@@ -170,6 +277,24 @@ class ChecklistDetailItem {
     String? subtitle,
     bool? isCompleted,
     String? detailRouteTarget,
+    String? type,
+    double? estimatedPriceMin,
+    double? estimatedPriceMax,
+    double? estimatedCostMin,
+    double? estimatedCostMax,
+    String? costUnit,
+    String? currency,
+    String? routeText,
+    List<String>? suggestedAirports,
+    String? providerName,
+    String? externalUrl,
+    String? dataSource,
+    String? accuracyNote,
+    String? status,
+    int? displayOrder,
+    int? dayIndex,
+    String? estimatedPriceText,
+    String? budgetWarning,
   }) {
     return ChecklistDetailItem(
       id: id ?? this.id,
@@ -178,6 +303,24 @@ class ChecklistDetailItem {
       subtitle: subtitle ?? this.subtitle,
       isCompleted: isCompleted ?? this.isCompleted,
       detailRouteTarget: detailRouteTarget ?? this.detailRouteTarget,
+      type: type ?? this.type,
+      estimatedPriceMin: estimatedPriceMin ?? this.estimatedPriceMin,
+      estimatedPriceMax: estimatedPriceMax ?? this.estimatedPriceMax,
+      estimatedCostMin: estimatedCostMin ?? this.estimatedCostMin,
+      estimatedCostMax: estimatedCostMax ?? this.estimatedCostMax,
+      costUnit: costUnit ?? this.costUnit,
+      currency: currency ?? this.currency,
+      routeText: routeText ?? this.routeText,
+      suggestedAirports: suggestedAirports ?? this.suggestedAirports,
+      providerName: providerName ?? this.providerName,
+      externalUrl: externalUrl ?? this.externalUrl,
+      dataSource: dataSource ?? this.dataSource,
+      accuracyNote: accuracyNote ?? this.accuracyNote,
+      status: status ?? this.status,
+      displayOrder: displayOrder ?? this.displayOrder,
+      dayIndex: dayIndex ?? this.dayIndex,
+      estimatedPriceText: estimatedPriceText ?? this.estimatedPriceText,
+      budgetWarning: budgetWarning ?? this.budgetWarning,
     );
   }
 }

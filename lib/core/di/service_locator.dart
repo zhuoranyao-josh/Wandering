@@ -19,6 +19,8 @@ import '../../features/auth/domain/repositories/auth_repository.dart';
 import '../../features/auth/presentation/controllers/auth_controller.dart';
 import '../../features/checklist/data/datasources/checklist_remote_data_source.dart';
 import '../../features/checklist/data/datasources/firebase_checklist_remote_data_source.dart';
+import '../../features/checklist/data/datasources/open_weather_remote_data_source.dart';
+import '../../features/checklist/data/datasources/weather_remote_data_source.dart';
 import '../../features/checklist/data/repositories/checklist_repository_impl.dart';
 import '../../features/checklist/domain/repositories/checklist_repository.dart';
 import '../../features/checklist/presentation/controllers/checklist_controller.dart';
@@ -48,6 +50,7 @@ class ServiceLocator {
   static late final ProfileSetupController profileSetupController;
   static late final ChecklistRepository checklistRepository;
   static late final ChecklistController checklistController;
+  static late final WeatherRemoteDataSource weatherRemoteDataSource;
   static late final AdminRepository adminRepository;
 
   static void setup() {
@@ -97,6 +100,7 @@ class ServiceLocator {
         );
     checklistRepository = ChecklistRepositoryImpl(checklistRemoteDataSource);
     checklistController = ChecklistController(repository: checklistRepository);
+    weatherRemoteDataSource = OpenWeatherRemoteDataSource();
 
     // Community 模块
     final CommunityRemoteDataSource communityRemoteDataSource =
@@ -130,7 +134,10 @@ class ServiceLocator {
   }
 
   static ChecklistDetailController createChecklistDetailController() {
-    return ChecklistDetailController(repository: checklistRepository);
+    return ChecklistDetailController(
+      repository: checklistRepository,
+      weatherRemoteDataSource: weatherRemoteDataSource,
+    );
   }
 
   static JourneyWizardController createJourneyWizardController({

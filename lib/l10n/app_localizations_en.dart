@@ -565,6 +565,91 @@ class AppLocalizationsEn extends AppLocalizations {
   String get checklistProTip => 'PRO TIP';
 
   @override
+  String get checklistEssentialWeatherTitle => 'WEATHER';
+
+  @override
+  String get checklistEssentialTradeOffTitle => 'TRADE OFF';
+
+  @override
+  String get checklistEssentialStrategyTitle => 'STRATEGY';
+
+  @override
+  String get checklistEssentialTipsTitle => 'TIPS';
+
+  @override
+  String get checklistEssentialWeatherMockValue => '18°C — 24°C';
+
+  @override
+  String get checklistEssentialWeatherMockDescription => 'Mostly sunny';
+
+  @override
+  String get checklistWeatherUnavailableMain => 'Weather unavailable';
+
+  @override
+  String get checklistWeatherUnavailableForecastLimit => 'Forecast is only available for the next 5 days.';
+
+  @override
+  String get checklistWeatherUnavailableNoData => 'No forecast data for selected dates.';
+
+  @override
+  String get checklistWeatherUnavailableApiKeyMissing => 'OpenWeather API key is missing.';
+
+  @override
+  String get checklistWeatherUnavailableLoadFailed => 'Unable to load forecast right now.';
+
+  @override
+  String get checklistWeatherUnavailableMissingInput => 'Missing trip location or dates.';
+
+  @override
+  String get checklistWeatherMostlyClear => 'Mostly clear';
+
+  @override
+  String get checklistWeatherRainExpected => 'Rain expected';
+
+  @override
+  String get checklistWeatherSnowExpected => 'Snow expected';
+
+  @override
+  String get checklistWeatherConditionRainy => 'Rainy';
+
+  @override
+  String get checklistWeatherConditionSnow => 'Snow';
+
+  @override
+  String checklistWeatherTempRange(Object min, Object max) {
+    return '$min°C – $max°C';
+  }
+
+  @override
+  String checklistWeatherTempRangeWithCondition(Object min, Object max, Object condition) {
+    return '$min°C – $max°C · $condition';
+  }
+
+  @override
+  String get checklistEssentialTradeOffMockValue => 'Cost vs. Time';
+
+  @override
+  String get checklistEssentialTradeOffMockDescription => 'Optimized for value';
+
+  @override
+  String get checklistEssentialStrategyMockValue => 'Cluster by area';
+
+  @override
+  String get checklistEssentialStrategyMockDescription => 'One anchor stop per day';
+
+  @override
+  String get checklistEssentialTipsMockValue => 'Carry essentials';
+
+  @override
+  String get checklistEssentialTipsMockDescription => 'Umbrella, power bank, passport';
+
+  @override
+  String get checklistProTipMockTitle => 'Lock in the high-priority parts first';
+
+  @override
+  String get checklistProTipMockDescription => 'Use your first booking decisions on transport and stay, then shape food and attraction plans around those fixed anchors.';
+
+  @override
   String get checklistChecklist => 'CHECKLIST';
 
   @override
@@ -590,6 +675,15 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get checklistGeneratePlan => 'Generate Plan';
+
+  @override
+  String get checklistGenerateFailed => 'Failed to generate plan.';
+
+  @override
+  String get checklistEstimateShort => 'EST.';
+
+  @override
+  String get checklistDemoEstimateBadge => 'Demo estimate';
 
   @override
   String get checklistTravelStyleTitle => 'Travel Style';

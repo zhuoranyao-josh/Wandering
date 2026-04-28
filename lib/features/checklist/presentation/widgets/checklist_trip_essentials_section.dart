@@ -25,7 +25,7 @@ class ChecklistTripEssentialsSection extends StatelessWidget {
         Text(
           title.toUpperCase(),
           style: const TextStyle(
-            fontSize: 15.5,
+            fontSize: 13.5,
             letterSpacing: 1.8,
             color: Color(0xFF9CA3AF),
             fontWeight: FontWeight.w700,
@@ -40,7 +40,8 @@ class ChecklistTripEssentialsSection extends StatelessWidget {
             crossAxisCount: 2,
             crossAxisSpacing: 12,
             mainAxisSpacing: 12,
-            childAspectRatio: 1.28,
+            // 固定卡片高度，避免摘要文案稍长时把内容挤坏。
+            mainAxisExtent: 140,
           ),
           itemBuilder: (context, index) {
             return _EssentialCard(item: displayItems[index]);
@@ -58,12 +59,21 @@ class _EssentialCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final mainText = item.mainText.trim();
     final subText = item.subText?.trim() ?? '';
+
     return DecoratedBox(
       decoration: BoxDecoration(
-        color: const Color(0xFFF7F8FA),
+        color: Colors.white,
         borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: const Color(0xFFF1F3F7)),
+        border: Border.all(color: const Color(0xFFE9EDF5)),
+        boxShadow: const <BoxShadow>[
+          BoxShadow(
+            color: Color(0x0A111827),
+            blurRadius: 16,
+            offset: Offset(0, 6),
+          ),
+        ],
       ),
       child: Padding(
         padding: const EdgeInsets.all(16),
@@ -75,7 +85,7 @@ class _EssentialCard extends StatelessWidget {
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
               style: const TextStyle(
-                fontSize: 14.5,
+                fontSize: 12.5,
                 color: Color(0xFF2563EB),
                 fontWeight: FontWeight.w700,
                 letterSpacing: 0.7,
@@ -83,13 +93,13 @@ class _EssentialCard extends StatelessWidget {
             ),
             const SizedBox(height: 8),
             Text(
-              item.mainText.trim(),
+              mainText,
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
               style: const TextStyle(
-                fontSize: 17.0,
+                fontSize: 16,
                 color: Color(0xFF111827),
-                fontWeight: FontWeight.w700,
+                fontWeight: FontWeight.w600,
               ),
             ),
             if (subText.isNotEmpty) ...<Widget>[
@@ -99,7 +109,7 @@ class _EssentialCard extends StatelessWidget {
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
                 style: const TextStyle(
-                  fontSize: 15,
+                  fontSize: 13,
                   color: Color(0xFF6B7280),
                   fontWeight: FontWeight.w500,
                 ),

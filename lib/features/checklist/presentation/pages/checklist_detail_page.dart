@@ -28,12 +28,24 @@ class _ChecklistDetailPageState extends State<ChecklistDetailPage> {
   late final ChecklistDetailController _controller =
       ServiceLocator.createChecklistDetailController();
   String? _lastErrorKey;
+  Locale? _lastLocale;
 
   @override
   void initState() {
     super.initState();
     _controller.addListener(_handleControllerChange);
     _controller.loadChecklistDetail(widget.checklistId);
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    final currentLocale = Localizations.localeOf(context);
+    if (_lastLocale == currentLocale) {
+      return;
+    }
+    _lastLocale = currentLocale;
+    _controller.updateLocale(currentLocale);
   }
 
   @override
@@ -57,6 +69,8 @@ class _ChecklistDetailPageState extends State<ChecklistDetailPage> {
 
     final message = key == 'checklistLoadFailed'
         ? t.checklistLoadFailed
+        : key == 'checklistGenerateFailed'
+        ? t.checklistGenerateFailed
         : t.errorUnknown;
     ScaffoldMessenger.of(
       context,
@@ -141,10 +155,13 @@ class _ChecklistDetailPageState extends State<ChecklistDetailPage> {
             return _buildNotFoundState(t);
           }
 
-          final tipTitle = detail.proTip?.tipTitle?.trim() ?? '';
-          final tipDescription = detail.proTip?.tipDescription?.trim() ?? '';
-          final showProTip = tipTitle.isNotEmpty || tipDescription.isNotEmpty;
-          final hasEssentials = detail.essentials.isNotEmpty;
+          final displayEssentials = _buildTravelEssentials(detail, t);
+          final displayProTip = _buildDisplayProTip(detail, t);
+          final visibleChecklistItems = _buildVisibleChecklistItems(
+            detail.items,
+          );
+          final showProTip = !displayProTip.isEmpty;
+          final hasEssentials = displayEssentials.isNotEmpty;
           final isReadyToPlan =
               detail.basicInfoCompleted || detail.isBasicInfoComplete;
 
@@ -158,7 +175,7 @@ class _ChecklistDetailPageState extends State<ChecklistDetailPage> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: <Widget>[
-                // 椤甸潰椤哄簭淇濇寔鍥哄畾锛欻eader -> Planning Hint/Summary -> Budget -> Essentials -> Pro Tip -> Checklist.
+                // 页面结构：头部信息 -> 规划提示/风格摘要 -> 预算 -> Essentials -> Pro Tip -> Checklist。
                 ChecklistHeaderSection(
                   destination: detail.destination,
                   startDate: detail.startDate,
@@ -197,22 +214,23 @@ class _ChecklistDetailPageState extends State<ChecklistDetailPage> {
                   totalBudget: detail.totalBudget,
                   currencySymbol: detail.currencySymbol,
                   budgetSplit: detail.budgetSplit,
-                  // 閸忓牓顣╅悾娆愬瘻闁筋喕姘︽禍鎺炵礉閸氬海鐢婚幒銉╊暕缁犳绱潏鎴濊剨缁愭ぜ鈧?                  onEditTap: () {},
+                  // 预算编辑与分配调整后续再接弹窗，这次先保留点击位。
+                  onEditTap: () {},
                   onAdjustTap: () {},
                 ),
                 if (hasEssentials) ...<Widget>[
                   const SizedBox(height: _sectionSpacing),
                   ChecklistTripEssentialsSection(
                     title: t.checklistTripEssentials,
-                    essentials: detail.essentials,
+                    essentials: displayEssentials,
                   ),
                 ],
                 if (showProTip) ...<Widget>[
                   const SizedBox(height: _sectionSpacing),
                   ChecklistProTipCard(
                     tagLabel: t.checklistProTip,
-                    tipTitle: tipTitle,
-                    tipDescription: tipDescription,
+                    tipTitle: displayProTip.tipTitle?.trim() ?? '',
+                    tipDescription: displayProTip.tipDescription?.trim() ?? '',
                   ),
                 ],
                 const SizedBox(height: _sectionSpacing),
@@ -220,10 +238,8 @@ class _ChecklistDetailPageState extends State<ChecklistDetailPage> {
                   sectionTitle: t.checklistChecklist,
                   noItemsTitle: t.checklistNoItemsYet,
                   noItemsHint: t.checklistGenerateSuggestionsHint,
-                  transportationLabel: t.checklistTransportation,
-                  stayLabel: t.checklistStay,
-                  foodActivitiesLabel: t.checklistFoodActivities,
-                  items: detail.items,
+                  items: visibleChecklistItems,
+                  startDate: detail.startDate,
                   onToggleCompleted: _controller.toggleItemCompleted,
                   onItemTap: (_) {},
                 ),
@@ -250,15 +266,17 @@ class _ChecklistDetailPageState extends State<ChecklistDetailPage> {
                     : t.checklistStartPlanning;
 
                 return ElevatedButton(
-                  onPressed: () {
-                    if (!isReadyToPlan) {
-                      context.push(
-                        AppRouter.checklistWizard(widget.checklistId),
-                      );
-                      return;
-                    }
-                    _controller.updatePlan();
-                  },
+                  onPressed: _controller.isGeneratingPlan
+                      ? null
+                      : () async {
+                          if (!isReadyToPlan) {
+                            context.push(
+                              AppRouter.checklistWizard(widget.checklistId),
+                            );
+                            return;
+                          }
+                          await _controller.generateChecklistPlan();
+                        },
                   style: ElevatedButton.styleFrom(
                     elevation: 0,
                     backgroundColor: const Color(0xFF10131E),
@@ -267,13 +285,22 @@ class _ChecklistDetailPageState extends State<ChecklistDetailPage> {
                       borderRadius: BorderRadius.circular(20),
                     ),
                   ),
-                  child: Text(
-                    buttonLabel,
-                    style: const TextStyle(
-                      fontSize: 19.5,
-                      fontWeight: FontWeight.w700,
-                    ),
-                  ),
+                  child: _controller.isGeneratingPlan
+                      ? const SizedBox(
+                          width: 20,
+                          height: 20,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2.4,
+                            color: Colors.white,
+                          ),
+                        )
+                      : Text(
+                          buttonLabel,
+                          style: const TextStyle(
+                            fontSize: 19.5,
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
                 );
               },
             ),
@@ -331,6 +358,93 @@ class _ChecklistDetailPageState extends State<ChecklistDetailPage> {
     final hasAccommodation =
         (detail.accommodationPreference?.trim().isNotEmpty ?? false);
     return hasPreferences || hasPace || hasAccommodation;
+  }
+
+  List<ChecklistEssential> _buildTravelEssentials(
+    ChecklistDetail detail,
+    AppLocalizations t,
+  ) {
+    final normalizedMap = <String, ChecklistEssential>{};
+    for (final item in detail.essentials) {
+      final key = item.title.trim().toLowerCase().replaceAll(' ', '');
+      if (item.mainText.trim().isEmpty) {
+        continue;
+      }
+      normalizedMap[key] = item;
+    }
+
+    final weatherFromData = normalizedMap['weather'];
+    final weatherCard =
+        weatherFromData ??
+        ChecklistEssential(
+          iconType: 'weather',
+          title: t.checklistEssentialWeatherTitle,
+          mainText: t.checklistEssentialWeatherMockValue,
+          subText: t.checklistEssentialWeatherMockDescription,
+        );
+
+    final keys = <String>['tradeoff', 'strategy', 'tips'];
+    final hasStructuredAiSummary = keys.every(normalizedMap.containsKey);
+    if (hasStructuredAiSummary) {
+      return <ChecklistEssential>[
+        weatherCard,
+        normalizedMap['tradeoff']!,
+        normalizedMap['strategy']!,
+        normalizedMap['tips']!,
+      ];
+    }
+
+    // 先用 UI mock 占位，后续 AI 接入后可直接替换为真实摘要。
+    return <ChecklistEssential>[
+      weatherCard,
+      ChecklistEssential(
+        iconType: 'tradeoff',
+        title: t.checklistEssentialTradeOffTitle,
+        mainText: t.checklistEssentialTradeOffMockValue,
+        subText: t.checklistEssentialTradeOffMockDescription,
+      ),
+      ChecklistEssential(
+        iconType: 'strategy',
+        title: t.checklistEssentialStrategyTitle,
+        mainText: t.checklistEssentialStrategyMockValue,
+        subText: t.checklistEssentialStrategyMockDescription,
+      ),
+      ChecklistEssential(
+        iconType: 'tips',
+        title: t.checklistEssentialTipsTitle,
+        mainText: t.checklistEssentialTipsMockValue,
+        subText: t.checklistEssentialTipsMockDescription,
+      ),
+    ];
+  }
+
+  ChecklistProTip _buildDisplayProTip(
+    ChecklistDetail detail,
+    AppLocalizations t,
+  ) {
+    final current = detail.proTip;
+    if (current != null && !current.isEmpty) {
+      return current;
+    }
+
+    return ChecklistProTip(
+      tipTitle: t.checklistProTipMockTitle,
+      tipDescription: t.checklistProTipMockDescription,
+    );
+  }
+
+  List<ChecklistDetailItem> _buildVisibleChecklistItems(
+    List<ChecklistDetailItem> items,
+  ) {
+    return items
+        .where((item) {
+          final normalizedType = (item.type ?? '').trim().toLowerCase();
+          // Weather / Essentials / Budget 改在上方独立信息区展示，避免和机酒条目挤在一起。
+          return normalizedType != 'weather' &&
+              normalizedType != 'essentials' &&
+              normalizedType != 'budget';
+        })
+        .toList(growable: false);
   }
 }
 
@@ -440,7 +554,7 @@ class _TravelStyleSummaryCard extends StatelessWidget {
       ),
       child: SingleChildScrollView(
         scrollDirection: Axis.horizontal,
-        // 两行标签作为一个整体统一横向滚动。
+        // 涓よ鏍囩浣滀负涓€涓暣浣撶粺涓€妯悜婊氬姩銆?
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: <Widget>[

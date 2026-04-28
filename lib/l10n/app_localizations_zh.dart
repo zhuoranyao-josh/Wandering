@@ -565,6 +565,91 @@ class AppLocalizationsZh extends AppLocalizations {
   String get checklistProTip => '行前建议';
 
   @override
+  String get checklistEssentialWeatherTitle => 'WEATHER';
+
+  @override
+  String get checklistEssentialTradeOffTitle => 'TRADE OFF';
+
+  @override
+  String get checklistEssentialStrategyTitle => 'STRATEGY';
+
+  @override
+  String get checklistEssentialTipsTitle => 'TIPS';
+
+  @override
+  String get checklistEssentialWeatherMockValue => '18°C — 24°C';
+
+  @override
+  String get checklistEssentialWeatherMockDescription => '晴间多云';
+
+  @override
+  String get checklistWeatherUnavailableMain => '天气不可用';
+
+  @override
+  String get checklistWeatherUnavailableForecastLimit => '天气预报仅支持未来 5 天。';
+
+  @override
+  String get checklistWeatherUnavailableNoData => '所选日期暂无天气预报数据。';
+
+  @override
+  String get checklistWeatherUnavailableApiKeyMissing => '缺少 OpenWeather API key。';
+
+  @override
+  String get checklistWeatherUnavailableLoadFailed => '暂时无法加载天气预报。';
+
+  @override
+  String get checklistWeatherUnavailableMissingInput => '缺少行程位置或日期信息。';
+
+  @override
+  String get checklistWeatherMostlyClear => '大多晴朗';
+
+  @override
+  String get checklistWeatherRainExpected => '预计有雨';
+
+  @override
+  String get checklistWeatherSnowExpected => '预计有雪';
+
+  @override
+  String get checklistWeatherConditionRainy => '雨天';
+
+  @override
+  String get checklistWeatherConditionSnow => '降雪';
+
+  @override
+  String checklistWeatherTempRange(Object min, Object max) {
+    return '$min°C – $max°C';
+  }
+
+  @override
+  String checklistWeatherTempRangeWithCondition(Object min, Object max, Object condition) {
+    return '$min°C – $max°C · $condition';
+  }
+
+  @override
+  String get checklistEssentialTradeOffMockValue => '成本 vs 时间';
+
+  @override
+  String get checklistEssentialTradeOffMockDescription => '优先性价比';
+
+  @override
+  String get checklistEssentialStrategyMockValue => '按区域串联';
+
+  @override
+  String get checklistEssentialStrategyMockDescription => '每天一个核心点';
+
+  @override
+  String get checklistEssentialTipsMockValue => '随身轻装备';
+
+  @override
+  String get checklistEssentialTipsMockDescription => '雨伞、充电宝、证件';
+
+  @override
+  String get checklistProTipMockTitle => '先锁定最关键的预订项';
+
+  @override
+  String get checklistProTipMockDescription => '可以先确定交通和住宿，再围绕这些固定锚点去安排餐厅、景点和弹性时间。';
+
+  @override
   String get checklistChecklist => '执行清单';
 
   @override
@@ -590,6 +675,15 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get checklistGeneratePlan => '生成计划';
+
+  @override
+  String get checklistGenerateFailed => '生成计划失败。';
+
+  @override
+  String get checklistEstimateShort => 'EST.';
+
+  @override
+  String get checklistDemoEstimateBadge => '演示估算';
 
   @override
   String get checklistTravelStyleTitle => '旅行风格';

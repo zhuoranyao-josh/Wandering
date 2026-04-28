@@ -49,6 +49,11 @@ class ChecklistRepositoryImpl implements ChecklistRepository {
   }
 
   @override
+  Future<void> generateChecklistPlan(String checklistId) {
+    return remoteDataSource.generateChecklistPlan(checklistId);
+  }
+
+  @override
   Future<void> updateBudget({
     required String checklistId,
     double? totalBudget,

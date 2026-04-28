@@ -242,7 +242,7 @@ class _NormalizedRatios {
       );
     }
 
-    // 兼容 0~1 和 0~100 两种输入，统一映射为百分比展示。
+    // 鍏煎 0~1 鍜?0~100 涓ょ杈撳叆锛岀粺涓€鏄犲皠涓虹櫨鍒嗘瘮灞曠ず銆?
     final useFraction = rawSum <= 1.2;
     final factor = useFraction ? 100.0 : 1.0;
     final sum = (rawTransport + rawStay + rawFoodActivities) * factor;

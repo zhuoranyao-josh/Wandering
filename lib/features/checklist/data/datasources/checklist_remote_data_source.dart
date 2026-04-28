@@ -20,6 +20,8 @@ abstract class ChecklistRemoteDataSource {
     required JourneyBasicInfoInput input,
   });
 
+  Future<void> generateChecklistPlan(String checklistId);
+
   Future<void> updateBudget({
     required String checklistId,
     double? totalBudget,
