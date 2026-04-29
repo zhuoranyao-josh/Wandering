@@ -1,5 +1,7 @@
 import 'package:flutter/widgets.dart';
 
+import '../../../../core/config/gemini_config.dart';
+import '../../../../core/config/google_places_config.dart';
 import '../../../../l10n/app_localizations.dart';
 import '../../data/datasources/weather_remote_data_source.dart';
 import '../../domain/entities/checklist_detail.dart';
@@ -27,6 +29,10 @@ class ChecklistDetailController extends ChangeNotifier {
   String? get errorMessage => _errorMessage;
   ChecklistDetail? get checklistDetail => _checklistDetail;
 
+  void _log(String message) {
+    debugPrint('[ChecklistPlan] $message');
+  }
+
   Future<void> updateLocale(Locale locale) async {
     final normalizedLocale = _normalizeLocale(locale);
     if (_currentLocale == normalizedLocale) {
@@ -42,18 +48,32 @@ class ChecklistDetailController extends ChangeNotifier {
     notifyListeners();
   }
 
-  Future<void> loadChecklistDetail(String checklistId) async {
+  Future<void> loadChecklistDetail(
+    String checklistId, {
+    bool forceRefresh = false,
+  }) async {
     final trimmedChecklistId = checklistId.trim();
     _currentChecklistId = trimmedChecklistId;
+    debugPrint(
+      '[ChecklistDetail] refresh started checklistId=$trimmedChecklistId',
+    );
     if (trimmedChecklistId.isEmpty) {
       _checklistDetail = null;
       _errorMessage = null;
+      debugPrint(
+        '[ChecklistDetail] refresh completed '
+        'basicInfoCompleted=null planningStatus=null items=0',
+      );
       notifyListeners();
       return;
     }
 
     _isLoading = true;
     _errorMessage = null;
+    // 当前仓库未引入内存缓存；forceRefresh 预留为后续绕过缓存入口。
+    if (forceRefresh) {
+      _checklistDetail = null;
+    }
     notifyListeners();
     try {
       final detail = await repository.getChecklistDetail(trimmedChecklistId);
@@ -62,8 +82,18 @@ class ChecklistDetailController extends ChangeNotifier {
       } else {
         _checklistDetail = await _withWeatherEssential(detail);
       }
+      debugPrint(
+        '[ChecklistDetail] refresh completed '
+        'basicInfoCompleted=${_checklistDetail?.basicInfoCompleted} '
+        'planningStatus=${_checklistDetail?.planningStatus ?? 'null'} '
+        'items=${_checklistDetail?.items.length ?? 0}',
+      );
     } catch (_) {
       _errorMessage = 'checklistLoadFailed';
+      debugPrint(
+        '[ChecklistDetail] refresh completed '
+        'basicInfoCompleted=null planningStatus=null items=0',
+      );
     } finally {
       _isLoading = false;
       notifyListeners();
@@ -74,7 +104,18 @@ class ChecklistDetailController extends ChangeNotifier {
     if (_currentChecklistId.isEmpty) {
       return;
     }
-    await loadChecklistDetail(_currentChecklistId);
+    await loadChecklistDetail(_currentChecklistId, forceRefresh: true);
+  }
+
+  Future<void> refreshChecklistDetail({
+    String? checklistId,
+    bool forceRefresh = true,
+  }) async {
+    final target = (checklistId ?? _currentChecklistId).trim();
+    if (target.isEmpty) {
+      return;
+    }
+    await loadChecklistDetail(target, forceRefresh: forceRefresh);
   }
 
   Future<void> updateBudget({
@@ -172,24 +213,104 @@ class ChecklistDetailController extends ChangeNotifier {
   }
 
   Future<bool> generateChecklistPlan() async {
+    _log('generate started');
+    _log('checklistId=$_currentChecklistId');
+    _log('detail loaded=${_checklistDetail != null}');
     if (_currentChecklistId.isEmpty || _isGeneratingPlan) {
+      _log(
+        'generate aborted emptyChecklistId=${_currentChecklistId.isEmpty} '
+        'isGeneratingPlan=$_isGeneratingPlan',
+      );
       return false;
+    }
+
+    final detail = _checklistDetail;
+    if (detail == null) {
+      _errorMessage = 'Checklist detail is not loaded yet.';
+      _log('generate failed detail not loaded');
+      notifyListeners();
+      return false;
+    }
+
+    final missingFields = _collectMissingPlanningFields(detail);
+    if (missingFields.isNotEmpty) {
+      for (final field in missingFields) {
+        _log('missing required field=$field');
+      }
+    }
+
+    final trimmedGeminiKey = geminiApiKey.trim();
+    if (trimmedGeminiKey.isEmpty) {
+      _log('Gemini key missing');
+    } else {
+      _log('Gemini key exists length=${trimmedGeminiKey.length}');
+    }
+    final trimmedPlacesKey = googlePlacesApiKey.trim();
+    if (trimmedPlacesKey.isEmpty) {
+      _log('Google Places key missing');
+    } else {
+      _log('Google Places key exists length=${trimmedPlacesKey.length}');
     }
 
     _isGeneratingPlan = true;
     _errorMessage = null;
+    _log('planningStatus current=${detail.planningStatus ?? 'null'}');
     notifyListeners();
     try {
       await repository.generateChecklistPlan(_currentChecklistId);
-      final detail = await repository.getChecklistDetail(_currentChecklistId);
-      if (detail == null) {
-        _errorMessage = 'checklistGenerateFailed';
+      _log('repository.generateChecklistPlan finished');
+      final refreshedDetail = await repository.getChecklistDetail(
+        _currentChecklistId,
+      );
+      if (refreshedDetail == null) {
+        _errorMessage = 'Failed to refresh checklist detail after generation.';
+        _log('generate failed refreshed detail is null');
         return false;
       }
-      _checklistDetail = await _withWeatherEssential(detail);
+
+      _checklistDetail = await _withWeatherEssential(refreshedDetail);
+      _log(
+        'planningStatus changed -> ${_checklistDetail?.planningStatus ?? 'null'}',
+      );
+      _log(
+        'ui refresh planningStatus=${_checklistDetail?.planningStatus ?? 'null'} '
+        'items=${_checklistDetail?.items.length ?? 0} '
+        'essentials=${_checklistDetail?.essentials.length ?? 0} '
+        'hasProTip=${_checklistDetail?.proTip?.isEmpty == false}',
+      );
+
+      if ((_checklistDetail?.planningStatus ?? '').trim().toLowerCase() ==
+          'failed') {
+        _errorMessage =
+            'Plan generation failed. Check required fields and API logs.';
+        _log('generate finished with failed planningStatus');
+        return false;
+      }
+
       return true;
-    } catch (_) {
-      _errorMessage = 'checklistGenerateFailed';
+    } catch (error) {
+      _errorMessage = error.toString().replaceFirst('Exception: ', '').trim();
+      if (_errorMessage == null || _errorMessage!.isEmpty) {
+        _errorMessage = 'checklistGenerateFailed';
+      }
+      _log('generate exception=$_errorMessage');
+      try {
+        final refreshedDetail = await repository.getChecklistDetail(
+          _currentChecklistId,
+        );
+        if (refreshedDetail != null) {
+          _checklistDetail = await _withWeatherEssential(refreshedDetail);
+          _log(
+            'ui refresh after failure planningStatus='
+            '${_checklistDetail?.planningStatus ?? 'null'} '
+            'items=${_checklistDetail?.items.length ?? 0} '
+            'essentials=${_checklistDetail?.essentials.length ?? 0} '
+            'hasProTip=${_checklistDetail?.proTip?.isEmpty == false}',
+          );
+        }
+      } catch (refreshError) {
+        _log('refresh after failure error=$refreshError');
+      }
       return false;
     } finally {
       _isGeneratingPlan = false;
@@ -198,7 +319,46 @@ class ChecklistDetailController extends ChangeNotifier {
   }
 
   Future<void> updatePlan() async {
+    _log('updatePlan called');
     await generateChecklistPlan();
+  }
+
+  List<String> _collectMissingPlanningFields(ChecklistDetail detail) {
+    final missingFields = <String>[];
+    if (detail.destination.trim().isEmpty) {
+      missingFields.add('destination');
+    }
+    if ((detail.departureCity?.trim().isNotEmpty ?? false) == false) {
+      missingFields.add('departureCity');
+    }
+    if (detail.startDate == null) {
+      missingFields.add('startDate');
+    }
+    if (detail.endDate == null) {
+      missingFields.add('endDate');
+    }
+    if ((detail.tripDays ?? 0) <= 0) {
+      missingFields.add('tripDays');
+    }
+    if (detail.nightCount == null) {
+      missingFields.add('nightCount');
+    }
+    if ((detail.travelerCount ?? 0) <= 0) {
+      missingFields.add('travelerCount');
+    }
+    if ((detail.totalBudget ?? 0) <= 0) {
+      missingFields.add('totalBudget');
+    }
+    if ((detail.currency?.trim().isNotEmpty ?? false) == false) {
+      missingFields.add('currency');
+    }
+    if (detail.latitude == null) {
+      missingFields.add('latitude');
+    }
+    if (detail.longitude == null) {
+      missingFields.add('longitude');
+    }
+    return missingFields;
   }
 
   Future<ChecklistDetail> _withWeatherEssential(ChecklistDetail detail) async {

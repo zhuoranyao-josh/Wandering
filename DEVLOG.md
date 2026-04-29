@@ -154,11 +154,17 @@
 - Added timeline-based checklist item presentation and richer item card variants.
 - Activity fields now support bilingual display data.
 - Admin activity form supports bilingual text inputs.
+- Added Gemini-powered checklist plan generation with Google Places enrichment for hotels, restaurants, and activities.
+- Added Firestore-backed place detail section loading for experiences, flavors, stays, and gallery.
+- Added structured flight and place metadata fields to checklist items for richer detail rendering.
 
 ### 🐛 Bug Fixes
 - Normalized Firestore language-map keys so zh/en variants resolve more reliably.
 - Fixed crashes caused by legacy string values in events.
 - Fixed category handling by removing free-text input.
+- Fixed checklist plan generation failing when a single Google Places request hit a HandshakeException. Added request retries, timeout control, a shared HTTP client, and per-item fallback handling so one failed enrich request no longer marks the whole plan as failed.
+- Fixed My Trips cards showing raw exception text and overflowing the layout. Filtered unsafe status text and constrained the UI to avoid rendering long backend error messages.
+- Fixed checklist item cards overflowing on small screens by replacing multi-line mixed metadata blocks with a compact shared layout using fixed image sizing, Flexible/Expanded, and ellipsis.
 
 ### ⚡ Improvements
 - Added a pure UI model to prepare the future Firestore -> Repository -> Controller data flow.
@@ -171,6 +177,10 @@
 - Expanded i18n coverage for weather, errors, and estimate labels.
 - Improved activity search and display to use localized values.
 - Improved admin activity list display for localized titles and cities.
+- Tightened the Gemini prompt to require compact JSON, avoid marketing-style flight text, and enforce stricter hotel budget rules.
+- Reworked the flight card into a fixed template with a stable EST. price badge and structured route/timeline rendering.
+- Simplified hotel, restaurant, and activity cards to focus on title, image, short address, and a single-line price.
+- Added detailed debug logging across checklist generation, wizard submission, and My Trips loading for easier tracing.
 
 ### 📚 Learnings
 - Only user-facing text should use language maps; structural fields should stay scalar.

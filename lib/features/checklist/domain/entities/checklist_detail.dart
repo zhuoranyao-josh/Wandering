@@ -245,8 +245,22 @@ class ChecklistDetailItem {
     this.status,
     this.displayOrder,
     this.dayIndex,
-    this.estimatedPriceText,
     this.budgetWarning,
+    this.googlePlaceId,
+    this.address,
+    this.photoUrl,
+    this.latitude,
+    this.longitude,
+    this.rating,
+    this.googleMapsUrl,
+    this.airline,
+    this.flightNumber,
+    this.departureAirport,
+    this.arrivalAirport,
+    this.departureTime,
+    this.arrivalTime,
+    this.departureDate,
+    this.arrivalDate,
   });
 
   final String id;
@@ -271,8 +285,22 @@ class ChecklistDetailItem {
   final String? status;
   final int? displayOrder;
   final int? dayIndex;
-  final String? estimatedPriceText;
   final String? budgetWarning;
+  final String? googlePlaceId;
+  final String? address;
+  final String? photoUrl;
+  final double? latitude;
+  final double? longitude;
+  final double? rating;
+  final String? googleMapsUrl;
+  final String? airline;
+  final String? flightNumber;
+  final String? departureAirport;
+  final String? arrivalAirport;
+  final String? departureTime;
+  final String? arrivalTime;
+  final String? departureDate;
+  final String? arrivalDate;
 
   ChecklistDetailItem copyWith({
     String? id,
@@ -297,8 +325,22 @@ class ChecklistDetailItem {
     String? status,
     int? displayOrder,
     int? dayIndex,
-    String? estimatedPriceText,
     String? budgetWarning,
+    String? googlePlaceId,
+    String? address,
+    String? photoUrl,
+    double? latitude,
+    double? longitude,
+    double? rating,
+    String? googleMapsUrl,
+    String? airline,
+    String? flightNumber,
+    String? departureAirport,
+    String? arrivalAirport,
+    String? departureTime,
+    String? arrivalTime,
+    String? departureDate,
+    String? arrivalDate,
   }) {
     return ChecklistDetailItem(
       id: id ?? this.id,
@@ -323,8 +365,22 @@ class ChecklistDetailItem {
       status: status ?? this.status,
       displayOrder: displayOrder ?? this.displayOrder,
       dayIndex: dayIndex ?? this.dayIndex,
-      estimatedPriceText: estimatedPriceText ?? this.estimatedPriceText,
       budgetWarning: budgetWarning ?? this.budgetWarning,
+      googlePlaceId: googlePlaceId ?? this.googlePlaceId,
+      address: address ?? this.address,
+      photoUrl: photoUrl ?? this.photoUrl,
+      latitude: latitude ?? this.latitude,
+      longitude: longitude ?? this.longitude,
+      rating: rating ?? this.rating,
+      googleMapsUrl: googleMapsUrl ?? this.googleMapsUrl,
+      airline: airline ?? this.airline,
+      flightNumber: flightNumber ?? this.flightNumber,
+      departureAirport: departureAirport ?? this.departureAirport,
+      arrivalAirport: arrivalAirport ?? this.arrivalAirport,
+      departureTime: departureTime ?? this.departureTime,
+      arrivalTime: arrivalTime ?? this.arrivalTime,
+      departureDate: departureDate ?? this.departureDate,
+      arrivalDate: arrivalDate ?? this.arrivalDate,
     );
   }
 }

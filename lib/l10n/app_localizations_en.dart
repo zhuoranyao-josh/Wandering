@@ -650,6 +650,27 @@ class AppLocalizationsEn extends AppLocalizations {
   String get checklistProTipMockDescription => 'Use your first booking decisions on transport and stay, then shape food and attraction plans around those fixed anchors.';
 
   @override
+  String get checklistPriceAbout => 'About';
+
+  @override
+  String get checklistPriceUnavailable => 'Price unavailable';
+
+  @override
+  String get checklistPriceFree => 'Free';
+
+  @override
+  String get checklistPriceUnitPerson => 'person';
+
+  @override
+  String get checklistPriceUnitMeal => 'meal';
+
+  @override
+  String get checklistPriceUnitTicket => 'ticket';
+
+  @override
+  String get checklistPriceUnitNight => 'night';
+
+  @override
   String get checklistChecklist => 'CHECKLIST';
 
   @override

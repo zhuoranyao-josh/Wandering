@@ -2,6 +2,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:google_sign_in/google_sign_in.dart';
+import 'package:http/http.dart' as http;
 
 import '../../features/admin/data/datasources/admin_remote_data_source.dart';
 import '../../features/admin/data/datasources/firebase_admin_remote_data_source.dart';
@@ -19,6 +20,8 @@ import '../../features/auth/domain/repositories/auth_repository.dart';
 import '../../features/auth/presentation/controllers/auth_controller.dart';
 import '../../features/checklist/data/datasources/checklist_remote_data_source.dart';
 import '../../features/checklist/data/datasources/firebase_checklist_remote_data_source.dart';
+import '../../features/checklist/data/datasources/gemini_planning_remote_data_source.dart';
+import '../../features/checklist/data/datasources/google_places_remote_data_source.dart';
 import '../../features/checklist/data/datasources/open_weather_remote_data_source.dart';
 import '../../features/checklist/data/datasources/weather_remote_data_source.dart';
 import '../../features/checklist/data/repositories/checklist_repository_impl.dart';
@@ -52,6 +55,7 @@ class ServiceLocator {
   static late final ChecklistController checklistController;
   static late final WeatherRemoteDataSource weatherRemoteDataSource;
   static late final AdminRepository adminRepository;
+  static late final http.Client sharedHttpClient;
 
   static void setup() {
     // 最底层依赖统一在这里创建，避免页面直接接触 Firebase。
@@ -59,6 +63,7 @@ class ServiceLocator {
     final googleSignIn = GoogleSignIn();
     final firestore = FirebaseFirestore.instance;
     final storage = FirebaseStorage.instance;
+    sharedHttpClient = http.Client();
 
     // Auth 模块
     final AuthRemoteDataSource authRemoteDataSource =
@@ -93,10 +98,16 @@ class ServiceLocator {
     profileSetupController = ProfileSetupController(profileRepository);
 
     // Checklist 模块
+    final geminiPlanningRemoteDataSource = GeminiPlanningRemoteDataSource();
+    final googlePlacesRemoteDataSource = GooglePlacesRemoteDataSource(
+      client: sharedHttpClient,
+    );
     final ChecklistRemoteDataSource checklistRemoteDataSource =
         FirebaseChecklistRemoteDataSource(
           firestore: firestore,
           firebaseAuth: firebaseAuth,
+          geminiPlanningRemoteDataSource: geminiPlanningRemoteDataSource,
+          googlePlacesRemoteDataSource: googlePlacesRemoteDataSource,
         );
     checklistRepository = ChecklistRepositoryImpl(checklistRemoteDataSource);
     checklistController = ChecklistController(repository: checklistRepository);

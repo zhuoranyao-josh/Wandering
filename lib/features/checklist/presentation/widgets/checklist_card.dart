@@ -12,7 +12,8 @@ class ChecklistCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final hasCoverImage = item.coverImageUrl.trim().isNotEmpty;
-    final hasStatusText = item.statusText?.trim().isNotEmpty ?? false;
+    final displayStatusText = _resolveDisplayStatusText(item.statusText);
+    final hasStatusText = displayStatusText != null;
     final dateRange = _buildDateRange(context);
 
     return Material(
@@ -88,12 +89,17 @@ class ChecklistCard extends StatelessWidget {
                 Positioned(
                   right: 0,
                   bottom: 0,
-                  child: Text(
-                    item.statusText!.trim(),
-                    style: const TextStyle(
-                      fontSize: 12,
-                      color: Color(0xFF6B7280),
-                      fontWeight: FontWeight.w500,
+                  child: ConstrainedBox(
+                    constraints: const BoxConstraints(maxWidth: 120),
+                    child: Text(
+                      displayStatusText,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                        fontSize: 12,
+                        color: Color(0xFF6B7280),
+                        fontWeight: FontWeight.w500,
+                      ),
                     ),
                   ),
                 ),
@@ -123,5 +129,23 @@ class ChecklistCard extends StatelessWidget {
     }
 
     return formatter.format(endDate!);
+  }
+
+  String? _resolveDisplayStatusText(String? rawStatusText) {
+    final text = rawStatusText?.trim() ?? '';
+    if (text.isEmpty) {
+      return null;
+    }
+
+    final normalized = text.toLowerCase();
+    // 卡片状态位不直接展示底层异常，避免把调试信息暴露到 UI。
+    if (normalized.contains('exception') ||
+        normalized.contains('handshakeexception') ||
+        normalized.contains('socketexception') ||
+        normalized.contains('stack trace')) {
+      return null;
+    }
+
+    return text;
   }
 }

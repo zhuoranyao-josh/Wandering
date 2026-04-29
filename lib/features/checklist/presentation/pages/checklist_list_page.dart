@@ -17,11 +17,17 @@ class ChecklistListPage extends StatefulWidget {
 class _ChecklistListPageState extends State<ChecklistListPage> {
   late final ChecklistController _controller =
       ServiceLocator.checklistController;
+  final Stopwatch _pageLoadStopwatch = Stopwatch();
+  bool _hasLoggedFirstContentFrame = false;
   String? _lastErrorKey;
 
   @override
   void initState() {
     super.initState();
+    _pageLoadStopwatch.start();
+    debugPrint(
+      '[MyTrips] page init started cachedItems=${_controller.items.length}',
+    );
     _controller.addListener(_handleControllerChange);
     _controller.load();
   }
@@ -122,6 +128,17 @@ class _ChecklistListPageState extends State<ChecklistListPage> {
         builder: (context, _) {
           if (_controller.isLoading) {
             return const Center(child: CircularProgressIndicator());
+          }
+
+          if (!_hasLoggedFirstContentFrame) {
+            _hasLoggedFirstContentFrame = true;
+            // 首次内容帧渲染后再记时，便于区分“页面打开”与“列表真正可见”。
+            WidgetsBinding.instance.addPostFrameCallback((_) {
+              debugPrint(
+                '[MyTrips] first frame rendered '
+                'elapsed=${_pageLoadStopwatch.elapsedMilliseconds}ms',
+              );
+            });
           }
 
           final items = _controller.items;

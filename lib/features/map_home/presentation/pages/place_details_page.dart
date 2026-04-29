@@ -5,6 +5,7 @@ import '../../../../app/app_router.dart';
 import '../../../../core/di/service_locator.dart';
 import '../../../../features/checklist/presentation/controllers/checklist_controller.dart';
 import '../../../../l10n/app_localizations.dart';
+import '../controllers/place_detail_controller.dart';
 import '../models/place_detail_ui_model.dart';
 import '../widgets/bottom_action_bar.dart';
 import '../widgets/community_card.dart';
@@ -34,11 +35,38 @@ class _PlaceDetailsPageState extends State<PlaceDetailsPage> {
 
   late final ChecklistController _checklistController =
       ServiceLocator.checklistController;
+  late final PlaceDetailController _placeDetailController =
+      PlaceDetailController(repository: ServiceLocator.mapHomeRepository);
   bool _isDescriptionExpanded = false;
   bool _isCreatingChecklist = false;
 
   PlaceDetailUiModel get _model =>
-      widget.initialModel ?? PlaceDetailUiModel(placeId: widget.placeId);
+      _placeDetailController.detailModel ??
+      widget.initialModel ??
+      PlaceDetailUiModel(placeId: widget.placeId);
+
+  @override
+  void initState() {
+    super.initState();
+    _placeDetailController.loadPlaceDetail(widget.placeId, forceRefresh: true);
+  }
+
+  @override
+  void didUpdateWidget(covariant PlaceDetailsPage oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.placeId != widget.placeId) {
+      _placeDetailController.loadPlaceDetail(
+        widget.placeId,
+        forceRefresh: true,
+      );
+    }
+  }
+
+  @override
+  void dispose() {
+    _placeDetailController.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -47,123 +75,142 @@ class _PlaceDetailsPageState extends State<PlaceDetailsPage> {
       return const Scaffold(body: Center(child: CircularProgressIndicator()));
     }
 
-    final languageCode = Localizations.localeOf(context).languageCode;
-    final model = _model;
-    final resolvedName = model.resolvePlaceName(languageCode);
-    final resolvedQuote = model.resolveQuote(languageCode);
-    final description = model.resolveDescription(languageCode) ?? '';
-    final hasDescription = description.isNotEmpty;
-    final shouldShowDescriptionExpandAction =
-        hasDescription &&
-        !_isDescriptionExpanded &&
-        description.runes.length > 180;
+    return AnimatedBuilder(
+      animation: _placeDetailController,
+      builder: (context, _) {
+        final languageCode = Localizations.localeOf(context).languageCode;
+        final model = _model;
+        final resolvedName = model.resolvePlaceName(languageCode);
+        final resolvedQuote = model.resolveQuote(languageCode);
+        final description = model.resolveDescription(languageCode) ?? '';
+        final hasDescription = description.isNotEmpty;
+        final shouldShowDescriptionExpandAction =
+            hasDescription &&
+            !_isDescriptionExpanded &&
+            description.runes.length > 180;
 
-    return Scaffold(
-      backgroundColor: Colors.white,
-      body: Stack(
-        children: <Widget>[
-          // 可滚动内容区预留底部空间，避免被固定操作栏遮挡。
-          SingleChildScrollView(
-            padding: const EdgeInsets.only(bottom: _bottomActionReservedSpace),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: <Widget>[
-                PlaceHeroSection(
-                  onBack: _handleBackPressed,
-                  backTooltip: t.activityBack,
-                  imageUrl: model.heroImageUrl,
-                  country: model.country,
-                  placeName: resolvedName,
-                  showLocationLine:
-                      model.placeType == PlaceDetailsType.attraction,
-                  locationLine: model.locationLine,
+        if (_placeDetailController.isLoading &&
+            _placeDetailController.detailModel == null &&
+            widget.initialModel == null) {
+          return const Scaffold(
+            body: Center(child: CircularProgressIndicator()),
+          );
+        }
+
+        return Scaffold(
+          backgroundColor: Colors.white,
+          body: Stack(
+            children: <Widget>[
+              // 可滚动内容区预留底部空间，避免被固定操作栏遮挡。
+              SingleChildScrollView(
+                padding: const EdgeInsets.only(
+                  bottom: _bottomActionReservedSpace,
                 ),
-                Padding(
-                  padding: const EdgeInsets.fromLTRB(
-                    _screenHorizontalPadding,
-                    18,
-                    _screenHorizontalPadding,
-                    24,
-                  ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: <Widget>[
-                      InfoChipsRow(
-                        tagline: resolvedQuote,
-                        chips: _buildInfoChips(model),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: <Widget>[
+                    PlaceHeroSection(
+                      onBack: _handleBackPressed,
+                      backTooltip: t.activityBack,
+                      imageUrl: model.heroImageUrl,
+                      country: model.country,
+                      placeName: resolvedName,
+                      showLocationLine:
+                          model.placeType == PlaceDetailsType.attraction,
+                      locationLine: model.locationLine,
+                    ),
+                    Padding(
+                      padding: const EdgeInsets.fromLTRB(
+                        _screenHorizontalPadding,
+                        18,
+                        _screenHorizontalPadding,
+                        24,
                       ),
-                      const SizedBox(height: 24),
-                      if (hasDescription) ...<Widget>[
-                        _buildDescriptionSection(
-                          description: description,
-                          showExpandAction: shouldShowDescriptionExpandAction,
-                          expandLabel: t.viewDetails,
-                        ),
-                        const SizedBox(height: _sectionSpacing),
-                      ],
-                      PlaceSectionHeader(
-                        title: t.placeDetailsUniqueExperiences,
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: <Widget>[
+                          InfoChipsRow(
+                            tagline: resolvedQuote,
+                            chips: _buildInfoChips(model),
+                          ),
+                          const SizedBox(height: 24),
+                          if (hasDescription) ...<Widget>[
+                            _buildDescriptionSection(
+                              description: description,
+                              showExpandAction:
+                                  shouldShowDescriptionExpandAction,
+                              expandLabel: t.viewDetails,
+                            ),
+                            const SizedBox(height: _sectionSpacing),
+                          ],
+                          PlaceSectionHeader(
+                            title: t.placeDetailsUniqueExperiences,
+                          ),
+                          const SizedBox(height: 12),
+                          _buildExperiencesSection(
+                            model.experiences,
+                            languageCode,
+                          ),
+                          const SizedBox(height: _sectionSpacing),
+                          PlaceSectionHeader(
+                            title: t.placeDetailsNativeFlavors,
+                            actionText: t.placeDetailsViewMore,
+                            onActionTap: _noop,
+                          ),
+                          const SizedBox(height: 6),
+                          _buildFlavorsSection(model.flavors, languageCode),
+                          const SizedBox(height: _sectionSpacing),
+                          PlaceSectionHeader(
+                            title: t.placeDetailsCuratedStays,
+                            actionText: t.placeDetailsViewMore,
+                            onActionTap: _noop,
+                          ),
+                          const SizedBox(height: 12),
+                          _buildStaysSection(model.stays, languageCode),
+                          const SizedBox(height: _sectionSpacing),
+                          PlaceSectionHeader(
+                            title: t.placeDetailsCommunityMoments,
+                            actionText: t.placeDetailsViewFeed,
+                            onActionTap: _noop,
+                          ),
+                          const SizedBox(height: 12),
+                          _buildCommunitySection(model.communityMoments),
+                          const SizedBox(height: _sectionSpacing),
+                          PlaceSectionHeader(
+                            title: t.placeDetailsGallery,
+                            actionText: t.placeDetailsViewAll,
+                            onActionTap: _noop,
+                          ),
+                          const SizedBox(height: 12),
+                          GalleryGrid(
+                            imageUrls: model.galleryImageUrls,
+                            overflowCount: model.galleryOverflowCount,
+                          ),
+                        ],
                       ),
-                      const SizedBox(height: 12),
-                      _buildExperiencesSection(model.experiences),
-                      const SizedBox(height: _sectionSpacing),
-                      PlaceSectionHeader(
-                        title: t.placeDetailsNativeFlavors,
-                        actionText: t.placeDetailsViewMore,
-                        onActionTap: _noop,
-                      ),
-                      const SizedBox(height: 6),
-                      _buildFlavorsSection(model.flavors),
-                      const SizedBox(height: _sectionSpacing),
-                      PlaceSectionHeader(
-                        title: t.placeDetailsCuratedStays,
-                        actionText: t.placeDetailsViewMore,
-                        onActionTap: _noop,
-                      ),
-                      const SizedBox(height: 12),
-                      _buildStaysSection(model.stays),
-                      const SizedBox(height: _sectionSpacing),
-                      PlaceSectionHeader(
-                        title: t.placeDetailsCommunityMoments,
-                        actionText: t.placeDetailsViewFeed,
-                        onActionTap: _noop,
-                      ),
-                      const SizedBox(height: 12),
-                      _buildCommunitySection(model.communityMoments),
-                      const SizedBox(height: _sectionSpacing),
-                      PlaceSectionHeader(
-                        title: t.placeDetailsGallery,
-                        actionText: t.placeDetailsViewAll,
-                        onActionTap: _noop,
-                      ),
-                      const SizedBox(height: 12),
-                      GalleryGrid(
-                        imageUrls: model.galleryImageUrls,
-                        overflowCount: model.galleryOverflowCount,
-                      ),
-                    ],
-                  ),
+                    ),
+                  ],
                 ),
-              ],
-            ),
-          ),
-          Positioned(
-            left: 16,
-            right: 16,
-            bottom: 16,
-            child: SafeArea(
-              top: false,
-              child: BottomActionBar(
-                startJourneyLabel: t.placeDetailsStartJourney,
-                isStartJourneyLoading: _isCreatingChecklist,
-                onStartJourney: _handleStartJourney,
-                onFavorite: _noop,
-                onShare: _noop,
               ),
-            ),
+              Positioned(
+                left: 16,
+                right: 16,
+                bottom: 16,
+                child: SafeArea(
+                  top: false,
+                  child: BottomActionBar(
+                    startJourneyLabel: t.placeDetailsStartJourney,
+                    isStartJourneyLoading: _isCreatingChecklist,
+                    onStartJourney: _handleStartJourney,
+                    onFavorite: _noop,
+                    onShare: _noop,
+                  ),
+                ),
+              ),
+            ],
           ),
-        ],
-      ),
+        );
+      },
     );
   }
 
@@ -216,7 +263,10 @@ class _PlaceDetailsPageState extends State<PlaceDetailsPage> {
     );
   }
 
-  Widget _buildExperiencesSection(List<PlaceExperienceUiModel> items) {
+  Widget _buildExperiencesSection(
+    List<PlaceExperienceUiModel> items,
+    String languageCode,
+  ) {
     final hasItems = items.isNotEmpty;
     final itemCount = hasItems ? items.length : 2;
 
@@ -231,13 +281,19 @@ class _PlaceDetailsPageState extends State<PlaceDetailsPage> {
             return const ExperienceCard();
           }
           final item = items[index];
-          return ExperienceCard(badge: item.badge, title: item.title);
+          return ExperienceCard(
+            badge: item.resolveBadge(languageCode),
+            title: item.resolveTitle(languageCode),
+          );
         },
       ),
     );
   }
 
-  Widget _buildFlavorsSection(List<PlaceFlavorUiModel> items) {
+  Widget _buildFlavorsSection(
+    List<PlaceFlavorUiModel> items,
+    String languageCode,
+  ) {
     final hasItems = items.isNotEmpty;
     final itemCount = hasItems ? items.length : 2;
 
@@ -254,14 +310,14 @@ class _PlaceDetailsPageState extends State<PlaceDetailsPage> {
         final item = items[index];
         return FlavorListItem(
           imageUrl: item.imageUrl,
-          name: item.name,
-          subtitle: item.subtitle,
+          name: item.resolveName(languageCode),
+          subtitle: item.resolveSubtitle(languageCode),
         );
       },
     );
   }
 
-  Widget _buildStaysSection(List<PlaceStayUiModel> items) {
+  Widget _buildStaysSection(List<PlaceStayUiModel> items, String languageCode) {
     final hasItems = items.isNotEmpty;
     final itemCount = hasItems ? items.length : 1;
 
@@ -278,8 +334,8 @@ class _PlaceDetailsPageState extends State<PlaceDetailsPage> {
           final item = items[index];
           return StayCard(
             imageUrl: item.imageUrl,
-            badge: item.badge,
-            name: item.name,
+            badge: item.resolveBadge(languageCode),
+            name: item.resolveName(languageCode),
             priceRange: item.priceRange,
           );
         },

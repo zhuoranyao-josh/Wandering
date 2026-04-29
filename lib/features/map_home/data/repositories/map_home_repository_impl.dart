@@ -1,6 +1,7 @@
 import '../../domain/entities/globe_marker_entity.dart';
 import '../../domain/entities/map_home_data_bundle.dart';
 import '../../domain/entities/map_home_region_entity.dart';
+import '../../domain/entities/place_detail_sections_entity.dart';
 import '../../domain/entities/place_entity.dart';
 import '../../domain/repositories/map_home_repository.dart';
 import '../datasources/map_home_remote_data_source.dart';
@@ -22,5 +23,10 @@ class MapHomeRepositoryImpl implements MapHomeRepository {
       markers: List<GlobeMarkerEntity>.from(results[1] as Iterable),
       regions: List<MapHomeRegionEntity>.from(results[2] as Iterable),
     );
+  }
+
+  @override
+  Future<PlaceDetailSectionsEntity?> loadPlaceDetailSections(String placeId) {
+    return remoteDataSource.getPlaceDetailSections(placeId);
   }
 }

@@ -21,7 +21,8 @@ class ChecklistDetailPage extends StatefulWidget {
   State<ChecklistDetailPage> createState() => _ChecklistDetailPageState();
 }
 
-class _ChecklistDetailPageState extends State<ChecklistDetailPage> {
+class _ChecklistDetailPageState extends State<ChecklistDetailPage>
+    with RouteAware {
   static const double _horizontalPadding = 16;
   static const double _sectionSpacing = 24;
 
@@ -29,17 +30,27 @@ class _ChecklistDetailPageState extends State<ChecklistDetailPage> {
       ServiceLocator.createChecklistDetailController();
   String? _lastErrorKey;
   Locale? _lastLocale;
+  PageRoute<dynamic>? _pageRoute;
 
   @override
   void initState() {
     super.initState();
     _controller.addListener(_handleControllerChange);
-    _controller.loadChecklistDetail(widget.checklistId);
+    _controller.loadChecklistDetail(widget.checklistId, forceRefresh: true);
   }
 
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
+    final route = ModalRoute.of(context);
+    if (route is PageRoute<dynamic> && route != _pageRoute) {
+      if (_pageRoute != null) {
+        AppRouter.routeObserver.unsubscribe(this);
+      }
+      _pageRoute = route;
+      AppRouter.routeObserver.subscribe(this, route);
+    }
+
     final currentLocale = Localizations.localeOf(context);
     if (_lastLocale == currentLocale) {
       return;
@@ -49,10 +60,27 @@ class _ChecklistDetailPageState extends State<ChecklistDetailPage> {
   }
 
   @override
+  void didUpdateWidget(covariant ChecklistDetailPage oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.checklistId != widget.checklistId) {
+      _controller.loadChecklistDetail(widget.checklistId, forceRefresh: true);
+    }
+  }
+
+  @override
   void dispose() {
+    if (_pageRoute != null) {
+      AppRouter.routeObserver.unsubscribe(this);
+    }
     _controller.removeListener(_handleControllerChange);
     _controller.dispose();
     super.dispose();
+  }
+
+  @override
+  void didPopNext() {
+    // 从 Wizard/其他子页面返回时，强制刷新详情，避免停留旧数据。
+    _controller.refreshChecklistDetail(forceRefresh: true);
   }
 
   void _handleControllerChange() {
@@ -67,11 +95,7 @@ class _ChecklistDetailPageState extends State<ChecklistDetailPage> {
       return;
     }
 
-    final message = key == 'checklistLoadFailed'
-        ? t.checklistLoadFailed
-        : key == 'checklistGenerateFailed'
-        ? t.checklistGenerateFailed
-        : t.errorUnknown;
+    final message = _resolveErrorMessage(t, key);
     ScaffoldMessenger.of(
       context,
     ).showSnackBar(SnackBar(content: Text(message)));
@@ -146,7 +170,8 @@ class _ChecklistDetailPageState extends State<ChecklistDetailPage> {
             return const Center(child: CircularProgressIndicator());
           }
 
-          if (_controller.errorMessage != null) {
+          if (_controller.errorMessage != null &&
+              _controller.checklistDetail == null) {
             return _buildErrorState(t);
           }
 
@@ -155,8 +180,8 @@ class _ChecklistDetailPageState extends State<ChecklistDetailPage> {
             return _buildNotFoundState(t);
           }
 
-          final displayEssentials = _buildTravelEssentials(detail, t);
-          final displayProTip = _buildDisplayProTip(detail, t);
+          final displayEssentials = _buildTravelEssentials(detail);
+          final displayProTip = _buildDisplayProTip(detail);
           final visibleChecklistItems = _buildVisibleChecklistItems(
             detail.items,
           );
@@ -183,15 +208,29 @@ class _ChecklistDetailPageState extends State<ChecklistDetailPage> {
                   tripDays: detail.tripDays,
                   travelerCount: detail.travelerCount,
                 ),
+                if ((_controller.errorMessage ?? '')
+                    .trim()
+                    .isNotEmpty) ...<Widget>[
+                  const SizedBox(height: 12),
+                  _InlineErrorBanner(
+                    message: _resolveErrorMessage(t, _controller.errorMessage!),
+                  ),
+                ],
                 const SizedBox(height: 12),
                 if (!isReadyToPlan)
                   _PlanningPromptCard(
                     title: t.checklistPlanningPromptTitle,
                     message: t.checklistPlanningPromptMessage,
                     buttonLabel: t.checklistStartPlanning,
-                    onTap: () => context.push(
-                      AppRouter.checklistWizard(widget.checklistId),
-                    ),
+                    onTap: () async {
+                      await context.push(
+                        AppRouter.checklistWizard(widget.checklistId),
+                      );
+                      if (!mounted) return;
+                      await _controller.refreshChecklistDetail(
+                        forceRefresh: true,
+                      );
+                    },
                   ),
                 if (_hasTravelStyleInfo(detail))
                   _TravelStyleSummaryCard(
@@ -269,9 +308,17 @@ class _ChecklistDetailPageState extends State<ChecklistDetailPage> {
                   onPressed: _controller.isGeneratingPlan
                       ? null
                       : () async {
+                          debugPrint(
+                            '[ChecklistPlan] button clicked '
+                            'checklistId=${widget.checklistId}',
+                          );
                           if (!isReadyToPlan) {
-                            context.push(
+                            await context.push(
                               AppRouter.checklistWizard(widget.checklistId),
+                            );
+                            if (!mounted) return;
+                            await _controller.refreshChecklistDetail(
+                              forceRefresh: true,
                             );
                             return;
                           }
@@ -318,7 +365,10 @@ class _ChecklistDetailPageState extends State<ChecklistDetailPage> {
           mainAxisSize: MainAxisSize.min,
           children: <Widget>[
             Text(
-              t.checklistLoadFailed,
+              _resolveErrorMessage(
+                t,
+                _controller.errorMessage ?? 'checklistLoadFailed',
+              ),
               textAlign: TextAlign.center,
               style: const TextStyle(
                 color: Color(0xFF374151),
@@ -334,6 +384,19 @@ class _ChecklistDetailPageState extends State<ChecklistDetailPage> {
         ),
       ),
     );
+  }
+
+  String _resolveErrorMessage(AppLocalizations t, String key) {
+    if (key == 'checklistLoadFailed') {
+      return t.checklistLoadFailed;
+    }
+    if (key == 'checklistGenerateFailed') {
+      return t.checklistGenerateFailed;
+    }
+    if (key.trim().isEmpty) {
+      return t.errorUnknown;
+    }
+    return key;
   }
 
   Widget _buildNotFoundState(AppLocalizations t) {
@@ -360,77 +423,22 @@ class _ChecklistDetailPageState extends State<ChecklistDetailPage> {
     return hasPreferences || hasPace || hasAccommodation;
   }
 
-  List<ChecklistEssential> _buildTravelEssentials(
-    ChecklistDetail detail,
-    AppLocalizations t,
-  ) {
-    final normalizedMap = <String, ChecklistEssential>{};
-    for (final item in detail.essentials) {
-      final key = item.title.trim().toLowerCase().replaceAll(' ', '');
-      if (item.mainText.trim().isEmpty) {
-        continue;
-      }
-      normalizedMap[key] = item;
-    }
-
-    final weatherFromData = normalizedMap['weather'];
-    final weatherCard =
-        weatherFromData ??
-        ChecklistEssential(
-          iconType: 'weather',
-          title: t.checklistEssentialWeatherTitle,
-          mainText: t.checklistEssentialWeatherMockValue,
-          subText: t.checklistEssentialWeatherMockDescription,
-        );
-
-    final keys = <String>['tradeoff', 'strategy', 'tips'];
-    final hasStructuredAiSummary = keys.every(normalizedMap.containsKey);
-    if (hasStructuredAiSummary) {
-      return <ChecklistEssential>[
-        weatherCard,
-        normalizedMap['tradeoff']!,
-        normalizedMap['strategy']!,
-        normalizedMap['tips']!,
-      ];
-    }
-
-    // 先用 UI mock 占位，后续 AI 接入后可直接替换为真实摘要。
-    return <ChecklistEssential>[
-      weatherCard,
-      ChecklistEssential(
-        iconType: 'tradeoff',
-        title: t.checklistEssentialTradeOffTitle,
-        mainText: t.checklistEssentialTradeOffMockValue,
-        subText: t.checklistEssentialTradeOffMockDescription,
-      ),
-      ChecklistEssential(
-        iconType: 'strategy',
-        title: t.checklistEssentialStrategyTitle,
-        mainText: t.checklistEssentialStrategyMockValue,
-        subText: t.checklistEssentialStrategyMockDescription,
-      ),
-      ChecklistEssential(
-        iconType: 'tips',
-        title: t.checklistEssentialTipsTitle,
-        mainText: t.checklistEssentialTipsMockValue,
-        subText: t.checklistEssentialTipsMockDescription,
-      ),
-    ];
+  List<ChecklistEssential> _buildTravelEssentials(ChecklistDetail detail) {
+    // 仅展示真实 essentials；天气卡由 controller 注入真实/不可用状态。
+    return detail.essentials
+        .where(
+          (item) =>
+              item.title.trim().isNotEmpty || item.mainText.trim().isNotEmpty,
+        )
+        .toList(growable: false);
   }
 
-  ChecklistProTip _buildDisplayProTip(
-    ChecklistDetail detail,
-    AppLocalizations t,
-  ) {
+  ChecklistProTip _buildDisplayProTip(ChecklistDetail detail) {
     final current = detail.proTip;
     if (current != null && !current.isEmpty) {
       return current;
     }
-
-    return ChecklistProTip(
-      tipTitle: t.checklistProTipMockTitle,
-      tipDescription: t.checklistProTipMockDescription,
-    );
+    return const ChecklistProTip();
   }
 
   List<ChecklistDetailItem> _buildVisibleChecklistItems(
@@ -439,7 +447,7 @@ class _ChecklistDetailPageState extends State<ChecklistDetailPage> {
     return items
         .where((item) {
           final normalizedType = (item.type ?? '').trim().toLowerCase();
-          // Weather / Essentials / Budget 改在上方独立信息区展示，避免和机酒条目挤在一起。
+          // Weather / Essentials / Budget 在上方独立信息区展示，避免和条目卡片混排。
           return normalizedType != 'weather' &&
               normalizedType != 'essentials' &&
               normalizedType != 'budget';
@@ -513,6 +521,34 @@ class _PlanningPromptCard extends StatelessWidget {
   }
 }
 
+class _InlineErrorBanner extends StatelessWidget {
+  const _InlineErrorBanner({required this.message});
+
+  final String message;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: const Color(0xFFFEF2F2),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: const Color(0xFFFECACA)),
+      ),
+      child: Text(
+        message,
+        style: const TextStyle(
+          fontSize: 13,
+          height: 1.4,
+          color: Color(0xFFB91C1C),
+          fontWeight: FontWeight.w600,
+        ),
+      ),
+    );
+  }
+}
+
 class _TravelStyleSummaryCard extends StatelessWidget {
   const _TravelStyleSummaryCard({
     required this.t,
@@ -554,7 +590,7 @@ class _TravelStyleSummaryCard extends StatelessWidget {
       ),
       child: SingleChildScrollView(
         scrollDirection: Axis.horizontal,
-        // 涓よ鏍囩浣滀负涓€涓暣浣撶粺涓€妯悜婊氬姩銆?
+        // 娑撱倛顢戦弽鍥╊劮娴ｆ粈璐熸稉鈧稉顏呮殻娴ｆ挾绮烘稉鈧Ο顏勬倻濠婃艾濮╅妴?
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: <Widget>[

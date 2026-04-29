@@ -19,13 +19,24 @@ class ChecklistController extends ChangeNotifier {
   List<ChecklistItem> get items => _items;
 
   Future<void> load() async {
+    final stopwatch = Stopwatch()..start();
+    final cachedCount = _items.length;
+    debugPrint('[MyTrips] controller load started cachedCount=$cachedCount');
     _isLoading = true;
     _errorKey = null;
     notifyListeners();
     try {
       _items = await repository.getMyChecklists();
+      debugPrint(
+        '[MyTrips] controller load completed '
+        'count=${_items.length} elapsed=${stopwatch.elapsedMilliseconds}ms',
+      );
     } catch (_) {
       _errorKey = 'checklistLoadFailed';
+      debugPrint(
+        '[MyTrips] controller load failed '
+        'elapsed=${stopwatch.elapsedMilliseconds}ms',
+      );
     } finally {
       _isLoading = false;
       notifyListeners();

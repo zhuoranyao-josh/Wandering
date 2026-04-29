@@ -1,51 +1,94 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:flutter/foundation.dart';
 
 import '../../../../core/error/app_exception.dart';
 import '../../domain/entities/checklist_detail.dart';
 import '../../domain/entities/checklist_item.dart';
 import '../../domain/entities/journey_basic_info_input.dart';
 import 'checklist_remote_data_source.dart';
-import 'mock_checklist_plan_generator.dart';
+import 'gemini_planning_remote_data_source.dart';
+import 'google_places_remote_data_source.dart';
 
 class FirebaseChecklistRemoteDataSource implements ChecklistRemoteDataSource {
   FirebaseChecklistRemoteDataSource({
     required this.firestore,
     required this.firebaseAuth,
+    required this.geminiPlanningRemoteDataSource,
+    required this.googlePlacesRemoteDataSource,
   });
 
   final FirebaseFirestore firestore;
   final FirebaseAuth firebaseAuth;
-  final MockChecklistPlanGenerator _generator =
-      const MockChecklistPlanGenerator();
+  final GeminiPlanningRemoteDataSource geminiPlanningRemoteDataSource;
+  final GooglePlacesRemoteDataSource googlePlacesRemoteDataSource;
+
+  void _log(String message) {
+    debugPrint('[ChecklistPlan] $message');
+  }
 
   @override
   Future<List<ChecklistItem>> getMyChecklists() async {
+    final stopwatch = Stopwatch()..start();
     try {
       final userId = firebaseAuth.currentUser?.uid;
+      debugPrint(
+        '[MyTrips] auth user ready '
+        'elapsed=${stopwatch.elapsedMilliseconds}ms '
+        'hasUser=${userId != null && userId.trim().isNotEmpty}',
+      );
       if (userId == null || userId.trim().isEmpty) {
         return const <ChecklistItem>[];
       }
 
+      debugPrint(
+        '[MyTrips] query started userId=${_maskUserId(userId)} '
+        'scope=users/{uid}/checklists orderBy=none limit=none',
+      );
+      final queryStopwatch = Stopwatch()..start();
       final snapshot = await firestore
           .collection('users')
           .doc(userId)
           .collection('checklists')
           .get();
+      final payloadStats = _summarizeChecklistPayload(snapshot.docs);
+      debugPrint(
+        '[MyTrips] query completed count=${snapshot.docs.length} '
+        'elapsed=${queryStopwatch.elapsedMilliseconds}ms '
+        'docsWithItems=${payloadStats.docsWithItems} '
+        'totalItems=${payloadStats.totalItems} '
+        'docsWithEssentials=${payloadStats.docsWithEssentials} '
+        'totalEssentials=${payloadStats.totalEssentials} '
+        'docsWithProTip=${payloadStats.docsWithProTip} '
+        'docsWithBudgetSplit=${payloadStats.docsWithBudgetSplit}',
+      );
 
+      final mappingStopwatch = Stopwatch()..start();
       final items = snapshot.docs
           .map((doc) => _mapChecklistItem(doc.id, doc.data()))
           .toList(growable: false);
 
       if (items.isEmpty) {
+        debugPrint(
+          '[MyTrips] mapping completed '
+          'elapsed=${mappingStopwatch.elapsedMilliseconds}ms',
+        );
         return const <ChecklistItem>[];
       }
 
-      final coverImageMap = await _loadCoverImages(
-        items
-            .map((item) => item.placeId.trim())
-            .where((placeId) => placeId.isNotEmpty)
-            .toSet(),
+      final placeIds = items
+          .map((item) => item.placeId.trim())
+          .where((placeId) => placeId.isNotEmpty)
+          .toSet();
+      debugPrint(
+        '[MyTrips] cover image doc lookup started count=${placeIds.length}',
+      );
+      final coverImageStopwatch = Stopwatch()..start();
+      final coverImageMap = await _loadCoverImages(placeIds);
+      debugPrint(
+        '[MyTrips] cover image doc lookup completed '
+        'count=${coverImageMap.length} '
+        'elapsed=${coverImageStopwatch.elapsedMilliseconds}ms',
       );
 
       final enrichedItems = items
@@ -69,6 +112,11 @@ class FirebaseChecklistRemoteDataSource implements ChecklistRemoteDataSource {
         }
         return left.destination.compareTo(right.destination);
       });
+      debugPrint(
+        '[MyTrips] mapping completed '
+        'elapsed=${mappingStopwatch.elapsedMilliseconds}ms '
+        'totalElapsed=${stopwatch.elapsedMilliseconds}ms',
+      );
       return enrichedItems;
     } catch (_) {
       throw AppException('checklist_load_failed');
@@ -111,7 +159,7 @@ class FirebaseChecklistRemoteDataSource implements ChecklistRemoteDataSource {
         return detail.copyWith(items: _sortItems(detail.items));
       }
 
-      // 优先兼容 journey 子集合，便于后续迁移到正式链路。
+      // 优先兼容 journey 子集合，便于后续逐步迁移到正式链路。
       final itemsFromJourney = await _loadJourneyChecklistItems(doc.id);
       if (itemsFromJourney.isEmpty) {
         return detail;
@@ -200,50 +248,64 @@ class FirebaseChecklistRemoteDataSource implements ChecklistRemoteDataSource {
 
   @override
   Future<void> generateChecklistPlan(String checklistId) async {
+    final trimmedId = checklistId.trim();
     try {
-      final userId = firebaseAuth.currentUser?.uid;
-      if (userId == null || userId.trim().isEmpty) {
-        throw AppException('checklist_generate_failed');
-      }
-
-      final trimmedId = checklistId.trim();
+      _log('repository generateChecklistPlan started checklistId=$trimmedId');
       final checklistRef = _resolveChecklistCollection().doc(trimmedId);
       final checklistDoc = await checklistRef.get();
-      if (!checklistDoc.exists || checklistDoc.data() == null) {
-        throw AppException('checklist_generate_failed');
+      final checklistData = checklistDoc.data();
+      if (!checklistDoc.exists || checklistData == null) {
+        _log('checklist document not found checklistId=$trimmedId');
+        throw AppException('Checklist document not found.');
       }
 
-      final detail = _mapChecklistDetail(checklistDoc.id, checklistDoc.data()!);
-      final result = _generator.generate(journeyId: trimmedId, detail: detail);
-      final items = _sortItems(result.items);
-      final now = FieldValue.serverTimestamp();
-
-      final journeyItemsCollection = firestore
-          .collection('users')
-          .doc(userId)
-          .collection('journeys')
-          .doc(trimmedId)
-          .collection('checklistItems');
-
-      final batch = firestore.batch();
-      for (final item in items) {
-        batch.set(journeyItemsCollection.doc(item.id), <String, dynamic>{
-          ..._toItemJson(item),
-          'createdAt': now,
-          'updatedAt': now,
-        }, SetOptions(merge: true));
+      final detail = await _mapChecklistDetailAsync(
+        checklistDoc.id,
+        checklistData,
+      );
+      final input = _buildGeminiPlanningInput(detail);
+      if (input == null) {
+        await _updatePlanningStatus(checklistRef, 'failed');
+        throw AppException('Missing required planning fields.');
       }
 
-      batch.set(checklistRef, <String, dynamic>{
-        'items': items.map(_toItemJson).toList(growable: false),
-        'budgetSplit': _toBudgetSplitJson(result.budgetSplit),
-        'planningStatus': 'planned',
-        'basicInfoCompleted': true,
-        'updatedAt': now,
+      await _updatePlanningStatus(checklistRef, 'generating');
+
+      GeminiGeneratedPlan generatedPlan;
+      try {
+        generatedPlan = await geminiPlanningRemoteDataSource.generatePlan(
+          input: input,
+        );
+      } catch (error) {
+        _log('Gemini generation failed error=$error');
+        await _updatePlanningStatus(checklistRef, 'failed');
+        rethrow;
+      }
+
+      final generatedItems = await _buildGeneratedItems(
+        detail: detail,
+        input: input,
+        generatedPlan: generatedPlan,
+      );
+
+      _log('saving generated plan checklistId=$trimmedId');
+      await checklistRef.set(<String, dynamic>{
+        'budgetSplit': _toBudgetSplitJson(generatedPlan.budgetSplit),
+        'essentials': generatedPlan.essentials
+            .map(_toEssentialJson)
+            .toList(growable: false),
+        'proTip': _toProTipJson(generatedPlan.proTip),
+        'items': generatedItems.map(_toItemJson).toList(growable: false),
+        'planningStatus': 'completed',
+        'aiGenerated': true,
+        'updatedAt': FieldValue.serverTimestamp(),
       }, SetOptions(merge: true));
-
-      await batch.commit();
-    } catch (_) {
+      _log('save success checklistId=$trimmedId');
+    } catch (error) {
+      _log('save failed checklistId=$trimmedId error=$error');
+      if (error is AppException) {
+        rethrow;
+      }
       throw AppException('checklist_generate_failed');
     }
   }
@@ -346,8 +408,588 @@ class FirebaseChecklistRemoteDataSource implements ChecklistRemoteDataSource {
 
   @override
   Future<void> updatePlan(String checklistId) async {
-    // 兼容旧调用：直接复用新的 mock 生成链路。
+    // 兼容旧调用：统一复用真实链路，不再触发 mock 生成。
     await generateChecklistPlan(checklistId);
+  }
+
+  GeminiPlanningInput? _buildGeminiPlanningInput(ChecklistDetail detail) {
+    final placeId = detail.placeId?.trim() ?? '';
+    final destination = detail.destination.trim();
+    final departureCity = detail.departureCity?.trim() ?? '';
+    final startDate = detail.startDate;
+    final endDate = detail.endDate;
+    final tripDays = detail.tripDays;
+    final nightCount = detail.nightCount;
+    final travelerCount = detail.travelerCount;
+    final totalBudget = detail.totalBudget;
+    final currency = detail.currency?.trim() ?? '';
+    final pace = detail.pace?.trim() ?? '';
+    final accommodationPreference =
+        detail.accommodationPreference?.trim() ?? '';
+    final latitude = detail.latitude;
+    final longitude = detail.longitude;
+    final missingFields = <String>[];
+
+    if (destination.isEmpty) {
+      missingFields.add('destination');
+    }
+    if (departureCity.isEmpty) {
+      missingFields.add('departureCity');
+    }
+    if (startDate == null) {
+      missingFields.add('startDate');
+    }
+    if (endDate == null) {
+      missingFields.add('endDate');
+    }
+    if (tripDays == null || tripDays <= 0) {
+      missingFields.add('tripDays');
+    }
+    if (nightCount == null) {
+      missingFields.add('nightCount');
+    }
+    if (travelerCount == null || travelerCount <= 0) {
+      missingFields.add('travelerCount');
+    }
+    if (totalBudget == null || totalBudget <= 0) {
+      missingFields.add('totalBudget');
+    }
+    if (currency.isEmpty) {
+      missingFields.add('currency');
+    }
+    if (latitude == null) {
+      missingFields.add('latitude');
+    }
+    if (longitude == null) {
+      missingFields.add('longitude');
+    }
+
+    // 关键字段不完整时直接失败，避免调用外部 API 浪费额度。
+    if (placeId.isEmpty ||
+        destination.isEmpty ||
+        departureCity.isEmpty ||
+        startDate == null ||
+        endDate == null ||
+        tripDays == null ||
+        tripDays <= 0 ||
+        nightCount == null ||
+        travelerCount == null ||
+        travelerCount <= 0 ||
+        totalBudget == null ||
+        totalBudget <= 0 ||
+        currency.isEmpty ||
+        pace.isEmpty ||
+        accommodationPreference.isEmpty ||
+        latitude == null ||
+        longitude == null ||
+        detail.preferences.isEmpty) {
+      for (final field in missingFields) {
+        _log('missing required field=$field');
+      }
+      if (placeId.isEmpty) {
+        _log('missing required field=placeId');
+      }
+      if (pace.isEmpty) {
+        _log('missing required field=pace');
+      }
+      if (accommodationPreference.isEmpty) {
+        _log('missing required field=accommodationPreference');
+      }
+      if (detail.preferences.isEmpty) {
+        _log('missing required field=preferences');
+      }
+      return null;
+    }
+
+    return GeminiPlanningInput(
+      id: detail.id,
+      destination: destination,
+      placeId: placeId,
+      latitude: latitude,
+      longitude: longitude,
+      departureCity: departureCity,
+      startDate: startDate,
+      endDate: endDate,
+      tripDays: tripDays,
+      nightCount: nightCount,
+      travelerCount: travelerCount,
+      totalBudget: totalBudget,
+      currency: currency,
+      currencySymbol: _resolveCurrencySymbol(
+        currency: detail.currency,
+        currencySymbol: detail.currencySymbol,
+      ),
+      preferences: detail.preferences,
+      pace: pace,
+      accommodationPreference: accommodationPreference,
+    );
+  }
+
+  Future<List<ChecklistDetailItem>> _buildGeneratedItems({
+    required ChecklistDetail detail,
+    required GeminiPlanningInput input,
+    required GeminiGeneratedPlan generatedPlan,
+  }) async {
+    final items = <ChecklistDetailItem>[];
+    var flightItemCount = 0;
+    final flightItem = _buildFlightItem(
+      input: input,
+      flight: generatedPlan.flight,
+    );
+    items.add(flightItem);
+    flightItemCount = 1;
+
+    final hotelItems = await _buildHotelItems(
+      input: input,
+      candidates: generatedPlan.hotelCandidates,
+      startingOrder: items.length,
+    );
+    items.addAll(hotelItems);
+
+    final restaurantItems = await _buildPlaceItems(
+      input: input,
+      queries: generatedPlan.restaurantQueries,
+      type: 'restaurant',
+      groupType: 'food',
+      startingOrder: items.length,
+    );
+    items.addAll(restaurantItems);
+
+    final activityItems = await _buildPlaceItems(
+      input: input,
+      queries: generatedPlan.activityQueries,
+      type: 'activity',
+      groupType: 'activity',
+      startingOrder: items.length,
+    );
+    items.addAll(activityItems);
+
+    _log('flight item count=$flightItemCount');
+    _log('hotel item count=${hotelItems.length}');
+    _log('restaurant item count=${restaurantItems.length}');
+    _log('activity item count=${activityItems.length}');
+    _log('total items count=${items.length}');
+    for (final item in items) {
+      _log(
+        'item type=${item.type ?? ''} groupType=${item.groupType} '
+        'title=${item.title} dayIndex=${item.dayIndex} '
+        'displayOrder=${item.displayOrder}',
+      );
+    }
+
+    return items;
+  }
+
+  ChecklistDetailItem _buildFlightItem({
+    required GeminiPlanningInput input,
+    required GeminiFlightPlan? flight,
+  }) {
+    final fallbackUrl = _buildGoogleFlightsSearchUrl(input);
+    if (flight == null) {
+      return ChecklistDetailItem(
+        id: _buildItemId(prefix: 'flight', order: 0),
+        groupType: 'transportation',
+        title: 'Search flights',
+        subtitle: '${input.departureCity} -> ${input.destination}',
+        isCompleted: false,
+        type: 'flight',
+        estimatedPriceMin: null,
+        estimatedPriceMax: null,
+        estimatedCostMin: null,
+        estimatedCostMax: null,
+        costUnit: 'per_ticket',
+        currency: input.currency,
+        routeText: '${input.departureCity} -> ${input.destination}',
+        suggestedAirports: const <String>[],
+        providerName: 'Google Flights',
+        externalUrl: fallbackUrl,
+        dataSource: 'fallback',
+        status: 'suggested',
+        displayOrder: 0,
+        dayIndex: 0,
+        departureAirport: input.departureCity,
+        arrivalAirport: input.destination,
+      );
+    }
+
+    final airline = flight.airline?.trim() ?? '';
+    final flightNumber = flight.flightNumber?.trim() ?? '';
+    final composedTitle = [
+      airline,
+      flightNumber,
+    ].where((value) => value.isNotEmpty).join(' ').trim();
+    final departureAirport = flight.departureAirport?.trim() ?? '';
+    final arrivalAirport = flight.arrivalAirport?.trim() ?? '';
+    final subtitle = departureAirport.isNotEmpty && arrivalAirport.isNotEmpty
+        ? '$departureAirport -> $arrivalAirport'
+        : '${input.departureCity} -> ${input.destination}';
+    final routeText = _buildFlightRouteText(
+      flight: flight,
+      fallbackDeparture: input.departureCity,
+      fallbackArrival: input.destination,
+    );
+    final suggestedAirports = <String>{
+      ...flight.suggestedAirports,
+      if (departureAirport.isNotEmpty) departureAirport,
+      if (arrivalAirport.isNotEmpty) arrivalAirport,
+    }.toList(growable: false);
+    final resolvedTitle = composedTitle.isNotEmpty
+        ? composedTitle
+        : (flight.title.trim().isNotEmpty
+              ? flight.title.trim()
+              : 'Google Flights');
+
+    return ChecklistDetailItem(
+      id: _buildItemId(prefix: 'flight', order: 0),
+      groupType: 'transportation',
+      title: resolvedTitle,
+      subtitle: subtitle.isNotEmpty
+          ? subtitle
+          : '${input.departureCity} -> ${input.destination}',
+      isCompleted: false,
+      type: 'flight',
+      estimatedPriceMin: flight.estimatedCostMin,
+      estimatedPriceMax: flight.estimatedCostMax,
+      estimatedCostMin: flight.estimatedCostMin,
+      estimatedCostMax: flight.estimatedCostMax,
+      costUnit: 'per_ticket',
+      currency: flight.currency,
+      routeText: routeText,
+      suggestedAirports: suggestedAirports,
+      providerName: 'Google Flights',
+      externalUrl: (flight.externalUrl ?? '').trim().isNotEmpty
+          ? flight.externalUrl!.trim()
+          : fallbackUrl,
+      dataSource: 'gemini',
+      status: 'suggested',
+      displayOrder: 0,
+      dayIndex: 0,
+      budgetWarning: flight.budgetWarning,
+      airline: airline.isNotEmpty ? airline : null,
+      flightNumber: flightNumber.isNotEmpty ? flightNumber : null,
+      departureAirport: departureAirport.isNotEmpty ? departureAirport : null,
+      arrivalAirport: arrivalAirport.isNotEmpty ? arrivalAirport : null,
+      departureTime: flight.departureTime?.trim(),
+      arrivalTime: flight.arrivalTime?.trim(),
+      departureDate: flight.departureDate?.trim(),
+      arrivalDate: flight.arrivalDate?.trim(),
+    );
+  }
+
+  Future<List<ChecklistDetailItem>> _buildHotelItems({
+    required GeminiPlanningInput input,
+    required List<GeminiHotelCandidate> candidates,
+    required int startingOrder,
+  }) async {
+    final items = <ChecklistDetailItem>[];
+    for (final candidate in candidates.take(3)) {
+      final order = startingOrder + items.length;
+      final fallbackItem = _buildFallbackHotelItem(
+        input: input,
+        candidate: candidate,
+        order: order,
+      );
+      try {
+        final place = await googlePlacesRemoteDataSource.searchHotelByName(
+          hotelName: candidate.name,
+          destination: input.destination,
+          latitude: input.latitude,
+          longitude: input.longitude,
+        );
+        if (place == null || place.placeId.trim().isEmpty) {
+          _log('hotel enrich skipped name=${candidate.name}');
+          items.add(fallbackItem);
+          continue;
+        }
+
+        items.add(
+          fallbackItem.copyWith(
+            title: place.name,
+            subtitle: place.address,
+            providerName: 'Google Places',
+            externalUrl: place.googleMapsUrl,
+            dataSource: 'gemini_google_places',
+            googlePlaceId: place.placeId,
+            address: place.address,
+            photoUrl: place.photoUrl,
+            latitude: place.latitude,
+            longitude: place.longitude,
+            rating: place.rating,
+            googleMapsUrl: place.googleMapsUrl,
+          ),
+        );
+      } catch (error) {
+        _log('hotel enrich failed name=${candidate.name} error=$error');
+        items.add(fallbackItem);
+      }
+    }
+    _log('hotel deduped count=${items.length}');
+    _log('hotel final kept count=${items.length}');
+    return items;
+  }
+
+  Future<List<ChecklistDetailItem>> _buildPlaceItems({
+    required GeminiPlanningInput input,
+    required List<GeminiPlaceQuery> queries,
+    required String type,
+    required String groupType,
+    required int startingOrder,
+  }) async {
+    if (queries.isEmpty) {
+      _log('$type query list empty');
+      return const <ChecklistDetailItem>[];
+    }
+
+    final dayIndexes = _buildEvenDayIndexes(
+      totalCount: queries.length,
+      tripDays: input.tripDays,
+    );
+    final seenPlaceIds = <String>{};
+    final items = <ChecklistDetailItem>[];
+
+    for (var index = 0; index < queries.length; index++) {
+      final query = queries[index];
+      final order = startingOrder + items.length;
+      final resolvedDayIndex = _resolveDayIndex(
+        rawDayIndex: query.dayIndex,
+        fallbackDayIndex: dayIndexes[index],
+        tripDays: input.tripDays,
+      );
+      final fallbackItem = _buildFallbackSearchItem(
+        input: input,
+        query: query,
+        type: type,
+        groupType: groupType,
+        order: order,
+        dayIndex: resolvedDayIndex,
+      );
+      try {
+        final places = await googlePlacesRemoteDataSource.searchPlacesByText(
+          query: query.query,
+          type: type,
+          latitude: input.latitude,
+          longitude: input.longitude,
+          limit: 1,
+        );
+        if (places.isEmpty) {
+          _log('$type query returned 0 results query=${query.query}');
+          items.add(fallbackItem);
+          continue;
+        }
+
+        final place = places.first;
+        final placeId = place.placeId.trim();
+        if (placeId.isEmpty || seenPlaceIds.contains(placeId)) {
+          _log(
+            '$type query skipped duplicateOrEmpty placeId=$placeId query=${query.query}',
+          );
+          items.add(fallbackItem);
+          continue;
+        }
+        seenPlaceIds.add(placeId);
+
+        items.add(
+          fallbackItem.copyWith(
+            title: place.name,
+            subtitle: place.address,
+            providerName: 'Google Places',
+            externalUrl: place.googleMapsUrl,
+            dataSource: 'google_places',
+            googlePlaceId: placeId,
+            address: place.address,
+            photoUrl: place.photoUrl,
+            latitude: place.latitude,
+            longitude: place.longitude,
+            rating: place.rating,
+            googleMapsUrl: place.googleMapsUrl,
+          ),
+        );
+      } catch (error) {
+        _log('$type enrich failed query=${query.query} error=$error');
+        items.add(fallbackItem);
+      }
+    }
+
+    _log('$type deduped count=${seenPlaceIds.length}');
+    _log('$type final kept count=${items.length}');
+
+    return items;
+  }
+
+  ChecklistDetailItem _buildFallbackHotelItem({
+    required GeminiPlanningInput input,
+    required GeminiHotelCandidate candidate,
+    required int order,
+  }) {
+    return ChecklistDetailItem(
+      id: _buildItemId(prefix: 'hotel', order: order),
+      groupType: 'stay',
+      title: candidate.name,
+      subtitle: candidate.matchPreference,
+      isCompleted: false,
+      type: 'hotel',
+      estimatedCostMin: candidate.expectedCostMin,
+      estimatedCostMax: candidate.expectedCostMax,
+      costUnit: candidate.costUnit,
+      currency: input.currency,
+      routeText: _joinNonEmptyText(<String?>[
+        candidate.reason,
+        candidate.matchPreference,
+      ], separator: ' · '),
+      providerName: 'Google Places',
+      dataSource: 'gemini',
+      status: 'suggested',
+      displayOrder: order,
+      dayIndex: 0,
+      budgetWarning: candidate.budgetWarning,
+    );
+  }
+
+  ChecklistDetailItem _buildFallbackSearchItem({
+    required GeminiPlanningInput input,
+    required GeminiPlaceQuery query,
+    required String type,
+    required String groupType,
+    required int order,
+    required int dayIndex,
+  }) {
+    return ChecklistDetailItem(
+      id: _buildItemId(prefix: type, order: order),
+      groupType: groupType,
+      title: query.query,
+      subtitle: null,
+      isCompleted: false,
+      type: type,
+      estimatedCostMin: query.estimatedCostMin,
+      estimatedCostMax: query.estimatedCostMax,
+      costUnit: query.costUnit,
+      currency: input.currency,
+      routeText: query.query,
+      providerName: 'Google Places',
+      dataSource: 'gemini',
+      status: 'suggested',
+      displayOrder: order,
+      dayIndex: dayIndex,
+    );
+  }
+
+  List<int> _buildEvenDayIndexes({
+    required int totalCount,
+    required int tripDays,
+  }) {
+    if (totalCount <= 0 || tripDays <= 0) {
+      return const <int>[];
+    }
+    return List<int>.generate(
+      totalCount,
+      (index) => ((index * tripDays) ~/ totalCount) + 1,
+      growable: false,
+    );
+  }
+
+  int _resolveDayIndex({
+    required int? rawDayIndex,
+    required int fallbackDayIndex,
+    required int tripDays,
+  }) {
+    final candidate = rawDayIndex ?? fallbackDayIndex;
+    if (candidate < 1) {
+      return 1;
+    }
+    if (candidate > tripDays) {
+      return tripDays;
+    }
+    return candidate;
+  }
+
+  Future<void> _updatePlanningStatus(
+    DocumentReference<Map<String, dynamic>> checklistRef,
+    String planningStatus,
+  ) {
+    _log('planningStatus changed -> $planningStatus');
+    return checklistRef.set(<String, dynamic>{
+      'planningStatus': planningStatus,
+      'updatedAt': FieldValue.serverTimestamp(),
+    }, SetOptions(merge: true));
+  }
+
+  String _buildItemId({required String prefix, required int order}) {
+    return '${prefix}_${DateTime.now().microsecondsSinceEpoch}_$order';
+  }
+
+  String _buildFlightRouteText({
+    required GeminiFlightPlan flight,
+    required String fallbackDeparture,
+    required String fallbackArrival,
+  }) {
+    return _joinNonEmptyText(<String?>[
+      _joinNonEmptyText(<String?>[
+        flight.departureDate,
+        flight.departureTime,
+      ], separator: ' '),
+      _joinNonEmptyText(<String?>[
+        flight.departureAirport ?? fallbackDeparture,
+        flight.arrivalAirport ?? fallbackArrival,
+      ], separator: ' -> '),
+      _joinNonEmptyText(<String?>[
+        flight.arrivalDate,
+        flight.arrivalTime,
+      ], separator: ' '),
+    ], separator: ' · ');
+  }
+
+  String _buildGoogleFlightsSearchUrl(GeminiPlanningInput input) {
+    final query = _joinNonEmptyText(<String>[
+      'Flights',
+      'from',
+      input.departureCity,
+      'to',
+      input.destination,
+      'departing',
+      _formatDate(input.startDate),
+      'returning',
+      _formatDate(input.endDate),
+    ], separator: ' ');
+    return Uri.https('www.google.com', '/travel/flights', <String, String>{
+      'q': query,
+    }).toString();
+  }
+
+  String _formatDate(DateTime value) {
+    final year = value.year.toString().padLeft(4, '0');
+    final month = value.month.toString().padLeft(2, '0');
+    final day = value.day.toString().padLeft(2, '0');
+    return '$year-$month-$day';
+  }
+
+  String _joinNonEmptyText(Iterable<String?> parts, {String separator = ' '}) {
+    return parts
+        .map((item) => item?.trim() ?? '')
+        .where((item) => item.isNotEmpty)
+        .join(separator);
+  }
+
+  String _resolveCurrencySymbol({
+    required String? currency,
+    required String? currencySymbol,
+  }) {
+    final trimmedSymbol = currencySymbol?.trim() ?? '';
+    if (trimmedSymbol.isNotEmpty) {
+      return trimmedSymbol;
+    }
+
+    switch ((currency ?? '').trim().toUpperCase()) {
+      case 'USD':
+        return '\$';
+      case 'EUR':
+        return '\u20AC';
+      case 'GBP':
+        return '\u00A3';
+      case 'JPY':
+      case 'CNY':
+      default:
+        return '\u00A5';
+    }
   }
 
   @override
@@ -519,6 +1161,97 @@ class FirebaseChecklistRemoteDataSource implements ChecklistRemoteDataSource {
     return firestore.collection('users').doc(userId).collection('checklists');
   }
 
+  // 统计列表查询中是否夹带了 detail 级字段，便于定位首屏慢来源。
+  ({
+    int docsWithItems,
+    int totalItems,
+    int docsWithEssentials,
+    int totalEssentials,
+    int docsWithProTip,
+    int docsWithBudgetSplit,
+  })
+  _summarizeChecklistPayload(
+    Iterable<QueryDocumentSnapshot<Map<String, dynamic>>> docs,
+  ) {
+    var docsWithItems = 0;
+    var totalItems = 0;
+    var docsWithEssentials = 0;
+    var totalEssentials = 0;
+    var docsWithProTip = 0;
+    var docsWithBudgetSplit = 0;
+
+    for (final doc in docs) {
+      final data = doc.data();
+      final itemCount = _readListLength(data['items']);
+      final essentialsCount = _readListLength(data['essentials']);
+      if (itemCount > 0) {
+        docsWithItems++;
+        totalItems += itemCount;
+      }
+      if (essentialsCount > 0) {
+        docsWithEssentials++;
+        totalEssentials += essentialsCount;
+      }
+      if (_hasProTipPayload(data)) {
+        docsWithProTip++;
+      }
+      if (_hasBudgetSplitPayload(data)) {
+        docsWithBudgetSplit++;
+      }
+    }
+
+    return (
+      docsWithItems: docsWithItems,
+      totalItems: totalItems,
+      docsWithEssentials: docsWithEssentials,
+      totalEssentials: totalEssentials,
+      docsWithProTip: docsWithProTip,
+      docsWithBudgetSplit: docsWithBudgetSplit,
+    );
+  }
+
+  int _readListLength(Object? value) {
+    if (value is List) {
+      return value.length;
+    }
+    return 0;
+  }
+
+  bool _hasProTipPayload(Map<String, dynamic> data) {
+    final raw = data['proTip'];
+    if (raw is Map && raw.isNotEmpty) {
+      return true;
+    }
+    return ((data['tipTitle'] as String?)?.trim().isNotEmpty ?? false) ||
+        ((data['tipDescription'] as String?)?.trim().isNotEmpty ?? false);
+  }
+
+  bool _hasBudgetSplitPayload(Map<String, dynamic> data) {
+    final raw = data['budgetSplit'];
+    if (raw is Map && raw.isNotEmpty) {
+      return true;
+    }
+    return data['transportRatio'] != null ||
+        data['stayRatio'] != null ||
+        data['foodActivityRatio'] != null ||
+        data['flightBudgetMax'] != null ||
+        data['remainingBudget'] != null ||
+        data['hotelBudget'] != null ||
+        data['foodBudget'] != null ||
+        data['activityBudget'] != null ||
+        data['localTransportBudget'] != null ||
+        data['bufferBudget'] != null ||
+        ((data['budgetWarning'] as String?)?.trim().isNotEmpty ?? false);
+  }
+
+  String _maskUserId(String userId) {
+    final trimmed = userId.trim();
+    if (trimmed.length <= 6) {
+      return '***';
+    }
+    return '${trimmed.substring(0, 3)}***${trimmed.substring(trimmed.length - 2)}';
+  }
+
   ChecklistBudgetSplit? _readBudgetSplit(Map<String, dynamic> data) {
     final rawBudgetSplit = data['budgetSplit'];
     if (rawBudgetSplit is Map) {
@@ -638,8 +1371,24 @@ class FirebaseChecklistRemoteDataSource implements ChecklistRemoteDataSource {
           status: (map['status'] as String?)?.trim(),
           displayOrder: _readInt(map['displayOrder']),
           dayIndex: _readInt(map['dayIndex']),
-          estimatedPriceText: (map['estimatedPriceText'] as String?)?.trim(),
           budgetWarning: (map['budgetWarning'] as String?)?.trim(),
+          googlePlaceId:
+              (map['googlePlaceId'] as String?)?.trim() ??
+              (map['placeId'] as String?)?.trim(),
+          address: (map['address'] as String?)?.trim(),
+          photoUrl: (map['photoUrl'] as String?)?.trim(),
+          latitude: _readDouble(map['latitude']),
+          longitude: _readDouble(map['longitude']),
+          rating: _readDouble(map['rating']),
+          googleMapsUrl: (map['googleMapsUrl'] as String?)?.trim(),
+          airline: (map['airline'] as String?)?.trim(),
+          flightNumber: (map['flightNumber'] as String?)?.trim(),
+          departureAirport: (map['departureAirport'] as String?)?.trim(),
+          arrivalAirport: (map['arrivalAirport'] as String?)?.trim(),
+          departureTime: (map['departureTime'] as String?)?.trim(),
+          arrivalTime: (map['arrivalTime'] as String?)?.trim(),
+          departureDate: (map['departureDate'] as String?)?.trim(),
+          arrivalDate: (map['arrivalDate'] as String?)?.trim(),
         ),
       );
     }
@@ -670,8 +1419,41 @@ class FirebaseChecklistRemoteDataSource implements ChecklistRemoteDataSource {
       'status': item.status,
       'displayOrder': item.displayOrder,
       'dayIndex': item.dayIndex,
-      'estimatedPriceText': item.estimatedPriceText,
       'budgetWarning': item.budgetWarning,
+      'googlePlaceId': item.googlePlaceId,
+      'address': item.address,
+      'photoUrl': item.photoUrl,
+      'latitude': item.latitude,
+      'longitude': item.longitude,
+      'rating': item.rating,
+      'googleMapsUrl': item.googleMapsUrl,
+      'airline': item.airline,
+      'flightNumber': item.flightNumber,
+      'departureAirport': item.departureAirport,
+      'arrivalAirport': item.arrivalAirport,
+      'departureTime': item.departureTime,
+      'arrivalTime': item.arrivalTime,
+      'departureDate': item.departureDate,
+      'arrivalDate': item.arrivalDate,
+    };
+  }
+
+  Map<String, dynamic>? _toProTipJson(ChecklistProTip? proTip) {
+    if (proTip == null || proTip.isEmpty) {
+      return null;
+    }
+    return <String, dynamic>{
+      'tipTitle': proTip.tipTitle,
+      'tipDescription': proTip.tipDescription,
+    };
+  }
+
+  Map<String, dynamic> _toEssentialJson(ChecklistEssential essential) {
+    return <String, dynamic>{
+      'iconType': essential.iconType,
+      'title': essential.title,
+      'mainText': essential.mainText,
+      'subText': essential.subText,
     };
   }
 
@@ -740,8 +1522,24 @@ class FirebaseChecklistRemoteDataSource implements ChecklistRemoteDataSource {
       status: (data['status'] as String?)?.trim(),
       displayOrder: _readInt(data['displayOrder']),
       dayIndex: _readInt(data['dayIndex']),
-      estimatedPriceText: (data['estimatedPriceText'] as String?)?.trim(),
       budgetWarning: (data['budgetWarning'] as String?)?.trim(),
+      googlePlaceId:
+          (data['googlePlaceId'] as String?)?.trim() ??
+          (data['placeId'] as String?)?.trim(),
+      address: (data['address'] as String?)?.trim(),
+      photoUrl: (data['photoUrl'] as String?)?.trim(),
+      latitude: _readDouble(data['latitude']),
+      longitude: _readDouble(data['longitude']),
+      rating: _readDouble(data['rating']),
+      googleMapsUrl: (data['googleMapsUrl'] as String?)?.trim(),
+      airline: (data['airline'] as String?)?.trim(),
+      flightNumber: (data['flightNumber'] as String?)?.trim(),
+      departureAirport: (data['departureAirport'] as String?)?.trim(),
+      arrivalAirport: (data['arrivalAirport'] as String?)?.trim(),
+      departureTime: (data['departureTime'] as String?)?.trim(),
+      arrivalTime: (data['arrivalTime'] as String?)?.trim(),
+      departureDate: (data['departureDate'] as String?)?.trim(),
+      arrivalDate: (data['arrivalDate'] as String?)?.trim(),
     );
   }
 

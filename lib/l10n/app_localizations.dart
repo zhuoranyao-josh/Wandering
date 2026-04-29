@@ -1361,6 +1361,48 @@ abstract class AppLocalizations {
   /// **'Use your first booking decisions on transport and stay, then shape food and attraction plans around those fixed anchors.'**
   String get checklistProTipMockDescription;
 
+  /// No description provided for @checklistPriceAbout.
+  ///
+  /// In en, this message translates to:
+  /// **'About'**
+  String get checklistPriceAbout;
+
+  /// No description provided for @checklistPriceUnavailable.
+  ///
+  /// In en, this message translates to:
+  /// **'Price unavailable'**
+  String get checklistPriceUnavailable;
+
+  /// No description provided for @checklistPriceFree.
+  ///
+  /// In en, this message translates to:
+  /// **'Free'**
+  String get checklistPriceFree;
+
+  /// No description provided for @checklistPriceUnitPerson.
+  ///
+  /// In en, this message translates to:
+  /// **'person'**
+  String get checklistPriceUnitPerson;
+
+  /// No description provided for @checklistPriceUnitMeal.
+  ///
+  /// In en, this message translates to:
+  /// **'meal'**
+  String get checklistPriceUnitMeal;
+
+  /// No description provided for @checklistPriceUnitTicket.
+  ///
+  /// In en, this message translates to:
+  /// **'ticket'**
+  String get checklistPriceUnitTicket;
+
+  /// No description provided for @checklistPriceUnitNight.
+  ///
+  /// In en, this message translates to:
+  /// **'night'**
+  String get checklistPriceUnitNight;
+
   /// No description provided for @checklistChecklist.
   ///
   /// In en, this message translates to:

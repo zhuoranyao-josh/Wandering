@@ -650,6 +650,27 @@ class AppLocalizationsZh extends AppLocalizations {
   String get checklistProTipMockDescription => '可以先确定交通和住宿，再围绕这些固定锚点去安排餐厅、景点和弹性时间。';
 
   @override
+  String get checklistPriceAbout => '约';
+
+  @override
+  String get checklistPriceUnavailable => '价格暂无';
+
+  @override
+  String get checklistPriceFree => '免费';
+
+  @override
+  String get checklistPriceUnitPerson => '人';
+
+  @override
+  String get checklistPriceUnitMeal => '餐';
+
+  @override
+  String get checklistPriceUnitTicket => '票';
+
+  @override
+  String get checklistPriceUnitNight => '晚';
+
+  @override
   String get checklistChecklist => '执行清单';
 
   @override

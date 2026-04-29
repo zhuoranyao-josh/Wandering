@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
-
 import '../../../../l10n/app_localizations.dart';
 import '../../domain/entities/checklist_detail.dart';
+import '../support/checklist_price_formatter.dart';
 
 class ChecklistItemTile extends StatelessWidget {
   const ChecklistItemTile({
@@ -32,10 +32,10 @@ class ChecklistItemTile extends StatelessWidget {
       return _buildTransportFlightTile(t);
     }
     if (_isHotelStayItem(item)) {
-      return _buildHotelStayTile();
+      return _buildHotelStayTile(t);
     }
     if (_isFoodOrActivityItem(item)) {
-      return _buildFoodActivityTile();
+      return _buildFoodActivityTile(t);
     }
     return _buildDefaultTile(t);
   }
@@ -44,7 +44,7 @@ class ChecklistItemTile extends StatelessWidget {
     final demoBadge = item.dataSource?.trim() == 'demo_estimated'
         ? t?.checklistDemoEstimateBadge
         : null;
-    final estimatedText = _buildEstimatedText();
+    final priceDisplay = ChecklistPriceFormatter.build(item: item, t: t);
     final accuracyText = (item.accuracyNote ?? '').trim();
     final hasExternalUrl = (item.externalUrl ?? '').trim().isNotEmpty;
 
@@ -118,10 +118,10 @@ class ChecklistItemTile extends StatelessWidget {
                         ),
                       ),
                     ],
-                    if (estimatedText.isNotEmpty) ...<Widget>[
+                    if (priceDisplay.primaryText.isNotEmpty) ...<Widget>[
                       const SizedBox(height: 4),
                       Text(
-                        estimatedText,
+                        priceDisplay.primaryText,
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                         style: const TextStyle(
@@ -175,8 +175,6 @@ class ChecklistItemTile extends StatelessWidget {
 
   Widget _buildTransportFlightTile(AppLocalizations? t) {
     final viewData = _TransportFlightViewData.fromItem(item: item, t: t);
-    final titleParts = _splitFlightTitle(viewData.title);
-
     final titleColor = item.isCompleted
         ? const Color(0xFF6B7280)
         : const Color(0xFF111827);
@@ -225,25 +223,25 @@ class ChecklistItemTile extends StatelessWidget {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: <Widget>[
                           Text(
-                            titleParts.$1,
+                            viewData.primaryTitle,
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
                             style: TextStyle(
                               fontSize: _flightPrimaryFontSize,
-                              fontWeight: FontWeight.w400,
+                              fontWeight: FontWeight.w600,
                               height: 1.15,
                               color: titleColor,
                             ),
                           ),
-                          if (titleParts.$2 != null) ...<Widget>[
+                          if (viewData.secondaryTitle != null) ...<Widget>[
                             const SizedBox(height: 4),
                             Text(
-                              titleParts.$2!,
+                              viewData.secondaryTitle!,
                               maxLines: 1,
                               overflow: TextOverflow.ellipsis,
                               style: TextStyle(
                                 fontSize: _flightSecondaryFontSize,
-                                fontWeight: FontWeight.w400,
+                                fontWeight: FontWeight.w500,
                                 height: 1.1,
                                 color: titleColor,
                               ),
@@ -258,29 +256,21 @@ class ChecklistItemTile extends StatelessWidget {
                     ],
                   ],
                 ),
-                if (viewData.hasTimeline) ...<Widget>[
-                  const SizedBox(height: 12),
-                  _FlightTimelineBlock(
-                    departureTime: viewData.departureTime!,
-                    arrivalTime: viewData.arrivalTime!,
-                    departureAirport: viewData.departureAirport!,
-                    arrivalAirport: viewData.arrivalAirport!,
-                    airportColor: airportColor,
-                    timeColor: titleColor,
-                  ),
-                ] else if (viewData.compactSubtitle.isNotEmpty) ...<Widget>[
-                  const SizedBox(height: 12),
-                  Text(
-                    viewData.compactSubtitle,
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
-                    style: TextStyle(
-                      fontSize: _defaultSubtitleFontSize,
-                      color: airportColor,
-                      fontWeight: FontWeight.w500,
-                    ),
-                  ),
-                ],
+                const SizedBox(height: 12),
+                SizedBox(
+                  height: 56,
+                  child: viewData.hasRoute
+                      ? _FlightFixedTemplateBlock(
+                          departureTime: viewData.departureTimeDisplay,
+                          arrivalTime: viewData.arrivalTimeDisplay,
+                          departureAirport: viewData.departureAirportDisplay,
+                          arrivalAirport: viewData.arrivalAirportDisplay,
+                          airportColor: airportColor,
+                          timeColor: titleColor,
+                          routeSummary: viewData.routeSummary,
+                        )
+                      : const SizedBox.shrink(),
+                ),
               ],
             ),
           ),
@@ -289,399 +279,35 @@ class ChecklistItemTile extends StatelessWidget {
     );
   }
 
-  Widget _buildHotelStayTile() {
-    final viewData = _HotelStayViewData.fromItem(item);
-    final titleColor = item.isCompleted
-        ? const Color(0xFF6B7280)
-        : const Color(0xFF111827);
-    final secondaryColor = item.isCompleted
-        ? const Color(0xFF9CA3AF)
-        : const Color(0xFF667085);
-    final timeColor = item.isCompleted
-        ? const Color(0xFF9CA3AF)
-        : const Color(0xFF7A8294);
-
-    return Material(
-      color: Colors.transparent,
-      borderRadius: BorderRadius.circular(_hotelCardRadius),
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(_hotelCardRadius),
-        child: Ink(
-          decoration: BoxDecoration(
-            color: item.isCompleted ? const Color(0xFFF4F5F7) : Colors.white,
-            borderRadius: BorderRadius.circular(_hotelCardRadius),
-            border: Border.all(color: const Color(0xFFE5E7EB)),
-            boxShadow: item.isCompleted
-                ? const <BoxShadow>[]
-                : const <BoxShadow>[
-                    BoxShadow(
-                      color: Color(0x04000000),
-                      blurRadius: 4,
-                      offset: Offset(0, 1),
-                    ),
-                  ],
-          ),
-          child: Opacity(
-            opacity: item.isCompleted ? 0.65 : 1,
-            child: Padding(
-              padding: const EdgeInsets.all(14),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: <Widget>[
-                  // 顶部标题区：左侧酒店名，右侧保留勾选操作。
-                  Row(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: <Widget>[
-                      Expanded(
-                        child: Text(
-                          viewData.title,
-                          maxLines: 2,
-                          overflow: TextOverflow.ellipsis,
-                          style: TextStyle(
-                            fontSize: 15,
-                            height: 1.2,
-                            fontWeight: FontWeight.w700,
-                            color: titleColor,
-                          ),
-                        ),
-                      ),
-                      const SizedBox(width: 8),
-                      SizedBox(
-                        width: 24,
-                        height: 24,
-                        child: Checkbox(
-                          value: item.isCompleted,
-                          onChanged: (value) =>
-                              onToggleCompleted(value ?? false),
-                          visualDensity: VisualDensity.compact,
-                          activeColor: const Color(0xFF3B6EEA),
-                          checkColor: Colors.white,
-                          side: const BorderSide(
-                            color: Color(0xFFC5C8D0),
-                            width: 1.2,
-                          ),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(5),
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 10),
-                  LayoutBuilder(
-                    builder: (context, constraints) {
-                      // 图片宽度约占卡片内容区 3/8，并保持 4:3 比例。
-                      final imageWidth = (constraints.maxWidth * 0.375).clamp(
-                        96.0,
-                        116.0,
-                      );
-                      final imageHeight = imageWidth * 3 / 4;
-
-                      return Row(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: <Widget>[
-                          _HotelImage(
-                            url: viewData.imageUrl,
-                            width: imageWidth,
-                            height: imageHeight,
-                          ),
-                          const SizedBox(width: 14),
-                          Expanded(
-                            child: SizedBox(
-                              height: imageHeight,
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: <Widget>[
-                                  // 右侧描述块轻微下移，贴近参考图视觉。
-                                  const SizedBox(height: 2),
-                                  if (viewData.timeText != null ||
-                                      viewData.descriptionText.isNotEmpty)
-                                    Row(
-                                      crossAxisAlignment:
-                                          CrossAxisAlignment.start,
-                                      children: <Widget>[
-                                        if (viewData.timeText !=
-                                            null) ...<Widget>[
-                                          Text(
-                                            viewData.timeText!,
-                                            style: TextStyle(
-                                              fontSize: 13,
-                                              fontWeight: FontWeight.w700,
-                                              color: timeColor,
-                                              height: 1.2,
-                                            ),
-                                          ),
-                                          const SizedBox(width: 8),
-                                        ],
-                                        Expanded(
-                                          child: Text(
-                                            viewData.descriptionText,
-                                            maxLines: 2,
-                                            overflow: TextOverflow.ellipsis,
-                                            style: TextStyle(
-                                              fontSize: 12.5,
-                                              fontWeight: FontWeight.w500,
-                                              color: secondaryColor,
-                                              height: 1.35,
-                                            ),
-                                          ),
-                                        ),
-                                      ],
-                                    ),
-                                  if (viewData.priceText != null) ...<Widget>[
-                                    const Spacer(),
-                                    // 价格固定在图片右侧底部上方。
-                                    Padding(
-                                      padding: const EdgeInsets.only(bottom: 2),
-                                      child: Row(
-                                        crossAxisAlignment:
-                                            CrossAxisAlignment.end,
-                                        children: <Widget>[
-                                          Flexible(
-                                            child: Text(
-                                              viewData.priceText!,
-                                              maxLines: 1,
-                                              overflow: TextOverflow.ellipsis,
-                                              style: TextStyle(
-                                                fontSize: 15,
-                                                fontWeight: FontWeight.w700,
-                                                color: titleColor,
-                                                height: 1.1,
-                                              ),
-                                            ),
-                                          ),
-                                          if (viewData.nightUnitText !=
-                                              null) ...<Widget>[
-                                            const SizedBox(width: 6),
-                                            Text(
-                                              viewData.nightUnitText!,
-                                              style: TextStyle(
-                                                fontSize: 12.5,
-                                                fontWeight: FontWeight.w500,
-                                                color: secondaryColor,
-                                                height: 1.2,
-                                              ),
-                                            ),
-                                          ],
-                                        ],
-                                      ),
-                                    ),
-                                  ],
-                                ],
-                              ),
-                            ),
-                          ),
-                        ],
-                      );
-                    },
-                  ),
-                ],
-              ),
-            ),
-          ),
-        ),
-      ),
-    );
+  Widget _buildHotelStayTile(AppLocalizations? t) {
+    return _buildCompactItemTile(t: t, placeholderIcon: Icons.hotel_rounded);
   }
 
-  Widget _buildFoodActivityTile() {
-    final isFood = _isFoodItem(item);
-    final viewData = _FoodActivityViewData.fromItem(item: item, isFood: isFood);
-    final titleColor = item.isCompleted
-        ? const Color(0xFF6B7280)
-        : const Color(0xFF111827);
-    final secondaryColor = item.isCompleted
-        ? const Color(0xFF9CA3AF)
-        : const Color(0xFF667085);
-    final timeColor = item.isCompleted
-        ? const Color(0xFF9CA3AF)
-        : const Color(0xFF7A8294);
+  Widget _buildFoodActivityTile(AppLocalizations? t) {
+    final isFood =
+        (item.type ?? '').trim().toLowerCase() == 'food' ||
+        item.groupType.trim().toLowerCase() == 'food';
     final placeholderIcon = isFood
         ? Icons.restaurant_rounded
         : Icons.local_activity_rounded;
 
-    return Material(
-      color: Colors.transparent,
-      borderRadius: BorderRadius.circular(_hotelCardRadius),
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(_hotelCardRadius),
-        child: Ink(
-          decoration: BoxDecoration(
-            color: item.isCompleted ? const Color(0xFFF4F5F7) : Colors.white,
-            borderRadius: BorderRadius.circular(_hotelCardRadius),
-            border: Border.all(color: const Color(0xFFE5E7EB)),
-            boxShadow: item.isCompleted
-                ? const <BoxShadow>[]
-                : const <BoxShadow>[
-                    BoxShadow(
-                      color: Color(0x04000000),
-                      blurRadius: 4,
-                      offset: Offset(0, 1),
-                    ),
-                  ],
-          ),
-          child: Opacity(
-            opacity: item.isCompleted ? 0.65 : 1,
-            child: Padding(
-              padding: const EdgeInsets.all(14),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: <Widget>[
-                  // 标题行样式与 Hotel 保持一致。
-                  Row(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: <Widget>[
-                      Expanded(
-                        child: Text(
-                          viewData.title,
-                          maxLines: 2,
-                          overflow: TextOverflow.ellipsis,
-                          style: TextStyle(
-                            fontSize: 15,
-                            height: 1.2,
-                            fontWeight: FontWeight.w700,
-                            color: titleColor,
-                          ),
-                        ),
-                      ),
-                      const SizedBox(width: 8),
-                      SizedBox(
-                        width: 24,
-                        height: 24,
-                        child: Checkbox(
-                          value: item.isCompleted,
-                          onChanged: (value) =>
-                              onToggleCompleted(value ?? false),
-                          visualDensity: VisualDensity.compact,
-                          activeColor: const Color(0xFF3B6EEA),
-                          checkColor: Colors.white,
-                          side: const BorderSide(
-                            color: Color(0xFFC5C8D0),
-                            width: 1.2,
-                          ),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(5),
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 10),
-                  LayoutBuilder(
-                    builder: (context, constraints) {
-                      final imageWidth = (constraints.maxWidth * 0.375).clamp(
-                        96.0,
-                        116.0,
-                      );
-                      final imageHeight = imageWidth * 3 / 4;
+    return _buildCompactItemTile(t: t, placeholderIcon: placeholderIcon);
+  }
 
-                      return Row(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: <Widget>[
-                          _HotelImage(
-                            url: viewData.imageUrl,
-                            width: imageWidth,
-                            height: imageHeight,
-                            placeholderIcon: placeholderIcon,
-                          ),
-                          const SizedBox(width: 14),
-                          Expanded(
-                            child: SizedBox(
-                              height: imageHeight,
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: <Widget>[
-                                  const SizedBox(height: 2),
-                                  if (viewData.timeText != null ||
-                                      viewData.descriptionText.isNotEmpty)
-                                    Row(
-                                      crossAxisAlignment:
-                                          CrossAxisAlignment.start,
-                                      children: <Widget>[
-                                        if (viewData.timeText !=
-                                            null) ...<Widget>[
-                                          Text(
-                                            viewData.timeText!,
-                                            style: TextStyle(
-                                              fontSize: 13,
-                                              fontWeight: FontWeight.w700,
-                                              color: timeColor,
-                                              height: 1.2,
-                                            ),
-                                          ),
-                                          const SizedBox(width: 8),
-                                        ],
-                                        Expanded(
-                                          child: Text(
-                                            viewData.descriptionText,
-                                            maxLines: 2,
-                                            overflow: TextOverflow.ellipsis,
-                                            style: TextStyle(
-                                              fontSize: 12.5,
-                                              fontWeight: FontWeight.w500,
-                                              color: secondaryColor,
-                                              height: 1.35,
-                                            ),
-                                          ),
-                                        ),
-                                      ],
-                                    ),
-                                  if (viewData.priceText != null) ...<Widget>[
-                                    const Spacer(),
-                                    Padding(
-                                      padding: const EdgeInsets.only(bottom: 2),
-                                      child: Row(
-                                        crossAxisAlignment:
-                                            CrossAxisAlignment.end,
-                                        children: <Widget>[
-                                          Flexible(
-                                            child: Text(
-                                              viewData.priceText!,
-                                              maxLines: 1,
-                                              overflow: TextOverflow.ellipsis,
-                                              style: TextStyle(
-                                                fontSize: 15,
-                                                fontWeight: FontWeight.w700,
-                                                color: titleColor,
-                                                height: 1.1,
-                                              ),
-                                            ),
-                                          ),
-                                          if (viewData.unitText !=
-                                              null) ...<Widget>[
-                                            const SizedBox(width: 6),
-                                            Text(
-                                              viewData.unitText!,
-                                              style: TextStyle(
-                                                fontSize: 12.5,
-                                                fontWeight: FontWeight.w500,
-                                                color: secondaryColor,
-                                                height: 1.2,
-                                              ),
-                                            ),
-                                          ],
-                                        ],
-                                      ),
-                                    ),
-                                  ],
-                                ],
-                              ),
-                            ),
-                          ),
-                        ],
-                      );
-                    },
-                  ),
-                ],
-              ),
-            ),
-          ),
-        ),
-      ),
+  Widget _buildCompactItemTile({
+    required AppLocalizations? t,
+    required IconData placeholderIcon,
+  }) {
+    final viewData = _CompactItemViewData.fromItem(item: item, t: t);
+    return _ChecklistCompactItemCard(
+      item: item,
+      onTap: onTap,
+      onToggleCompleted: onToggleCompleted,
+      title: viewData.title,
+      imageUrl: viewData.imageUrl,
+      shortAddress: viewData.shortAddress,
+      displayPrice: viewData.displayPrice,
+      placeholderIcon: placeholderIcon,
     );
   }
 
@@ -714,160 +340,118 @@ class ChecklistItemTile extends StatelessWidget {
     }
     return false;
   }
-
-  bool _isFoodItem(ChecklistDetailItem value) {
-    final type = (value.type ?? '').trim().toLowerCase();
-    final group = value.groupType.trim().toLowerCase();
-    return type == 'food' || group == 'food';
-  }
-
-  String _buildEstimatedText() {
-    final directText = (item.estimatedPriceText ?? '').trim();
-    if (directText.isNotEmpty) {
-      return directText;
-    }
-    if (item.estimatedPriceMin != null && item.estimatedPriceMax != null) {
-      return '${item.currency ?? ''} ${item.estimatedPriceMin!.round()} - ${item.estimatedPriceMax!.round()}';
-    }
-    if (item.estimatedCostMin != null && item.estimatedCostMax != null) {
-      return '${item.currency ?? ''} ${item.estimatedCostMin!.round()} - ${item.estimatedCostMax!.round()}';
-    }
-    return '';
-  }
-
-  (String, String?) _splitFlightTitle(String title) {
-    final trimmed = title.trim();
-    if (trimmed.isEmpty) {
-      return ('', null);
-    }
-    final match = RegExp(
-      r'^(.*?)(\b[A-Z]{1,3}\s?\d{2,4}\b)$',
-    ).firstMatch(trimmed);
-    if (match == null) {
-      return (trimmed, null);
-    }
-    final airline = (match.group(1) ?? '').trim();
-    final flightNumber = (match.group(2) ?? '').trim().replaceAll(' ', '');
-    return (
-      airline.isEmpty ? trimmed : airline,
-      flightNumber.isEmpty ? null : flightNumber,
-    );
-  }
 }
 
 class _TransportFlightViewData {
   const _TransportFlightViewData({
-    required this.title,
-    required this.compactSubtitle,
+    required this.primaryTitle,
+    required this.secondaryTitle,
     required this.logoUrl,
-    required this.departureTime,
-    required this.arrivalTime,
-    required this.departureAirport,
-    required this.arrivalAirport,
+    required this.departureTimeDisplay,
+    required this.arrivalTimeDisplay,
+    required this.departureAirportDisplay,
+    required this.arrivalAirportDisplay,
+    required this.routeSummary,
     required this.estimateBadgeText,
   });
 
-  final String title;
-  final String compactSubtitle;
+  final String primaryTitle;
+  final String? secondaryTitle;
   final String? logoUrl;
-  final String? departureTime;
-  final String? arrivalTime;
-  final String? departureAirport;
-  final String? arrivalAirport;
+  final String? departureTimeDisplay;
+  final String? arrivalTimeDisplay;
+  final String? departureAirportDisplay;
+  final String? arrivalAirportDisplay;
+  final String routeSummary;
   final String? estimateBadgeText;
 
   bool get hasTimeline =>
-      departureTime != null &&
-      arrivalTime != null &&
-      departureAirport != null &&
-      arrivalAirport != null;
+      departureTimeDisplay != null &&
+      arrivalTimeDisplay != null &&
+      departureAirportDisplay != null &&
+      arrivalAirportDisplay != null;
+
+  bool get hasRoute =>
+      hasTimeline ||
+      routeSummary.trim().isNotEmpty ||
+      departureAirportDisplay != null ||
+      arrivalAirportDisplay != null;
 
   factory _TransportFlightViewData.fromItem({
     required ChecklistDetailItem item,
     required AppLocalizations? t,
   }) {
-    final title = _buildTitle(item);
+    final titles = _buildTitles(item);
     final estimateBadgeText = _buildEstimateBadgeText(item: item, t: t);
-    final timeline = _parseTimeline(item);
-    final subtitle = (item.subtitle ?? item.routeText ?? '').trim();
+    final timeline = _readStructuredTimeline(item);
     final logoUrl = _extractLogoUrl(item);
+    final routeSummary = _buildRouteSummary(item, timeline);
 
     return _TransportFlightViewData(
-      title: title,
-      compactSubtitle: subtitle,
+      primaryTitle: titles.$1,
+      secondaryTitle: titles.$2,
       logoUrl: logoUrl,
-      departureTime: timeline.$1,
-      arrivalTime: timeline.$2,
-      departureAirport: timeline.$3,
-      arrivalAirport: timeline.$4,
+      departureTimeDisplay: timeline.$1,
+      arrivalTimeDisplay: timeline.$2,
+      departureAirportDisplay: timeline.$3,
+      arrivalAirportDisplay: timeline.$4,
+      routeSummary: routeSummary,
       estimateBadgeText: estimateBadgeText,
     );
   }
 
-  static String _buildTitle(ChecklistDetailItem item) {
+  static (String, String?) _buildTitles(ChecklistDetailItem item) {
+    final airline = (item.airline ?? '').trim();
+    final flightNumber = (item.flightNumber ?? '').trim();
     final rawTitle = item.title.trim();
-    final rawProvider = (item.providerName ?? '').trim();
-    final title =
-        (rawTitle.isEmpty ||
-            rawTitle.toLowerCase() == 'flights' ||
-            rawTitle.toLowerCase() == 'flight')
-        ? (rawProvider.isNotEmpty ? rawProvider : rawTitle)
-        : rawTitle;
-
-    final combinedText =
-        '${item.title} ${item.subtitle ?? ''} ${item.routeText ?? ''}';
-    final flightNumber = _extractFlightNumber(combinedText);
-    final displayTitle = title;
-    if (displayTitle.isEmpty) {
-      return flightNumber ?? item.groupType;
+    if (airline.isNotEmpty && flightNumber.isNotEmpty) {
+      return (airline, flightNumber);
     }
-    if (flightNumber == null || displayTitle.contains(flightNumber)) {
-      return displayTitle;
+    if (airline.isNotEmpty) {
+      return (airline, null);
     }
-    return '$displayTitle $flightNumber';
+    if (flightNumber.isNotEmpty) {
+      return (flightNumber, null);
+    }
+    if (rawTitle.isNotEmpty) {
+      return (rawTitle, null);
+    }
+    final provider = (item.providerName ?? '').trim();
+    return (provider.isNotEmpty ? provider : item.groupType, null);
   }
 
   static String? _buildEstimateBadgeText({
     required ChecklistDetailItem item,
     required AppLocalizations? t,
   }) {
+    final estimateValue = _readEstimateValue(item);
+    if (estimateValue == null) {
+      return null;
+    }
+
     final currencySymbol = _resolveCurrencySymbol(item.currency);
-    final valueText = _resolveEstimateValue(item, currencySymbol);
-    if (valueText == null) {
-      return null;
-    }
+    final amountText = NumberFormat.decimalPattern().format(estimateValue);
     final prefix = t?.checklistEstimateShort ?? 'EST.';
-    return '$prefix $valueText';
+    return '$prefix $currencySymbol$amountText';
   }
 
-  static String? _resolveEstimateValue(
-    ChecklistDetailItem item,
-    String symbol,
-  ) {
-    final directText = (item.estimatedPriceText ?? '').trim();
-    if (directText.isNotEmpty) {
-      final directNumber = _extractPriceNumber(directText);
-      if (directNumber != null) {
-        return '$symbol$directNumber';
-      }
-      return directText;
+  // 航班卡右上角价格固定展示估算均值，不展示区间和单位。
+  static double? _readEstimateValue(ChecklistDetailItem item) {
+    final structuredMin = item.estimatedCostMin;
+    final structuredMax = item.estimatedCostMax;
+    if (structuredMin != null && structuredMax != null) {
+      return (structuredMin + structuredMax) / 2;
+    }
+    if (structuredMin != null || structuredMax != null) {
+      return structuredMin ?? structuredMax;
     }
 
-    final number =
-        item.estimatedPriceMin ??
-        item.estimatedPriceMax ??
-        item.estimatedCostMin ??
-        item.estimatedCostMax;
-    if (number == null) {
-      return null;
+    final legacyMin = item.estimatedPriceMin;
+    final legacyMax = item.estimatedPriceMax;
+    if (legacyMin != null && legacyMax != null) {
+      return (legacyMin + legacyMax) / 2;
     }
-    final formatted = NumberFormat.decimalPattern().format(number.round());
-    return '$symbol$formatted';
-  }
-
-  static String? _extractPriceNumber(String source) {
-    final match = RegExp(r'([0-9][0-9,]*)').firstMatch(source);
-    return match?.group(1);
+    return legacyMin ?? legacyMax;
   }
 
   static String _resolveCurrencySymbol(String? currencyCode) {
@@ -887,105 +471,41 @@ class _TransportFlightViewData {
     }
   }
 
-  // 解析时间轴：只依赖数据字段，不在 UI 层补假值。
-
-  static (String?, String?, String?, String?) _parseTimeline(
+  static (String?, String?, String?, String?) _readStructuredTimeline(
     ChecklistDetailItem item,
   ) {
-    final subtitle = (item.subtitle ?? '').trim();
-    final routeText = (item.routeText ?? '').trim();
-    final fullText = '$subtitle\n$routeText';
-
-    final timeMatches = RegExp(r'((?:[01]?\d|2[0-3]):[0-5]\d)')
-        .allMatches(fullText)
-        .map((m) => m.group(1) ?? '')
-        .where((s) => s.isNotEmpty)
-        .toList(growable: false);
-
-    String? departureTime;
-    String? arrivalTime;
-    if (timeMatches.length >= 2) {
-      departureTime = timeMatches[0];
-      arrivalTime = timeMatches[1];
-    }
-
-    String? departureAirport;
-    String? arrivalAirport;
-    final airportsFromList = item.suggestedAirports
-        .map((e) => e.trim())
-        .where((e) => e.isNotEmpty)
-        .toList(growable: false);
-    if (airportsFromList.length >= 2) {
-      departureAirport = airportsFromList[0];
-      arrivalAirport = airportsFromList[1];
-    } else {
-      final airportsFromRoute = _parseAirportsFromRoute(routeText);
-      if (airportsFromRoute.length >= 2) {
-        departureAirport = airportsFromRoute[0];
-        arrivalAirport = airportsFromRoute[1];
-      } else {
-        final airportsFromSubtitle = _parseAirportsFromSubtitle(subtitle);
-        if (airportsFromSubtitle.length >= 2) {
-          departureAirport = airportsFromSubtitle[0];
-          arrivalAirport = airportsFromSubtitle[1];
-        }
-      }
-    }
-
-    return (departureTime, arrivalTime, departureAirport, arrivalAirport);
-  }
-
-  static List<String> _parseAirportsFromRoute(String routeText) {
-    if (routeText.isEmpty) {
-      return const <String>[];
-    }
-    final parts = routeText.split(RegExp('\\s*(?:->|\\u2192)\\s*'));
-    if (parts.length < 2) {
-      return const <String>[];
-    }
-    return parts
-        .take(2)
-        .map(_cleanupAirportText)
-        .where((value) => value.isNotEmpty)
-        .toList(growable: false);
-  }
-
-  static List<String> _parseAirportsFromSubtitle(String subtitle) {
-    if (subtitle.isEmpty) {
-      return const <String>[];
-    }
-    final lines = subtitle
-        .split(RegExp(r'[\r\n]+'))
-        .map((line) => line.trim())
-        .where((line) => line.isNotEmpty)
-        .toList(growable: false);
-    if (lines.length < 2) {
-      return const <String>[];
-    }
-
-    return lines
-        .take(2)
-        .map(_cleanupAirportText)
-        .where((line) => line.isNotEmpty)
-        .toList(growable: false);
-  }
-
-  static String _cleanupAirportText(String source) {
-    final textWithoutTime = source.replaceFirst(
-      RegExp(r'^\s*(?:[01]?\d|2[0-3]):[0-5]\d\s*'),
-      '',
+    final departureAirport = (item.departureAirport ?? '').trim();
+    final arrivalAirport = (item.arrivalAirport ?? '').trim();
+    final departureTime = (item.departureTime ?? '').trim();
+    final arrivalTime = (item.arrivalTime ?? '').trim();
+    return (
+      departureTime.isNotEmpty ? departureTime : null,
+      arrivalTime.isNotEmpty ? arrivalTime : null,
+      departureAirport.isNotEmpty ? departureAirport : null,
+      arrivalAirport.isNotEmpty ? arrivalAirport : null,
     );
-    final textWithoutHint = textWithoutTime.replaceFirst(
-      RegExp(r'\s*-\s*Estimated.*$', caseSensitive: false),
-      '',
-    );
-    return textWithoutHint.trim();
   }
 
-  static String? _extractFlightNumber(String text) {
-    final upper = text.toUpperCase();
-    final match = RegExp(r'\b[A-Z]{1,3}\s?\d{2,4}\b').firstMatch(upper);
-    return match?.group(0)?.replaceAll(' ', '');
+  static String _buildRouteSummary(
+    ChecklistDetailItem item,
+    (String?, String?, String?, String?) timeline,
+  ) {
+    final routeSummary = <String>[
+      if ((item.departureDate ?? '').trim().isNotEmpty)
+        item.departureDate!.trim(),
+      if (timeline.$3 != null || timeline.$4 != null)
+        [timeline.$3, timeline.$4]
+            .whereType<String>()
+            .where((value) => value.trim().isNotEmpty)
+            .join(' -> '),
+      if ((item.arrivalDate ?? '').trim().isNotEmpty &&
+          (item.arrivalDate ?? '').trim() != (item.departureDate ?? '').trim())
+        item.arrivalDate!.trim(),
+    ].where((value) => value.trim().isNotEmpty).join('  ');
+    if (routeSummary.isNotEmpty) {
+      return routeSummary;
+    }
+    return (item.subtitle ?? '').trim();
   }
 
   static String? _extractLogoUrl(ChecklistDetailItem item) {
@@ -998,116 +518,154 @@ class _TransportFlightViewData {
   }
 }
 
-class _HotelStayViewData {
-  const _HotelStayViewData({
+class _CompactItemViewData {
+  const _CompactItemViewData({
     required this.title,
     required this.imageUrl,
-    required this.timeText,
-    required this.descriptionText,
-    required this.priceText,
-    required this.nightUnitText,
+    required this.shortAddress,
+    required this.displayPrice,
   });
 
   final String title;
   final String? imageUrl;
-  final String? timeText;
-  final String descriptionText;
-  final String? priceText;
-  final String? nightUnitText;
+  final String shortAddress;
+  final String displayPrice;
 
-  factory _HotelStayViewData.fromItem(ChecklistDetailItem item) {
-    final subtitle = (item.subtitle ?? '').trim();
-    final routeText = (item.routeText ?? '').trim();
-    final combinedText = '$subtitle $routeText ${item.detailRouteTarget ?? ''}';
-
+  factory _CompactItemViewData.fromItem({
+    required ChecklistDetailItem item,
+    required AppLocalizations? t,
+  }) {
     final title = item.title.trim().isNotEmpty
         ? item.title.trim()
-        : (item.providerName ?? '').trim();
-    final imageUrl = _extractImageUrl(combinedText);
-    final timeText = _extractFirstTime('$subtitle\n$routeText');
-    final descriptionText = _resolveDescription(
-      subtitle: subtitle,
-      routeText: routeText,
-      fallback: title,
-    );
-
-    final currencySymbol = _TransportFlightViewData._resolveCurrencySymbol(
-      item.currency,
-    );
-    final priceText = _resolvePriceText(item, currencySymbol);
-    final nightUnitText = _resolveNightUnitText(item, subtitle);
-
-    return _HotelStayViewData(
+        : (item.providerName ?? '').trim().isNotEmpty
+        ? item.providerName!.trim()
+        : item.groupType.trim();
+    return _CompactItemViewData(
       title: title.isEmpty ? item.groupType : title,
-      imageUrl: imageUrl,
-      timeText: timeText,
-      descriptionText: descriptionText,
-      priceText: priceText,
-      nightUnitText: nightUnitText,
+      // 真实地点优先展示 Places 图片，旧数据再回退到文本中的 URL。
+      imageUrl: (item.photoUrl ?? '').trim().isNotEmpty
+          ? item.photoUrl!.trim()
+          : _extractImageUrl(
+              '${item.subtitle ?? ''} ${item.routeText ?? ''} ${item.detailRouteTarget ?? ''}',
+            ),
+      shortAddress: formatShortAddress(item.address),
+      displayPrice: formatDisplayPrice(item, t),
     );
   }
 
-  static String? _resolvePriceText(ChecklistDetailItem item, String symbol) {
-    final directText = (item.estimatedPriceText ?? '').trim();
-    if (directText.isNotEmpty) {
-      final number = RegExp(r'([0-9][0-9,]*)').firstMatch(directText)?.group(1);
-      return number == null ? directText : '$symbol$number';
+  // 仅用于前端显示的短地址格式化，不改原始地址数据。
+  static String formatShortAddress(String? rawAddress) {
+    final resolved = (rawAddress ?? '').trim();
+    if (resolved.isEmpty) {
+      return '';
     }
 
-    final priceValue =
-        item.estimatedPriceMin ??
-        item.estimatedPriceMax ??
-        item.estimatedCostMin ??
-        item.estimatedCostMax;
-    if (priceValue == null) {
-      return null;
+    var text = resolved.replaceAll(RegExp(r'\s+'), ' ').trim();
+    final commaParts = text
+        .split(',')
+        .map((part) => part.trim())
+        .where((part) => part.isNotEmpty)
+        .toList(growable: false);
+
+    if (commaParts.length >= 2) {
+      final filtered = commaParts
+          .where((part) {
+            final normalized = part.toLowerCase();
+            if (RegExp(r'^\d{3,}$').hasMatch(normalized)) {
+              return false;
+            }
+            if (normalized.contains('prefecture') ||
+                normalized == 'japan' ||
+                normalized == 'china' ||
+                normalized == 'united states') {
+              return false;
+            }
+            if (RegExp(
+              r'^(tokyo|osaka|kyoto|paris|london|shanghai|beijing)$',
+            ).hasMatch(normalized)) {
+              return false;
+            }
+            return true;
+          })
+          .toList(growable: false);
+      if (filtered.isNotEmpty) {
+        text = filtered.length >= 2
+            ? filtered.sublist(0, 2).join(', ')
+            : filtered.first;
+      }
     }
-    final formatted = NumberFormat.decimalPattern().format(priceValue.round());
-    return '$symbol$formatted';
+
+    return text;
   }
 
-  static String? _resolveNightUnitText(
+  // 价格只保留单行核心信息，避免 About、区间和重复文案撑爆卡片。
+  static String formatDisplayPrice(
     ChecklistDetailItem item,
-    String source,
+    AppLocalizations? t,
   ) {
-    final costUnit = (item.costUnit ?? '').trim().toLowerCase();
-    if (costUnit == 'per_night') {
-      final unitMatch = RegExp(
-        r'(/ ?night)\b',
-        caseSensitive: false,
-      ).firstMatch(source);
-      return unitMatch?.group(1);
+    final amount = _readAverageAmount(item);
+    final normalizedType = (item.type ?? '').trim().toLowerCase();
+    final normalizedGroup = item.groupType.trim().toLowerCase();
+    final isHotel = normalizedType == 'hotel' || normalizedGroup == 'stay';
+    final isRestaurant =
+        normalizedType == 'restaurant' ||
+        normalizedType == 'food' ||
+        normalizedGroup == 'food';
+    final isActivity =
+        normalizedType == 'activity' || normalizedGroup == 'activity';
+
+    if (isActivity && amount != null && amount <= 0) {
+      return t?.checklistPriceFree ?? 'Free';
     }
 
-    final unitMatch = RegExp(
-      r'(/ ?night)\b',
-      caseSensitive: false,
-    ).firstMatch(source);
-    if (unitMatch != null) {
-      return unitMatch.group(1);
+    if (amount == null) {
+      return t?.checklistPriceUnavailable ?? 'Price unavailable';
     }
-    return null;
+
+    final currencySymbol = _resolveCurrencySymbol(item.currency);
+    final amountText = NumberFormat.decimalPattern().format(amount);
+    final unitText = isHotel
+        ? (t?.checklistPriceUnitNight ?? 'night')
+        : (t?.checklistPriceUnitPerson ?? 'person');
+    if (isRestaurant || isActivity || isHotel) {
+      return '$currencySymbol$amountText / $unitText';
+    }
+    return '$currencySymbol$amountText';
   }
 
-  static String _resolveDescription({
-    required String subtitle,
-    required String routeText,
-    required String fallback,
-  }) {
-    final source = subtitle.isNotEmpty ? subtitle : routeText;
-    if (source.isEmpty) {
-      return fallback;
+  static double? _readAverageAmount(ChecklistDetailItem item) {
+    final structuredMin = item.estimatedCostMin;
+    final structuredMax = item.estimatedCostMax;
+    if (structuredMin != null && structuredMax != null) {
+      return (structuredMin + structuredMax) / 2;
+    }
+    if (structuredMin != null || structuredMax != null) {
+      return structuredMin ?? structuredMax;
     }
 
-    var text = source;
-    text = text.replaceAll(RegExp(r'https?:\/\/\S+'), '');
-    text = text.replaceAll(RegExp(r'((?:[01]?\d|2[0-3]):[0-5]\d)'), '');
-    text = text.replaceAll(
-      RegExp(r'\s*-\s*Estimated.*$', caseSensitive: false),
-      '',
-    );
-    text = text.replaceAll(RegExp(r'\s+'), ' ').trim();
-    return text.isEmpty ? fallback : text;
+    final legacyMin = item.estimatedPriceMin;
+    final legacyMax = item.estimatedPriceMax;
+    if (legacyMin != null && legacyMax != null) {
+      return (legacyMin + legacyMax) / 2;
+    }
+    return legacyMin ?? legacyMax;
+  }
+
+  static String _resolveCurrencySymbol(String? currencyCode) {
+    switch ((currencyCode ?? '').trim().toUpperCase()) {
+      case 'CNY':
+      case 'JPY':
+        return '\u00A5';
+      case 'USD':
+        return '\$';
+      case 'EUR':
+        return '\u20AC';
+      case 'GBP':
+        return '\u00A3';
+      default:
+        final code = (currencyCode ?? '').trim();
+        return code.isNotEmpty ? '$code ' : '\u00A5';
+    }
   }
 
   static String? _extractImageUrl(String source) {
@@ -1117,104 +675,162 @@ class _HotelStayViewData {
     ).firstMatch(source);
     return match?.group(1)?.trim();
   }
-
-  static String? _extractFirstTime(String source) {
-    final match = RegExp(r'((?:[01]?\d|2[0-3]):[0-5]\d)').firstMatch(source);
-    return match?.group(1);
-  }
 }
 
-class _FoodActivityViewData {
-  const _FoodActivityViewData({
+class _ChecklistCompactItemCard extends StatelessWidget {
+  const _ChecklistCompactItemCard({
+    required this.item,
+    required this.onToggleCompleted,
     required this.title,
     required this.imageUrl,
-    required this.timeText,
-    required this.descriptionText,
-    required this.priceText,
-    required this.unitText,
+    required this.shortAddress,
+    required this.displayPrice,
+    required this.placeholderIcon,
+    this.onTap,
   });
 
+  final ChecklistDetailItem item;
+  final ValueChanged<bool> onToggleCompleted;
+  final VoidCallback? onTap;
   final String title;
   final String? imageUrl;
-  final String? timeText;
-  final String descriptionText;
-  final String? priceText;
-  final String? unitText;
+  final String shortAddress;
+  final String displayPrice;
+  final IconData placeholderIcon;
 
-  factory _FoodActivityViewData.fromItem({
-    required ChecklistDetailItem item,
-    required bool isFood,
-  }) {
-    final subtitle = (item.subtitle ?? '').trim();
-    final routeText = (item.routeText ?? '').trim();
-    final combinedText = '$subtitle $routeText ${item.detailRouteTarget ?? ''}';
+  @override
+  Widget build(BuildContext context) {
+    final titleColor = item.isCompleted
+        ? const Color(0xFF6B7280)
+        : const Color(0xFF111827);
+    final secondaryColor = item.isCompleted
+        ? const Color(0xFF9CA3AF)
+        : const Color(0xFF667085);
 
-    final title = item.title.trim().isNotEmpty
-        ? item.title.trim()
-        : item.groupType.trim();
-    final imageUrl = _HotelStayViewData._extractImageUrl(combinedText);
-    final timeText = _HotelStayViewData._extractFirstTime(
-      '$subtitle\n$routeText',
+    return Material(
+      color: Colors.transparent,
+      borderRadius: BorderRadius.circular(ChecklistItemTile._hotelCardRadius),
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(ChecklistItemTile._hotelCardRadius),
+        child: Ink(
+          decoration: BoxDecoration(
+            color: item.isCompleted ? const Color(0xFFF4F5F7) : Colors.white,
+            borderRadius: BorderRadius.circular(
+              ChecklistItemTile._hotelCardRadius,
+            ),
+            border: Border.all(color: const Color(0xFFE5E7EB)),
+            boxShadow: item.isCompleted
+                ? const <BoxShadow>[]
+                : const <BoxShadow>[
+                    BoxShadow(
+                      color: Color(0x04000000),
+                      blurRadius: 4,
+                      offset: Offset(0, 1),
+                    ),
+                  ],
+          ),
+          child: Opacity(
+            opacity: item.isCompleted ? 0.65 : 1,
+            child: Padding(
+              padding: const EdgeInsets.all(14),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: <Widget>[
+                  Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: <Widget>[
+                      Expanded(
+                        child: Text(
+                          title,
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                          style: TextStyle(
+                            fontSize: 15,
+                            height: 1.2,
+                            fontWeight: FontWeight.w700,
+                            color: titleColor,
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      SizedBox(
+                        width: 24,
+                        height: 24,
+                        child: Checkbox(
+                          value: item.isCompleted,
+                          onChanged: (value) =>
+                              onToggleCompleted(value ?? false),
+                          visualDensity: VisualDensity.compact,
+                          activeColor: const Color(0xFF3B6EEA),
+                          checkColor: Colors.white,
+                          side: const BorderSide(
+                            color: Color(0xFFC5C8D0),
+                            width: 1.2,
+                          ),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(5),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 10),
+                  Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: <Widget>[
+                      _HotelImage(
+                        url: imageUrl,
+                        width: 96,
+                        height: 72,
+                        placeholderIcon: placeholderIcon,
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: SizedBox(
+                          height: 72,
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: <Widget>[
+                              Flexible(
+                                child: Text(
+                                  shortAddress,
+                                  maxLines: 2,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: TextStyle(
+                                    fontSize: 12.5,
+                                    height: 1.35,
+                                    fontWeight: FontWeight.w500,
+                                    color: secondaryColor,
+                                  ),
+                                ),
+                              ),
+                              Text(
+                                displayPrice,
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: TextStyle(
+                                  fontSize: 14,
+                                  height: 1.15,
+                                  fontWeight: FontWeight.w700,
+                                  color: titleColor,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ),
     );
-    final descriptionText = _HotelStayViewData._resolveDescription(
-      subtitle: subtitle,
-      routeText: routeText,
-      fallback: title,
-    );
-    final currencySymbol = _TransportFlightViewData._resolveCurrencySymbol(
-      item.currency,
-    );
-    final priceText = _HotelStayViewData._resolvePriceText(
-      item,
-      currencySymbol,
-    );
-    final unitText = _resolveUnitText(
-      item: item,
-      source: subtitle,
-      isFood: isFood,
-      hasPrice: priceText != null,
-    );
-
-    return _FoodActivityViewData(
-      title: title,
-      imageUrl: imageUrl,
-      timeText: timeText,
-      descriptionText: descriptionText,
-      priceText: priceText,
-      unitText: unitText,
-    );
-  }
-
-  static String? _resolveUnitText({
-    required ChecklistDetailItem item,
-    required String source,
-    required bool isFood,
-    required bool hasPrice,
-  }) {
-    final costUnit = (item.costUnit ?? '').trim().toLowerCase();
-    switch (costUnit) {
-      case 'per_person':
-        return '/ person';
-      case 'per_meal':
-        return '/ meal';
-      case 'per_ticket':
-        return '/ ticket';
-      case 'per_night':
-        return '/ night';
-    }
-
-    final unitMatch = RegExp(
-      r'(/ ?(?:person|meal|ticket|night))\b',
-      caseSensitive: false,
-    ).firstMatch(source);
-    if (unitMatch != null) {
-      return unitMatch.group(1);
-    }
-
-    if (isFood && hasPrice) {
-      return '/ person';
-    }
-    return null;
   }
 }
 
@@ -1320,6 +936,65 @@ class _EstimatePriceBadge extends StatelessWidget {
           fontSize: 11,
           fontWeight: FontWeight.w700,
           color: Color(0xFF2F61F6),
+        ),
+      ),
+    );
+  }
+}
+
+class _FlightFixedTemplateBlock extends StatelessWidget {
+  const _FlightFixedTemplateBlock({
+    required this.departureTime,
+    required this.arrivalTime,
+    required this.departureAirport,
+    required this.arrivalAirport,
+    required this.airportColor,
+    required this.timeColor,
+    required this.routeSummary,
+  });
+
+  final String? departureTime;
+  final String? arrivalTime;
+  final String? departureAirport;
+  final String? arrivalAirport;
+  final Color airportColor;
+  final Color timeColor;
+  final String routeSummary;
+
+  bool get _hasTimeline =>
+      departureTime != null &&
+      arrivalTime != null &&
+      departureAirport != null &&
+      arrivalAirport != null;
+
+  @override
+  Widget build(BuildContext context) {
+    if (_hasTimeline) {
+      return _FlightTimelineBlock(
+        departureTime: departureTime!,
+        arrivalTime: arrivalTime!,
+        departureAirport: departureAirport!,
+        arrivalAirport: arrivalAirport!,
+        airportColor: airportColor,
+        timeColor: timeColor,
+      );
+    }
+
+    if (routeSummary.trim().isEmpty) {
+      return const SizedBox.shrink();
+    }
+
+    return Align(
+      alignment: Alignment.centerLeft,
+      child: Text(
+        routeSummary,
+        maxLines: 2,
+        overflow: TextOverflow.ellipsis,
+        style: TextStyle(
+          fontSize: 12,
+          height: 1.35,
+          color: airportColor,
+          fontWeight: FontWeight.w500,
         ),
       ),
     );

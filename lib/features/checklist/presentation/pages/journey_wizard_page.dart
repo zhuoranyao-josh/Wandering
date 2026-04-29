@@ -554,10 +554,19 @@ class _JourneyWizardPageState extends State<JourneyWizardPage> {
                         _controller.nextStep();
                         return;
                       }
+                      debugPrint('[ChecklistWizard] submit started');
                       final success = await _controller.saveJourneyBasicInfo();
                       if (!mounted || !success) {
                         return;
                       }
+                      debugPrint(
+                        '[ChecklistWizard] save completed '
+                        'checklistId=${widget.checklistId}',
+                      );
+                      debugPrint(
+                        '[ChecklistWizard] navigating to detail '
+                        'checklistId=${widget.checklistId}',
+                      );
                       context.go(AppRouter.checklistDetail(widget.checklistId));
                     },
               style: ElevatedButton.styleFrom(
