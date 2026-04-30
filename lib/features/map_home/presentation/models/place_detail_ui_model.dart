@@ -9,6 +9,8 @@ enum PlaceDetailsType { city, attraction }
 class PlaceDetailUiModel {
   const PlaceDetailUiModel({
     required this.placeId,
+    this.latitude,
+    this.longitude,
     this.heroImageUrl,
     this.country,
     this.placeName,
@@ -34,6 +36,8 @@ class PlaceDetailUiModel {
   });
 
   final String placeId;
+  final double? latitude;
+  final double? longitude;
   final String? heroImageUrl;
   final String? country;
   final String? placeName;
@@ -63,6 +67,8 @@ class PlaceDetailUiModel {
 
     return PlaceDetailUiModel(
       placeId: place.id,
+      latitude: place.latitude,
+      longitude: place.longitude,
       heroImageUrl: trimmedCover.isEmpty ? null : trimmedCover,
       placeNameByLanguage: place.name,
       quoteByLanguage: place.quote,
@@ -81,6 +87,8 @@ class PlaceDetailUiModel {
     final trimmedCover = place.coverImage.trim();
     return PlaceDetailUiModel(
       placeId: place.id,
+      latitude: place.latitude,
+      longitude: place.longitude,
       heroImageUrl: trimmedCover.isEmpty ? null : trimmedCover,
       placeNameByLanguage: place.name,
       quoteByLanguage: place.quote,

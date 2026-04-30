@@ -29,7 +29,7 @@ class _RegionAdminEditPageState extends State<RegionAdminEditPage> {
   final TextEditingController _focusZoomController = TextEditingController();
   final TextEditingController _nameZhController = TextEditingController();
   final TextEditingController _nameEnController = TextEditingController();
-  static final RegExp _lowercaseLettersPattern = RegExp(r'^[a-z]+$');
+  static final RegExp _lowercaseLettersPattern = RegExp(r'^[a-z_]+$');
 
   bool _initialized = false;
   bool _supportsEnabled = false;
@@ -188,7 +188,9 @@ class _RegionAdminEditPageState extends State<RegionAdminEditPage> {
 
     return Scaffold(
       appBar: AppBar(
-        title: Text(widget.isCreating ? t.adminCreateRegion : t.adminRegionEditTitle),
+        title: Text(
+          widget.isCreating ? t.adminCreateRegion : t.adminRegionEditTitle,
+        ),
         actions: <Widget>[
           if (!widget.isCreating)
             IconButton(
@@ -217,7 +219,7 @@ class _RegionAdminEditPageState extends State<RegionAdminEditPage> {
                       inputFormatters: widget.isCreating
                           ? <TextInputFormatter>[
                               FilteringTextInputFormatter.allow(
-                                RegExp(r'[a-z]'),
+                                RegExp(r'[a-z_]'),
                               ),
                             ]
                           : null,
@@ -243,7 +245,9 @@ class _RegionAdminEditPageState extends State<RegionAdminEditPage> {
                       SwitchListTile(
                         contentPadding: EdgeInsets.zero,
                         value: _enabled,
-                        title: Text(_enabled ? t.adminEnabled : t.adminDisabled),
+                        title: Text(
+                          _enabled ? t.adminEnabled : t.adminDisabled,
+                        ),
                         onChanged: (value) => setState(() => _enabled = value),
                       ),
                     ],
@@ -269,7 +273,9 @@ class _RegionAdminEditPageState extends State<RegionAdminEditPage> {
           padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
           child: ElevatedButton(
             onPressed: _controller.isSaving ? null : () => _save(t),
-            style: ElevatedButton.styleFrom(minimumSize: const Size.fromHeight(50)),
+            style: ElevatedButton.styleFrom(
+              minimumSize: const Size.fromHeight(50),
+            ),
             child: _controller.isSaving
                 ? const SizedBox(
                     width: 20,

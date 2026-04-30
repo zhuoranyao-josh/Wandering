@@ -447,9 +447,10 @@ class _JourneyWizardPageState extends State<JourneyWizardPage> {
     if (journey == null) {
       return const SizedBox.shrink();
     }
-    final destination = journey.destination.trim().isEmpty
+    final resolvedDestination = journey.resolvedDestinationName;
+    final destination = resolvedDestination.isEmpty
         ? t.journeyWizardUnknownDestination
-        : journey.destination.trim();
+        : resolvedDestination;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,

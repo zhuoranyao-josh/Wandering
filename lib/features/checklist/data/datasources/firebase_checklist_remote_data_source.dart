@@ -4,6 +4,7 @@ import 'package:flutter/foundation.dart';
 
 import '../../../../core/error/app_exception.dart';
 import '../../domain/entities/checklist_detail.dart';
+import '../../domain/entities/checklist_destination_snapshot.dart';
 import '../../domain/entities/checklist_item.dart';
 import '../../domain/entities/journey_basic_info_input.dart';
 import 'checklist_remote_data_source.dart';
@@ -77,7 +78,7 @@ class FirebaseChecklistRemoteDataSource implements ChecklistRemoteDataSource {
       }
 
       final placeIds = items
-          .map((item) => item.placeId.trim())
+          .map((item) => item.placeId?.trim() ?? '')
           .where((placeId) => placeId.isNotEmpty)
           .toSet();
       debugPrint(
@@ -94,9 +95,10 @@ class FirebaseChecklistRemoteDataSource implements ChecklistRemoteDataSource {
       final enrichedItems = items
           .map(
             (item) => item.copyWith(
-              coverImageUrl:
-                  coverImageMap[item.placeId.trim()] ??
-                  item.coverImageUrl.trim(),
+              coverImageUrl: item.resolvedCoverImageUrl.isNotEmpty
+                  ? item.resolvedCoverImageUrl
+                  : (coverImageMap[item.placeId?.trim() ?? ''] ??
+                        item.coverImageUrl.trim()),
             ),
           )
           .toList(growable: false);
@@ -110,7 +112,9 @@ class FirebaseChecklistRemoteDataSource implements ChecklistRemoteDataSource {
         if (dateCompare != 0) {
           return dateCompare;
         }
-        return left.destination.compareTo(right.destination);
+        return left.resolvedDestinationName.compareTo(
+          right.resolvedDestinationName,
+        );
       });
       debugPrint(
         '[MyTrips] mapping completed '
@@ -175,35 +179,54 @@ class FirebaseChecklistRemoteDataSource implements ChecklistRemoteDataSource {
     required String placeId,
     required String destination,
     String? coverImageUrl,
+    Map<String, String>? destinationNames,
+    ChecklistDestinationSnapshot? destinationSnapshot,
   }) async {
     try {
-      final userId = firebaseAuth.currentUser?.uid;
-      if (userId == null || userId.trim().isEmpty) {
-        throw AppException('checklist_create_failed');
-      }
-
       final trimmedPlaceId = placeId.trim();
-      final trimmedDestination = destination.trim();
-      final trimmedCoverImageUrl = coverImageUrl?.trim() ?? '';
-      final ref = firestore
-          .collection('users')
-          .doc(userId)
-          .collection('checklists')
-          .doc();
+      final snapshot =
+          destinationSnapshot ??
+          await _buildOfficialDestinationSnapshot(
+            placeId: trimmedPlaceId,
+            destination: destination,
+            coverImageUrl: coverImageUrl,
+          );
+      final resolvedDestinationNames =
+          destinationNames ??
+          await _loadOfficialDestinationNames(
+            placeId: trimmedPlaceId,
+            fallbackName: destination,
+          );
+      return _createChecklistDocument(
+        placeId: trimmedPlaceId,
+        destination: destination,
+        coverImageUrl: coverImageUrl,
+        destinationNames: resolvedDestinationNames,
+        destinationSourceType: ChecklistDestinationSourceType.official,
+        destinationSnapshot: snapshot,
+      );
+    } catch (_) {
+      throw AppException('checklist_create_failed');
+    }
+  }
 
-      // 基于当前 place 创建行程清单，字段结构与后续正式数据保持一致。
-      await ref.set(<String, dynamic>{
-        'placeId': trimmedPlaceId,
-        'destination': trimmedDestination,
-        'coverImageUrl': trimmedCoverImageUrl,
-        'createdAt': FieldValue.serverTimestamp(),
-        'basicInfoCompleted': false,
-        'planningStatus': 'collecting',
-        'totalBudget': null,
-        'aiGenerated': false,
-      });
-
-      return ref.id;
+  @override
+  Future<String> createChecklistFromDestinationSnapshot({
+    required ChecklistDestinationSnapshot destinationSnapshot,
+    Map<String, String>? destinationNames,
+  }) async {
+    try {
+      final resolvedDestinationNames =
+          destinationNames ??
+          _buildFallbackDestinationNames(destinationSnapshot.name);
+      return _createChecklistDocument(
+        placeId: null,
+        destination: destinationSnapshot.name,
+        coverImageUrl: destinationSnapshot.coverImageUrl,
+        destinationNames: resolvedDestinationNames,
+        destinationSourceType: ChecklistDestinationSourceType.mapbox,
+        destinationSnapshot: destinationSnapshot,
+      );
     } catch (_) {
       throw AppException('checklist_create_failed');
     }
@@ -414,7 +437,7 @@ class FirebaseChecklistRemoteDataSource implements ChecklistRemoteDataSource {
 
   GeminiPlanningInput? _buildGeminiPlanningInput(ChecklistDetail detail) {
     final placeId = detail.placeId?.trim() ?? '';
-    final destination = detail.destination.trim();
+    final destination = detail.resolvedDestinationName;
     final departureCity = detail.departureCity?.trim() ?? '';
     final startDate = detail.startDate;
     final endDate = detail.endDate;
@@ -426,8 +449,8 @@ class FirebaseChecklistRemoteDataSource implements ChecklistRemoteDataSource {
     final pace = detail.pace?.trim() ?? '';
     final accommodationPreference =
         detail.accommodationPreference?.trim() ?? '';
-    final latitude = detail.latitude;
-    final longitude = detail.longitude;
+    final latitude = detail.resolvedLatitude;
+    final longitude = detail.resolvedLongitude;
     final missingFields = <String>[];
 
     if (destination.isEmpty) {
@@ -465,8 +488,7 @@ class FirebaseChecklistRemoteDataSource implements ChecklistRemoteDataSource {
     }
 
     // 关键字段不完整时直接失败，避免调用外部 API 浪费额度。
-    if (placeId.isEmpty ||
-        destination.isEmpty ||
+    if (destination.isEmpty ||
         departureCity.isEmpty ||
         startDate == null ||
         endDate == null ||
@@ -486,9 +508,6 @@ class FirebaseChecklistRemoteDataSource implements ChecklistRemoteDataSource {
       for (final field in missingFields) {
         _log('missing required field=$field');
       }
-      if (placeId.isEmpty) {
-        _log('missing required field=placeId');
-      }
       if (pace.isEmpty) {
         _log('missing required field=pace');
       }
@@ -504,7 +523,7 @@ class FirebaseChecklistRemoteDataSource implements ChecklistRemoteDataSource {
     return GeminiPlanningInput(
       id: detail.id,
       destination: destination,
-      placeId: placeId,
+      placeId: placeId.isEmpty ? null : placeId,
       latitude: latitude,
       longitude: longitude,
       departureCity: departureCity,
@@ -1012,11 +1031,22 @@ class FirebaseChecklistRemoteDataSource implements ChecklistRemoteDataSource {
   }
 
   ChecklistItem _mapChecklistItem(String id, Map<String, dynamic> data) {
+    final snapshot = _readDestinationSnapshot(data);
+    final snapshotName = snapshot?.name.trim() ?? '';
+    final snapshotImage = snapshot?.coverImageUrl?.trim() ?? '';
+    final destinationNames = _readDestinationNames(data);
     return ChecklistItem(
       id: id,
-      destination: (data['destination'] as String?)?.trim() ?? '',
-      placeId: (data['placeId'] as String?)?.trim() ?? '',
-      coverImageUrl: (data['coverImageUrl'] as String?)?.trim() ?? '',
+      destination: snapshotName.isNotEmpty
+          ? snapshotName
+          : (data['destination'] as String?)?.trim() ?? '',
+      placeId: (data['placeId'] as String?)?.trim(),
+      coverImageUrl: snapshotImage.isNotEmpty
+          ? snapshotImage
+          : (data['coverImageUrl'] as String?)?.trim() ?? '',
+      destinationNames: destinationNames,
+      destinationSourceType: (data['destinationSourceType'] as String?)?.trim(),
+      destinationSnapshot: snapshot,
       departureCity: (data['departureCity'] as String?)?.trim(),
       departureCountry: (data['departureCountry'] as String?)?.trim(),
       departureLatitude: _readDouble(data['departureLatitude']),
@@ -1043,13 +1073,22 @@ class FirebaseChecklistRemoteDataSource implements ChecklistRemoteDataSource {
   ChecklistDetail _mapChecklistDetail(String id, Map<String, dynamic> data) {
     final budgetSplit = _readBudgetSplit(data);
     final proTip = _readProTip(data);
+    final snapshot = _readDestinationSnapshot(data);
+    final snapshotName = snapshot?.name.trim() ?? '';
     return ChecklistDetail(
       id: id,
-      destination: (data['destination'] as String?)?.trim() ?? '',
+      destination: snapshotName.isNotEmpty
+          ? snapshotName
+          : (data['destination'] as String?)?.trim() ?? '',
       placeId: (data['placeId'] as String?)?.trim(),
+      destinationSourceType: (data['destinationSourceType'] as String?)?.trim(),
+      destinationSnapshot: snapshot,
       latitude:
-          _readDouble(data['latitude']) ?? _readDouble(data['markerLatitude']),
+          snapshot?.latitude ??
+          _readDouble(data['latitude']) ??
+          _readDouble(data['markerLatitude']),
       longitude:
+          snapshot?.longitude ??
           _readDouble(data['longitude']) ??
           _readDouble(data['markerLongitude']),
       departureCity: (data['departureCity'] as String?)?.trim(),
@@ -1082,21 +1121,32 @@ class FirebaseChecklistRemoteDataSource implements ChecklistRemoteDataSource {
     Map<String, dynamic> data,
   ) async {
     final detail = _mapChecklistDetail(id, data);
-    if (detail.latitude != null && detail.longitude != null) {
+    if (detail.destinationSnapshot?.hasCoreData == true &&
+        detail.resolvedLatitude != null &&
+        detail.resolvedLongitude != null) {
       return detail;
     }
 
     final placeId = detail.placeId?.trim() ?? '';
-    if (placeId.isEmpty) {
+    if (placeId.isEmpty || detail.destinationSnapshot?.hasCoreData == true) {
       return detail;
     }
 
-    final coords = await _loadPlaceCoordinates(placeId);
-    if (coords == null) {
+    final placeSnapshot = await _loadOfficialPlaceSnapshot(
+      placeId: placeId,
+      fallbackName: detail.destination,
+      fallbackCoverImageUrl: detail.resolvedCoverImageUrl,
+    );
+    if (placeSnapshot == null) {
       return detail;
     }
 
-    return detail.copyWith(latitude: coords.$1, longitude: coords.$2);
+    return detail.copyWith(
+      destinationSnapshot: placeSnapshot,
+      destinationSourceType: ChecklistDestinationSourceType.official,
+      latitude: placeSnapshot.latitude,
+      longitude: placeSnapshot.longitude,
+    );
   }
 
   Future<Map<String, String>> _loadCoverImages(Set<String> placeIds) async {
@@ -1132,7 +1182,236 @@ class FirebaseChecklistRemoteDataSource implements ChecklistRemoteDataSource {
     return result;
   }
 
-  Future<(double, double)?> _loadPlaceCoordinates(String placeId) async {
+  Future<String> _createChecklistDocument({
+    required String? placeId,
+    required String destination,
+    required String? coverImageUrl,
+    required Map<String, String> destinationNames,
+    required String destinationSourceType,
+    required ChecklistDestinationSnapshot destinationSnapshot,
+  }) async {
+    final userId = firebaseAuth.currentUser?.uid;
+    if (userId == null || userId.trim().isEmpty) {
+      throw AppException('checklist_create_failed');
+    }
+
+    final trimmedPlaceId = placeId?.trim();
+    final trimmedDestination = destination.trim();
+    final trimmedCoverImageUrl = coverImageUrl?.trim() ?? '';
+    final sanitizedDestinationNames = _sanitizeDestinationNames(
+      destinationNames,
+    );
+    final ref = firestore
+        .collection('users')
+        .doc(userId)
+        .collection('checklists')
+        .doc();
+
+    await ref.set(<String, dynamic>{
+      'placeId': (trimmedPlaceId?.isNotEmpty ?? false) ? trimmedPlaceId : null,
+      'destination': trimmedDestination,
+      'coverImageUrl': trimmedCoverImageUrl,
+      'destinationNames': sanitizedDestinationNames,
+      'destinationSourceType': destinationSourceType,
+      'destinationSnapshot': _toDestinationSnapshotJson(destinationSnapshot),
+      'createdAt': FieldValue.serverTimestamp(),
+      'basicInfoCompleted': false,
+      'planningStatus': 'collecting',
+      'totalBudget': null,
+      'aiGenerated': false,
+    });
+
+    return ref.id;
+  }
+
+  Future<ChecklistDestinationSnapshot> _buildOfficialDestinationSnapshot({
+    required String placeId,
+    required String destination,
+    String? coverImageUrl,
+  }) async {
+    final doc = await firestore.collection('places').doc(placeId).get();
+    final data = doc.data();
+    final latitude = data == null
+        ? null
+        : _readDouble(data['latitude']) ?? _readDouble(data['markerLatitude']);
+    final longitude = data == null
+        ? null
+        : _readDouble(data['longitude']) ??
+              _readDouble(data['markerLongitude']);
+    final fallbackImage = data == null
+        ? null
+        : (data['coverImage'] as String?)?.trim() ??
+              (data['previewAssetPath'] as String?)?.trim();
+
+    return ChecklistDestinationSnapshot(
+      name: destination.trim(),
+      latitude: latitude ?? 0,
+      longitude: longitude ?? 0,
+      coverImageUrl: coverImageUrl?.trim().isNotEmpty == true
+          ? coverImageUrl?.trim()
+          : fallbackImage,
+      provider: ChecklistDestinationSourceType.official,
+      providerPlaceId: placeId.trim().isEmpty ? null : placeId.trim(),
+      placeLevel: 'city',
+      country: null,
+      region: null,
+    );
+  }
+
+  Future<Map<String, String>> _loadOfficialDestinationNames({
+    required String placeId,
+    required String fallbackName,
+  }) async {
+    final doc = await firestore.collection('places').doc(placeId).get();
+    final data = doc.data();
+    if (data == null) {
+      return _buildFallbackDestinationNames(fallbackName);
+    }
+
+    final names = _readLocalizedNamesMap(data['name']);
+    if (names.isNotEmpty) {
+      return names;
+    }
+    return _buildFallbackDestinationNames(fallbackName);
+  }
+
+  Map<String, String> _buildFallbackDestinationNames(String fallbackName) {
+    final trimmed = fallbackName.trim();
+    if (trimmed.isEmpty) {
+      return const <String, String>{};
+    }
+    return <String, String>{'en': trimmed};
+  }
+
+  Map<String, String> _sanitizeDestinationNames(Map<String, String> input) {
+    final result = <String, String>{};
+    for (final entry in input.entries) {
+      final key = entry.key.trim().toLowerCase();
+      final value = entry.value.trim();
+      if (value.isEmpty) {
+        continue;
+      }
+      if (key.startsWith('zh')) {
+        result['zh'] = value;
+      } else if (key.startsWith('en')) {
+        result['en'] = value;
+      }
+    }
+    return result;
+  }
+
+  ChecklistDestinationSnapshot? _readDestinationSnapshot(
+    Map<String, dynamic> data,
+  ) {
+    final raw = data['destinationSnapshot'];
+    if (raw is Map) {
+      final name = (raw['name'] as String?)?.trim() ?? '';
+      final latitude = _readDouble(raw['latitude']);
+      final longitude = _readDouble(raw['longitude']);
+      if (name.isNotEmpty && latitude != null && longitude != null) {
+        return ChecklistDestinationSnapshot(
+          name: name,
+          latitude: latitude,
+          longitude: longitude,
+          coverImageUrl: (raw['coverImageUrl'] as String?)?.trim(),
+          provider: (raw['provider'] as String?)?.trim().isNotEmpty == true
+              ? (raw['provider'] as String).trim()
+              : ChecklistDestinationSourceType.official,
+          providerPlaceId: (raw['providerPlaceId'] as String?)?.trim(),
+          placeLevel: (raw['placeLevel'] as String?)?.trim(),
+          country: (raw['country'] as String?)?.trim(),
+          region: (raw['region'] as String?)?.trim(),
+        );
+      }
+    }
+
+    // 兼容旧 schema：用旧字段反推最小快照，避免旧 checklist 崩溃。
+    final legacyName = (data['destination'] as String?)?.trim() ?? '';
+    final legacyLatitude =
+        _readDouble(data['latitude']) ?? _readDouble(data['markerLatitude']);
+    final legacyLongitude =
+        _readDouble(data['longitude']) ?? _readDouble(data['markerLongitude']);
+    final legacyPlaceId = (data['placeId'] as String?)?.trim();
+    if (legacyName.isEmpty ||
+        legacyLatitude == null ||
+        legacyLongitude == null) {
+      return null;
+    }
+    return ChecklistDestinationSnapshot(
+      name: legacyName,
+      latitude: legacyLatitude,
+      longitude: legacyLongitude,
+      coverImageUrl: (data['coverImageUrl'] as String?)?.trim(),
+      provider: (legacyPlaceId?.isNotEmpty ?? false)
+          ? ChecklistDestinationSourceType.official
+          : ChecklistDestinationSourceType.mapbox,
+      providerPlaceId: legacyPlaceId,
+      placeLevel: null,
+      country: null,
+      region: null,
+    );
+  }
+
+  Map<String, String> _readDestinationNames(Map<String, dynamic> data) {
+    final fromDoc = _readLocalizedNamesMap(data['destinationNames']);
+    if (fromDoc.isNotEmpty) {
+      return fromDoc;
+    }
+
+    // 兼容旧数据：没有 destinationNames 时，用 destination 兜底一个默认语言值。
+    final fallbackName = (data['destination'] as String?)?.trim() ?? '';
+    if (fallbackName.isNotEmpty) {
+      return <String, String>{'en': fallbackName};
+    }
+    return const <String, String>{};
+  }
+
+  Map<String, String> _readLocalizedNamesMap(Object? value) {
+    if (value is! Map) {
+      return const <String, String>{};
+    }
+
+    final result = <String, String>{};
+    for (final entry in value.entries) {
+      final key = entry.key.toString().trim().toLowerCase();
+      final raw = entry.value;
+      if (raw is! String) {
+        continue;
+      }
+      final text = raw.trim();
+      if (text.isEmpty) {
+        continue;
+      }
+      if (key.startsWith('zh')) {
+        result['zh'] = text;
+      } else if (key.startsWith('en')) {
+        result['en'] = text;
+      }
+    }
+    return result;
+  }
+
+  Map<String, dynamic> _toDestinationSnapshotJson(
+    ChecklistDestinationSnapshot snapshot,
+  ) {
+    return <String, dynamic>{
+      'name': snapshot.name.trim(),
+      'latitude': snapshot.latitude,
+      'longitude': snapshot.longitude,
+      'coverImageUrl': snapshot.coverImageUrl?.trim(),
+      'provider': snapshot.provider.trim(),
+      'providerPlaceId': snapshot.providerPlaceId?.trim(),
+      'placeLevel': snapshot.placeLevel?.trim(),
+      'country': snapshot.country?.trim(),
+      'region': snapshot.region?.trim(),
+    };
+  }
+
+  Future<ChecklistDestinationSnapshot?> _loadOfficialPlaceSnapshot({
+    required String placeId,
+    required String fallbackName,
+    required String fallbackCoverImageUrl,
+  }) async {
     final doc = await firestore.collection('places').doc(placeId).get();
     if (!doc.exists) {
       return null;
@@ -1150,7 +1429,27 @@ class FirebaseChecklistRemoteDataSource implements ChecklistRemoteDataSource {
     if (latitude == null || longitude == null) {
       return null;
     }
-    return (latitude, longitude);
+
+    final name =
+        _readLanguageMapValue(data['name']) ??
+        (data['destination'] as String?)?.trim() ??
+        fallbackName.trim();
+    final coverImage =
+        (data['coverImage'] as String?)?.trim() ??
+        (data['previewAssetPath'] as String?)?.trim() ??
+        fallbackCoverImageUrl.trim();
+
+    return ChecklistDestinationSnapshot(
+      name: name,
+      latitude: latitude,
+      longitude: longitude,
+      coverImageUrl: coverImage.isEmpty ? null : coverImage,
+      provider: ChecklistDestinationSourceType.official,
+      providerPlaceId: placeId,
+      placeLevel: 'city',
+      country: null,
+      region: null,
+    );
   }
 
   CollectionReference<Map<String, dynamic>> _resolveChecklistCollection() {
@@ -1601,5 +1900,26 @@ class FirebaseChecklistRemoteDataSource implements ChecklistRemoteDataSource {
         .map((item) => item.trim())
         .where((item) => item.isNotEmpty)
         .toList(growable: false);
+  }
+
+  String? _readLanguageMapValue(Object? value) {
+    if (value is! Map) {
+      return null;
+    }
+
+    for (final key in <String>['en', 'zh']) {
+      final raw = value[key];
+      if (raw is String && raw.trim().isNotEmpty) {
+        return raw.trim();
+      }
+    }
+
+    for (final entry in value.entries) {
+      final raw = entry.value;
+      if (raw is String && raw.trim().isNotEmpty) {
+        return raw.trim();
+      }
+    }
+    return null;
   }
 }

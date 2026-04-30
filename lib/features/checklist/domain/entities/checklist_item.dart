@@ -1,9 +1,14 @@
+import 'checklist_destination_snapshot.dart';
+
 class ChecklistItem {
   const ChecklistItem({
     required this.id,
     required this.destination,
-    required this.placeId,
+    this.placeId,
     required this.coverImageUrl,
+    this.destinationNames = const <String, String>{},
+    this.destinationSourceType,
+    this.destinationSnapshot,
     this.departureCity,
     this.departureCountry,
     this.departureLatitude,
@@ -25,8 +30,11 @@ class ChecklistItem {
 
   final String id;
   final String destination;
-  final String placeId;
+  final String? placeId;
   final String coverImageUrl;
+  final Map<String, String> destinationNames;
+  final String? destinationSourceType;
+  final ChecklistDestinationSnapshot? destinationSnapshot;
   final String? departureCity;
   final String? departureCountry;
   final double? departureLatitude;
@@ -47,7 +55,7 @@ class ChecklistItem {
 
   // Journey Wizard 入口分流规则：只有基础字段完整时才允许直达详情页。
   bool get isBasicInfoComplete {
-    return placeId.trim().isNotEmpty &&
+    return hasValidDestination &&
         startDate != null &&
         endDate != null &&
         (departureCity?.trim().isNotEmpty ?? false) &&
@@ -59,11 +67,55 @@ class ChecklistItem {
         preferences.isNotEmpty;
   }
 
+  bool get hasValidDestination => destinationSnapshot?.hasCoreData ?? false;
+
+  String get resolvedDestinationName {
+    final snapshotName = destinationSnapshot?.name.trim() ?? '';
+    if (snapshotName.isNotEmpty) {
+      return snapshotName;
+    }
+    return destination.trim();
+  }
+
+  String resolveDestinationNameByLocale(String languageCode) {
+    final normalizedLanguage = languageCode.toLowerCase();
+    final preferredKey = normalizedLanguage.startsWith('zh') ? 'zh' : 'en';
+    final fallbackKey = preferredKey == 'zh' ? 'en' : 'zh';
+
+    // 列表展示优先读多语言名称，确保切换语言时地点名称同步变化。
+    final preferred = destinationNames[preferredKey]?.trim() ?? '';
+    if (preferred.isNotEmpty) {
+      return preferred;
+    }
+
+    final fallback = destinationNames[fallbackKey]?.trim() ?? '';
+    if (fallback.isNotEmpty) {
+      return fallback;
+    }
+
+    return resolvedDestinationName;
+  }
+
+  String get resolvedCoverImageUrl {
+    final snapshotImage = destinationSnapshot?.coverImageUrl?.trim() ?? '';
+    if (snapshotImage.isNotEmpty) {
+      return snapshotImage;
+    }
+    return coverImageUrl.trim();
+  }
+
+  double? get resolvedLatitude => destinationSnapshot?.latitude;
+
+  double? get resolvedLongitude => destinationSnapshot?.longitude;
+
   ChecklistItem copyWith({
     String? id,
     String? destination,
     String? placeId,
     String? coverImageUrl,
+    Map<String, String>? destinationNames,
+    String? destinationSourceType,
+    ChecklistDestinationSnapshot? destinationSnapshot,
     String? departureCity,
     String? departureCountry,
     double? departureLatitude,
@@ -87,6 +139,10 @@ class ChecklistItem {
       destination: destination ?? this.destination,
       placeId: placeId ?? this.placeId,
       coverImageUrl: coverImageUrl ?? this.coverImageUrl,
+      destinationNames: destinationNames ?? this.destinationNames,
+      destinationSourceType:
+          destinationSourceType ?? this.destinationSourceType,
+      destinationSnapshot: destinationSnapshot ?? this.destinationSnapshot,
       departureCity: departureCity ?? this.departureCity,
       departureCountry: departureCountry ?? this.departureCountry,
       departureLatitude: departureLatitude ?? this.departureLatitude,

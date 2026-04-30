@@ -352,10 +352,10 @@ class ChecklistDetailController extends ChangeNotifier {
     if ((detail.currency?.trim().isNotEmpty ?? false) == false) {
       missingFields.add('currency');
     }
-    if (detail.latitude == null) {
+    if (detail.resolvedLatitude == null) {
       missingFields.add('latitude');
     }
-    if (detail.longitude == null) {
+    if (detail.resolvedLongitude == null) {
       missingFields.add('longitude');
     }
     return missingFields;
@@ -366,8 +366,8 @@ class ChecklistDetailController extends ChangeNotifier {
       _normalizeLocale(_currentLocale),
     );
 
-    final latitude = detail.latitude;
-    final longitude = detail.longitude;
+    final latitude = detail.resolvedLatitude;
+    final longitude = detail.resolvedLongitude;
     final startDate = detail.startDate;
     final endDate = detail.endDate;
 

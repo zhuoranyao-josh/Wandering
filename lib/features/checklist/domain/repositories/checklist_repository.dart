@@ -1,4 +1,5 @@
 import '../entities/checklist_detail.dart';
+import '../entities/checklist_destination_snapshot.dart';
 import '../entities/checklist_item.dart';
 import '../entities/journey_basic_info_input.dart';
 
@@ -13,6 +14,13 @@ abstract class ChecklistRepository {
     required String placeId,
     required String destination,
     String? coverImageUrl,
+    Map<String, String>? destinationNames,
+    ChecklistDestinationSnapshot? destinationSnapshot,
+  });
+
+  Future<String> createChecklistFromDestinationSnapshot({
+    required ChecklistDestinationSnapshot destinationSnapshot,
+    Map<String, String>? destinationNames,
   });
 
   Future<void> saveJourneyBasicInfo({

@@ -14,7 +14,7 @@ class AdminRegionEditController extends ChangeNotifier {
   bool _isDeleting = false;
   String? _errorKey;
   AdminRegion? _region;
-  static final RegExp _lowercaseLettersPattern = RegExp(r'^[a-z]+$');
+  static final RegExp _lowercaseLettersPattern = RegExp(r'^[a-z_]+$');
 
   bool get isLoading => _isLoading;
   bool get isSaving => _isSaving;
@@ -55,7 +55,9 @@ class AdminRegionEditController extends ChangeNotifier {
     _errorKey = null;
     notifyListeners();
     try {
-      final savedId = await repository.upsertRegion(region.copyWith(id: trimmedId));
+      final savedId = await repository.upsertRegion(
+        region.copyWith(id: trimmedId),
+      );
       _region = region.copyWith(id: savedId);
       return savedId;
     } catch (_) {

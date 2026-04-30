@@ -225,6 +225,15 @@ class AppLocalizationsEn extends AppLocalizations {
   String get mapHomeSwitchToNight => 'Switch to night mode';
 
   @override
+  String get mapHomeSearchHint => 'Search for a city, district, or region';
+
+  @override
+  String get mapHomeSearchNoCityResults => 'No matching city, district, or region results found.';
+
+  @override
+  String get mapHomeSearchFailed => 'Unable to search cities right now.';
+
+  @override
   String get locateMe => 'Locate me';
 
   @override
@@ -515,6 +524,12 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get placeDetailsViewAll => 'View All';
+
+  @override
+  String get placeDetailsDescriptionExpand => 'Read more';
+
+  @override
+  String get placeDetailsDescriptionCollapse => 'Show less';
 
   @override
   String get placeDetailsStartJourney => 'Start Journey';
@@ -1073,10 +1088,10 @@ class AppLocalizationsEn extends AppLocalizations {
   String get adminRegionIdRequired => 'Region ID is required.';
 
   @override
-  String get adminRegionIdLowercaseOnly => 'Region ID must use lowercase letters only (a-z).';
+  String get adminRegionIdLowercaseOnly => 'Region ID must use lowercase letters or underscores only (a-z, _).';
 
   @override
-  String get adminPlaceUidLowercaseOnly => 'UID must use lowercase letters only (a-z).';
+  String get adminPlaceUidLowercaseOnly => 'UID must use lowercase letters or underscores only (a-z, _).';
 
   @override
   String get adminPlaceSelectRegionHint => 'Please select a region';

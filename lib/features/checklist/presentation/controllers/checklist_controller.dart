@@ -1,5 +1,6 @@
 import 'package:flutter/foundation.dart';
 
+import '../../domain/entities/checklist_destination_snapshot.dart';
 import '../../domain/entities/checklist_item.dart';
 import '../../domain/repositories/checklist_repository.dart';
 
@@ -47,6 +48,8 @@ class ChecklistController extends ChangeNotifier {
     required String placeId,
     required String destination,
     String? coverImageUrl,
+    Map<String, String>? destinationNames,
+    ChecklistDestinationSnapshot? destinationSnapshot,
   }) async {
     _errorKey = null;
     notifyListeners();
@@ -55,7 +58,30 @@ class ChecklistController extends ChangeNotifier {
         placeId: placeId,
         destination: destination,
         coverImageUrl: coverImageUrl,
+        destinationNames: destinationNames,
+        destinationSnapshot: destinationSnapshot,
       );
+      await load();
+      return checklistId;
+    } catch (_) {
+      _errorKey = 'checklistCreateFailed';
+      notifyListeners();
+      return null;
+    }
+  }
+
+  Future<String?> createChecklistFromDestinationSnapshot({
+    required ChecklistDestinationSnapshot destinationSnapshot,
+    Map<String, String>? destinationNames,
+  }) async {
+    _errorKey = null;
+    notifyListeners();
+    try {
+      final checklistId = await repository
+          .createChecklistFromDestinationSnapshot(
+            destinationSnapshot: destinationSnapshot,
+            destinationNames: destinationNames,
+          );
       await load();
       return checklistId;
     } catch (_) {

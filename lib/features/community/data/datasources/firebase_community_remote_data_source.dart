@@ -42,7 +42,7 @@ class FirebaseCommunityRemoteDataSource implements CommunityRemoteDataSource {
           .map((doc) => _mapDocToPost(doc.id, doc.data()))
           .toList(growable: false);
       posts.sort((a, b) => b.createdAt.compareTo(a.createdAt));
-      return _attachLikeState(posts);
+      return _attachLikeSnapshot(posts);
     } catch (_) {
       throw AppException('community_load_failed');
     }
@@ -74,7 +74,7 @@ class FirebaseCommunityRemoteDataSource implements CommunityRemoteDataSource {
       final visiblePosts = limit == null
           ? posts
           : posts.take(limit).toList(growable: false);
-      return _attachLikeState(visiblePosts);
+      return _attachLikeSnapshot(visiblePosts);
     } catch (_) {
       throw AppException('community_load_failed');
     }
@@ -118,7 +118,7 @@ class FirebaseCommunityRemoteDataSource implements CommunityRemoteDataSource {
       final visiblePosts = limit == null
           ? sortedPosts
           : sortedPosts.take(limit).toList(growable: false);
-      return _attachLikeState(visiblePosts);
+      return _attachLikeSnapshot(visiblePosts);
     } catch (_) {
       throw AppException('community_load_failed');
     }
@@ -137,7 +137,7 @@ class FirebaseCommunityRemoteDataSource implements CommunityRemoteDataSource {
         return null;
       }
 
-      return _withLikeState(_mapDocToPost(doc.id, data));
+      return _withLikeSnapshot(_mapDocToPost(doc.id, data));
     } catch (_) {
       throw AppException('community_load_failed');
     }
@@ -663,7 +663,7 @@ class FirebaseCommunityRemoteDataSource implements CommunityRemoteDataSource {
           .map((doc) => _mapDocToPost(doc.id, doc.data()))
           .toList(growable: false);
       posts.sort((a, b) => b.createdAt.compareTo(a.createdAt));
-      return _attachLikeState(posts);
+      return _attachLikeSnapshot(posts);
     } catch (_) {
       throw AppException('community_load_failed');
     }
@@ -787,27 +787,33 @@ class FirebaseCommunityRemoteDataSource implements CommunityRemoteDataSource {
     return firestore.collection('users').doc(userId).collection('following');
   }
 
-  Future<List<Post>> _attachLikeState(List<Post> posts) async {
+  Future<List<Post>> _attachLikeSnapshot(List<Post> posts) async {
     if (posts.isEmpty) {
       return const <Post>[];
     }
 
-    final currentUserId = firebaseAuth.currentUser?.uid;
-    if (currentUserId == null || currentUserId.trim().isEmpty) {
-      return posts;
-    }
-
-    return Future.wait(posts.map(_withLikeState));
+    // 这里统一以 likes 子集合为准，避免仅依赖 posts.likeCount 导致重进后计数回 0。
+    return Future.wait(posts.map(_withLikeSnapshot));
   }
 
-  Future<Post> _withLikeState(Post post) async {
+  Future<Post> _withLikeSnapshot(Post post) async {
     final currentUserId = firebaseAuth.currentUser?.uid;
-    if (currentUserId == null || currentUserId.trim().isEmpty) {
+    try {
+      final likesSnapshot = await _likesCollection(post.id).get();
+      final likeCount = likesSnapshot.size;
+      final isLikedByCurrentUser =
+          currentUserId != null &&
+          currentUserId.trim().isNotEmpty &&
+          likesSnapshot.docs.any((doc) => doc.id == currentUserId);
+
+      return post.copyWith(
+        likeCount: likeCount,
+        isLikedByCurrentUser: isLikedByCurrentUser,
+      );
+    } catch (_) {
+      // 某条帖子点赞子集合读取失败时，兜底保留原值，避免整页加载失败。
       return post.copyWith(isLikedByCurrentUser: false);
     }
-
-    final likeDoc = await _likesCollection(post.id).doc(currentUserId).get();
-    return post.copyWith(isLikedByCurrentUser: likeDoc.exists);
   }
 
   UserProfileSummary _mapDocToUserProfileSummary({

@@ -30,6 +30,8 @@ class GalleryGrid extends StatelessWidget {
       return GridView.builder(
         shrinkWrap: true,
         physics: const NeverScrollableScrollPhysics(),
+        // 关闭默认媒体留白，保证网格紧贴 section 标题下方。
+        padding: EdgeInsets.zero,
         itemCount: 6,
         gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
           crossAxisCount: 3,
@@ -54,6 +56,8 @@ class GalleryGrid extends StatelessWidget {
     return GridView.builder(
       shrinkWrap: true,
       physics: const NeverScrollableScrollPhysics(),
+      // 关闭默认媒体留白，保证网格紧贴 section 标题下方。
+      padding: EdgeInsets.zero,
       itemCount: visibleCount,
       gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
         crossAxisCount: 3,

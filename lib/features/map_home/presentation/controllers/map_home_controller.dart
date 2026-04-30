@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:convert';
+import 'dart:math';
 
 import 'package:flutter/material.dart';
 import 'package:mapbox_maps_flutter/mapbox_maps_flutter.dart';
@@ -9,6 +10,7 @@ import '../../domain/entities/current_location_entity.dart';
 import '../../domain/entities/current_location_result.dart';
 import '../../domain/entities/globe_marker_entity.dart';
 import '../../domain/entities/map_home_data_bundle.dart';
+import '../../domain/entities/map_home_city_search_result_entity.dart';
 import '../../domain/entities/map_home_region_entity.dart';
 import '../../domain/entities/place_entity.dart';
 import '../../domain/repositories/current_location_repository.dart';
@@ -44,6 +46,8 @@ enum MapHomeLocationNotice {
   permissionDeniedForever,
   unavailable,
   failed,
+  searchNoCityResults,
+  searchFailed,
 }
 
 class MapHomeController extends ChangeNotifier {
@@ -100,7 +104,9 @@ class MapHomeController extends ChangeNotifier {
   bool _isScaleBarVisible = true;
   bool _isLocating = false;
   bool _isHydratingCurrentLocation = false;
+  bool _isSearching = false;
   PlaceEntity? _selectedPlace;
+  MapHomeCitySearchResultEntity? _selectedTemporaryCity;
   CurrentLocationEntity? _currentLocation;
   MapHomeLocationNotice? _locationNotice;
   int _locationNoticeVersion = 0;
@@ -120,9 +126,14 @@ class MapHomeController extends ChangeNotifier {
   String? get errorDetails => _errorDetails;
   int get mapWidgetVersion => _mapWidgetVersion;
   bool get isLocating => _isLocating;
+  bool get isSearching => _isSearching;
   CurrentLocationEntity? get currentLocation => _currentLocation;
   MapHomeLocationNotice? get locationNotice => _locationNotice;
   int get locationNoticeVersion => _locationNoticeVersion;
+  MapHomeCitySearchResultEntity? get selectedTemporaryCity =>
+      _selectedTemporaryCity;
+  bool get hasActivePreviewCard =>
+      _selectedPlace != null || _selectedTemporaryCity != null;
 
   bool get isLoading => _status == MapHomeViewStatus.loading;
   bool get hasError => _status == MapHomeViewStatus.error;
@@ -280,6 +291,69 @@ class MapHomeController extends ChangeNotifier {
     }
   }
 
+  Future<void> searchCity(String query, String languageCode) async {
+    final trimmedQuery = query.trim();
+    if (trimmedQuery.isEmpty || _isSearching) {
+      return;
+    }
+
+    _isSearching = true;
+    notifyListeners();
+
+    try {
+      // 每次新搜索先清理上一次卡片状态，避免旧结果残留造成误判感知。
+      await _clearSearchPreviewSelection();
+      final results = await mapHomeRepository.searchCities(
+        query: trimmedQuery,
+        languageCode: languageCode,
+      );
+      if (results.isEmpty) {
+        _emitLocationNotice(MapHomeLocationNotice.searchNoCityResults);
+        return;
+      }
+
+      final selectedResult = _pickBestSearchResult(trimmedQuery, results);
+      if (selectedResult == null) {
+        _emitLocationNotice(MapHomeLocationNotice.searchNoCityResults);
+        return;
+      }
+
+      final matchedPlace = _matchOfficialPlace(trimmedQuery, selectedResult);
+      if (matchedPlace != null) {
+        await selectPlaceById(
+          matchedPlace.id,
+          markerId: _markersByPlaceId[matchedPlace.id]?.id,
+        );
+        return;
+      }
+
+      await _selectTemporaryCity(selectedResult);
+    } on AppException {
+      _emitLocationNotice(MapHomeLocationNotice.searchFailed);
+    } catch (error) {
+      _log('searchCity => error: $error');
+      _emitLocationNotice(MapHomeLocationNotice.searchFailed);
+    } finally {
+      _isSearching = false;
+      notifyListeners();
+    }
+  }
+
+  Future<void> _clearSearchPreviewSelection() async {
+    final hadSelection =
+        _selectedPlace != null ||
+        _selectedTemporaryCity != null ||
+        _selectedMarkerId != null;
+    if (!hadSelection) {
+      return;
+    }
+
+    _selectedPlace = null;
+    _selectedTemporaryCity = null;
+    _selectedMarkerId = null;
+    await _refreshMarkerVisuals();
+  }
+
   Future<void> _hydrateCurrentLocationOnStartup() async {
     if (_isHydratingCurrentLocation || _currentLocation != null) {
       return;
@@ -393,6 +467,8 @@ class MapHomeController extends ChangeNotifier {
       return;
     }
 
+    _selectedTemporaryCity = null;
+
     final marker = markerId != null ? _markersById[markerId] : null;
     final fallbackMarker = marker ?? _markersByPlaceId[placeId];
     if (fallbackMarker == null) {
@@ -433,6 +509,7 @@ class MapHomeController extends ChangeNotifier {
   Future<void> clearSelectedPlace() async {
     _log('clearSelectedPlace');
     _selectedPlace = null;
+    _selectedTemporaryCity = null;
     _selectedMarkerId = null;
     await _refreshMarkerVisuals();
     notifyListeners();
@@ -501,6 +578,155 @@ class MapHomeController extends ChangeNotifier {
       case null:
         return MapHomeLocationNotice.failed;
     }
+  }
+
+  Future<void> _selectTemporaryCity(MapHomeCitySearchResultEntity city) async {
+    final mapboxMap = _mapboxMap;
+    _selectedPlace = null;
+    _selectedTemporaryCity = city;
+    _selectedMarkerId = null;
+    await _refreshMarkerVisuals();
+
+    if (mapboxMap != null) {
+      final cameraState = await mapboxMap.getCameraState();
+      await mapboxMap.flyTo(
+        CameraOptions(
+          center: Point(coordinates: Position(city.longitude, city.latitude)),
+          zoom: 10.8,
+          pitch: cameraState.pitch,
+          bearing: cameraState.bearing,
+        ),
+        MapAnimationOptions(duration: 1800),
+      );
+    }
+
+    _log('selectTemporaryCity => ${city.displayName}');
+  }
+
+  PlaceEntity? _matchOfficialPlace(
+    String query,
+    MapHomeCitySearchResultEntity city,
+  ) {
+    final normalizedSearchNames = <String>{
+      _normalizeName(query),
+      _normalizeName(city.name),
+      _normalizeName(city.preferredName ?? ''),
+    }..removeWhere((value) => value.isEmpty);
+
+    PlaceEntity? bestPlace;
+    var bestDistanceKm = double.infinity;
+    for (final place in _placesById.values) {
+      final distanceKm = _distanceInKilometers(
+        city.latitude,
+        city.longitude,
+        place.latitude,
+        place.longitude,
+      );
+      final hasNameMatch = place.name.values.any((candidate) {
+        final normalizedCandidate = _normalizeName(candidate);
+        if (normalizedCandidate.isEmpty) {
+          return false;
+        }
+        return normalizedSearchNames.any((name) {
+          return _isStrongNameMatch(name, normalizedCandidate);
+        });
+      });
+
+      final canMatch = hasNameMatch && distanceKm <= 35.0;
+      if (!canMatch) {
+        continue;
+      }
+
+      if (distanceKm < bestDistanceKm) {
+        bestDistanceKm = distanceKm;
+        bestPlace = place;
+      }
+    }
+
+    _log(
+      'matchOfficialPlace => matched=${bestPlace?.id} distance=$bestDistanceKm',
+    );
+    return bestPlace;
+  }
+
+  MapHomeCitySearchResultEntity? _pickBestSearchResult(
+    String query,
+    List<MapHomeCitySearchResultEntity> results,
+  ) {
+    if (results.isEmpty) {
+      return null;
+    }
+
+    final normalizedQuery = _normalizeName(query);
+    MapHomeCitySearchResultEntity? bestResult;
+    var bestScore = -1;
+
+    for (final result in results) {
+      final score = _searchResultScore(normalizedQuery, result);
+      _log('searchCandidate => name=${result.displayName} score=$score');
+      if (score > bestScore) {
+        bestScore = score;
+        bestResult = result;
+      }
+    }
+
+    // 若没有任何文本匹配信号，仍回退 Mapbox 首条结果，保持搜索可用性。
+    return bestScore <= 0 ? results.first : bestResult;
+  }
+
+  int _searchResultScore(
+    String normalizedQuery,
+    MapHomeCitySearchResultEntity result,
+  ) {
+    if (normalizedQuery.isEmpty) {
+      return 0;
+    }
+
+    final candidates = <String>{
+      _normalizeName(result.displayName),
+      _normalizeName(result.name),
+      _normalizeName(result.preferredName ?? ''),
+    }..removeWhere((value) => value.isEmpty);
+
+    var bestNameScore = 0;
+    for (final candidate in candidates) {
+      if (candidate == normalizedQuery) {
+        bestNameScore = max(bestNameScore, 1000);
+        continue;
+      }
+      if (candidate.startsWith(normalizedQuery)) {
+        bestNameScore = max(bestNameScore, 800);
+        continue;
+      }
+      if (_canUseLooseContainsMatch(normalizedQuery) &&
+          (candidate.contains(normalizedQuery) ||
+              normalizedQuery.contains(candidate))) {
+        bestNameScore = max(bestNameScore, 500);
+      }
+    }
+
+    return bestNameScore;
+  }
+
+  bool _isStrongNameMatch(String query, String candidate) {
+    if (query.isEmpty || candidate.isEmpty) {
+      return false;
+    }
+    if (query == candidate) {
+      return true;
+    }
+    if (candidate.startsWith(query)) {
+      return true;
+    }
+    if (_canUseLooseContainsMatch(query)) {
+      return candidate.contains(query) || query.contains(candidate);
+    }
+    return false;
+  }
+
+  bool _canUseLooseContainsMatch(String normalizedValue) {
+    // CJK 短词（例如“京都”）包含匹配容易误伤“東京都”，仅对更长关键词启用。
+    return normalizedValue.length >= 4;
   }
 
   Future<void> _syncMarkers() async {
@@ -1278,6 +1504,33 @@ class MapHomeController extends ChangeNotifier {
     }
     return null;
   }
+
+  String _normalizeName(String value) {
+    return value.trim().toLowerCase().replaceAll(RegExp(r'[\s\-\_,.()]+'), '');
+  }
+
+  double _distanceInKilometers(
+    double startLatitude,
+    double startLongitude,
+    double endLatitude,
+    double endLongitude,
+  ) {
+    const earthRadiusKm = 6371.0;
+    final latitudeDelta = _degreeToRadian(endLatitude - startLatitude);
+    final longitudeDelta = _degreeToRadian(endLongitude - startLongitude);
+    final startLatitudeInRadians = _degreeToRadian(startLatitude);
+    final endLatitudeInRadians = _degreeToRadian(endLatitude);
+
+    final a =
+        (sin(latitudeDelta / 2) * sin(latitudeDelta / 2)) +
+        cos(startLatitudeInRadians) *
+            cos(endLatitudeInRadians) *
+            (sin(longitudeDelta / 2) * sin(longitudeDelta / 2));
+    final c = 2 * atan2(sqrt(a), sqrt(1 - a));
+    return earthRadiusKm * c;
+  }
+
+  double _degreeToRadian(double degree) => degree * pi / 180.0;
 
   void _log(String message) {
     debugPrint('MapHome: $message');

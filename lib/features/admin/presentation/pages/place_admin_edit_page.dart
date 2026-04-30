@@ -66,7 +66,7 @@ class _PlaceAdminEditPageState extends State<PlaceAdminEditPage> {
     'community',
     'mixed',
   ];
-  static final RegExp _lowercaseLettersPattern = RegExp(r'^[a-z]+$');
+  static final RegExp _lowercaseLettersPattern = RegExp(r'^[a-z_]+$');
 
   bool _enabled = true;
   String? _markerId;
@@ -196,7 +196,6 @@ class _PlaceAdminEditPageState extends State<PlaceAdminEditPage> {
     return double.tryParse(value.trim()) ?? fallback;
   }
 
-
   AdminPlace _buildDraft() {
     return AdminPlace(
       id: _idController.text.trim(),
@@ -325,10 +324,7 @@ class _PlaceAdminEditPageState extends State<PlaceAdminEditPage> {
   }
 
   List<String> _resolveTagOptions() {
-    final options = <String>{
-      ..._defaultTagOptions,
-      ..._selectedTags,
-    };
+    final options = <String>{..._defaultTagOptions, ..._selectedTags};
     final pending = _pendingTag?.trim() ?? '';
     if (pending.isNotEmpty) {
       options.remove(pending);
@@ -337,9 +333,7 @@ class _PlaceAdminEditPageState extends State<PlaceAdminEditPage> {
   }
 
   List<String> _resolveMarkerTypeOptions() {
-    final options = <String>{
-      ..._defaultMarkerTypeOptions,
-    };
+    final options = <String>{..._defaultMarkerTypeOptions};
     final current = _selectedMarkerType?.trim() ?? '';
     if (current.isNotEmpty) {
       options.add(current);
@@ -400,7 +394,7 @@ class _PlaceAdminEditPageState extends State<PlaceAdminEditPage> {
                       inputFormatters: widget.isCreating
                           ? <TextInputFormatter>[
                               FilteringTextInputFormatter.allow(
-                                RegExp(r'[a-z]'),
+                                RegExp(r'[a-z_]'),
                               ),
                             ]
                           : null,
@@ -493,7 +487,9 @@ class _PlaceAdminEditPageState extends State<PlaceAdminEditPage> {
                       key: ValueKey<String?>(
                         'region-${hasSelectedRegion ? _selectedRegionId : ''}',
                       ),
-                      initialValue: hasSelectedRegion ? _selectedRegionId : null,
+                      initialValue: hasSelectedRegion
+                          ? _selectedRegionId
+                          : null,
                       items: regions
                           .map(
                             (region) => DropdownMenuItem<String>(

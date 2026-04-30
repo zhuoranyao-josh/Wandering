@@ -1,8 +1,12 @@
+import 'checklist_destination_snapshot.dart';
+
 class ChecklistDetail {
   const ChecklistDetail({
     required this.id,
     required this.destination,
     this.placeId,
+    this.destinationSourceType,
+    this.destinationSnapshot,
     this.latitude,
     this.longitude,
     this.departureCity,
@@ -29,6 +33,8 @@ class ChecklistDetail {
   final String id;
   final String destination;
   final String? placeId;
+  final String? destinationSourceType;
+  final ChecklistDestinationSnapshot? destinationSnapshot;
   final double? latitude;
   final double? longitude;
   final String? departureCity;
@@ -53,7 +59,8 @@ class ChecklistDetail {
 
   // 是否满足“开始规划 / 生成计划”的基础信息完整性要求。
   bool get isBasicInfoComplete {
-    return startDate != null &&
+    return hasValidDestination &&
+        startDate != null &&
         endDate != null &&
         (departureCity?.trim().isNotEmpty ?? false) &&
         (totalBudget ?? 0) > 0 &&
@@ -64,10 +71,31 @@ class ChecklistDetail {
         preferences.isNotEmpty;
   }
 
+  bool get hasValidDestination => destinationSnapshot?.hasCoreData ?? false;
+
+  String get resolvedDestinationName {
+    final snapshotName = destinationSnapshot?.name.trim() ?? '';
+    if (snapshotName.isNotEmpty) {
+      return snapshotName;
+    }
+    return destination.trim();
+  }
+
+  double? get resolvedLatitude => destinationSnapshot?.latitude ?? latitude;
+
+  double? get resolvedLongitude => destinationSnapshot?.longitude ?? longitude;
+
+  String get resolvedCoverImageUrl {
+    final snapshotImage = destinationSnapshot?.coverImageUrl?.trim() ?? '';
+    return snapshotImage;
+  }
+
   ChecklistDetail copyWith({
     String? id,
     String? destination,
     String? placeId,
+    String? destinationSourceType,
+    ChecklistDestinationSnapshot? destinationSnapshot,
     double? latitude,
     double? longitude,
     String? departureCity,
@@ -94,6 +122,9 @@ class ChecklistDetail {
       id: id ?? this.id,
       destination: destination ?? this.destination,
       placeId: placeId ?? this.placeId,
+      destinationSourceType:
+          destinationSourceType ?? this.destinationSourceType,
+      destinationSnapshot: destinationSnapshot ?? this.destinationSnapshot,
       latitude: latitude ?? this.latitude,
       longitude: longitude ?? this.longitude,
       departureCity: departureCity ?? this.departureCity,

@@ -7,19 +7,23 @@ class PlacePreviewCard extends StatelessWidget {
   const PlacePreviewCard({
     super.key,
     required this.title,
-    required this.description,
-    required this.imageUrl,
-    required this.buttonText,
+    this.description,
+    this.imageUrl,
+    this.imageAssetPath,
+    this.primaryButtonText,
+    this.primaryButtonLoading = false,
     required this.onClose,
-    required this.onPressed,
+    this.onPrimaryPressed,
   });
 
   final String title;
-  final String description;
-  final String imageUrl;
-  final String buttonText;
+  final String? description;
+  final String? imageUrl;
+  final String? imageAssetPath;
+  final String? primaryButtonText;
+  final bool primaryButtonLoading;
   final VoidCallback onClose;
-  final VoidCallback onPressed;
+  final VoidCallback? onPrimaryPressed;
 
   @override
   Widget build(BuildContext context) {
@@ -77,37 +81,58 @@ class PlacePreviewCard extends StatelessWidget {
                 ),
               ],
             ),
-            const SizedBox(height: 8),
-            Text(
-              description,
-              style: const TextStyle(
-                fontSize: 13,
-                height: 1.55,
-                color: Color(0xFF4B5563),
+            if (_hasDescription) ...[
+              const SizedBox(height: 8),
+              Text(
+                description!.trim(),
+                style: const TextStyle(
+                  fontSize: 13,
+                  height: 1.55,
+                  color: Color(0xFF4B5563),
+                ),
               ),
-            ),
-            const SizedBox(height: 14),
-            ClipRRect(
-              borderRadius: BorderRadius.circular(18),
-              child: AspectRatio(
-                // 预览卡封面保留 cover 裁切，但放宽比例以减少上下被吃掉的区域。
-                aspectRatio: 3 / 2,
-                child: _buildCoverImage(),
+            ],
+            if (_hasImage) ...[
+              const SizedBox(height: 14),
+              ClipRRect(
+                borderRadius: BorderRadius.circular(18),
+                child: AspectRatio(
+                  // 预览卡封面统一为 16:9，和视频/横图素材比例更一致。
+                  aspectRatio: 16 / 9,
+                  child: _buildCoverImage(),
+                ),
               ),
-            ),
-            const SizedBox(height: 16),
-            AppButton(text: buttonText, onPressed: onPressed),
+            ],
+            if (primaryButtonText != null) ...[
+              const SizedBox(height: 16),
+              AppButton(
+                text: primaryButtonText!,
+                onPressed: onPrimaryPressed,
+                // 创建 checklist 时保留按钮位置，避免卡片切到“无按钮版本”造成叠层错觉。
+                isLoading: primaryButtonLoading,
+              ),
+            ],
           ],
         ),
       ),
     );
   }
 
+  bool get _hasDescription => (description?.trim().isNotEmpty ?? false);
+
+  bool get _hasImage =>
+      (imageUrl?.trim().isNotEmpty ?? false) ||
+      (imageAssetPath?.trim().isNotEmpty ?? false);
+
   Widget _buildCoverImage() {
-    if (imageUrl.startsWith('http://') || imageUrl.startsWith('https://')) {
+    final trimmedImageUrl = imageUrl?.trim() ?? '';
+    final trimmedImageAssetPath = imageAssetPath?.trim() ?? '';
+
+    if (trimmedImageUrl.startsWith('http://') ||
+        trimmedImageUrl.startsWith('https://')) {
       // Firestore 默认走网络图；加载失败时退回纯色占位，避免卡片直接空白。
       return AppNetworkImage(
-        imageUrl: imageUrl,
+        imageUrl: trimmedImageUrl,
         pageName: 'map.placePreviewCard',
         fit: BoxFit.cover,
         alignment: Alignment.topCenter,
@@ -115,9 +140,9 @@ class PlacePreviewCard extends StatelessWidget {
         errorBuilder: (context, error) => _buildFallbackImage(),
       );
     }
-    if (imageUrl.isNotEmpty) {
+    if (trimmedImageAssetPath.isNotEmpty) {
       return Image.asset(
-        imageUrl,
+        trimmedImageAssetPath,
         fit: BoxFit.cover,
         errorBuilder: (context, error, stackTrace) => _buildFallbackImage(),
       );

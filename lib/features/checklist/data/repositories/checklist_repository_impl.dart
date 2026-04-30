@@ -1,4 +1,5 @@
 import '../../domain/entities/checklist_detail.dart';
+import '../../domain/entities/checklist_destination_snapshot.dart';
 import '../../domain/entities/checklist_item.dart';
 import '../../domain/entities/journey_basic_info_input.dart';
 import '../../domain/repositories/checklist_repository.dart';
@@ -29,11 +30,26 @@ class ChecklistRepositoryImpl implements ChecklistRepository {
     required String placeId,
     required String destination,
     String? coverImageUrl,
+    Map<String, String>? destinationNames,
+    ChecklistDestinationSnapshot? destinationSnapshot,
   }) {
     return remoteDataSource.createChecklistFromPlace(
       placeId: placeId,
       destination: destination,
       coverImageUrl: coverImageUrl,
+      destinationNames: destinationNames,
+      destinationSnapshot: destinationSnapshot,
+    );
+  }
+
+  @override
+  Future<String> createChecklistFromDestinationSnapshot({
+    required ChecklistDestinationSnapshot destinationSnapshot,
+    Map<String, String>? destinationNames,
+  }) {
+    return remoteDataSource.createChecklistFromDestinationSnapshot(
+      destinationSnapshot: destinationSnapshot,
+      destinationNames: destinationNames,
     );
   }
 

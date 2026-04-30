@@ -202,7 +202,7 @@ class _ChecklistDetailPageState extends State<ChecklistDetailPage>
               children: <Widget>[
                 // 页面结构：头部信息 -> 规划提示/风格摘要 -> 预算 -> Essentials -> Pro Tip -> Checklist。
                 ChecklistHeaderSection(
-                  destination: detail.destination,
+                  destination: detail.resolvedDestinationName,
                   startDate: detail.startDate,
                   endDate: detail.endDate,
                   tripDays: detail.tripDays,

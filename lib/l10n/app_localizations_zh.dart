@@ -225,6 +225,15 @@ class AppLocalizationsZh extends AppLocalizations {
   String get mapHomeSwitchToNight => '切换到夜晚模式';
 
   @override
+  String get mapHomeSearchHint => '搜索城市、区县或省州';
+
+  @override
+  String get mapHomeSearchNoCityResults => '未找到匹配的城市、区县或省州结果。';
+
+  @override
+  String get mapHomeSearchFailed => '当前无法搜索城市，请稍后重试。';
+
+  @override
   String get locateMe => '定位到我';
 
   @override
@@ -515,6 +524,12 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get placeDetailsViewAll => '查看全部';
+
+  @override
+  String get placeDetailsDescriptionExpand => '展开全文';
+
+  @override
+  String get placeDetailsDescriptionCollapse => '收起';
 
   @override
   String get placeDetailsStartJourney => '开启旅程';
@@ -1073,10 +1088,10 @@ class AppLocalizationsZh extends AppLocalizations {
   String get adminRegionIdRequired => '区域 ID 不能为空。';
 
   @override
-  String get adminRegionIdLowercaseOnly => '区域 ID 只能使用小写字母（a-z）。';
+  String get adminRegionIdLowercaseOnly => '区域 ID 只能使用小写字母或下划线（a-z, _）。';
 
   @override
-  String get adminPlaceUidLowercaseOnly => 'UID 只能使用小写字母（a-z）。';
+  String get adminPlaceUidLowercaseOnly => 'UID 只能使用小写字母或下划线（a-z, _）。';
 
   @override
   String get adminPlaceSelectRegionHint => '请选择区域';

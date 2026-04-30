@@ -157,6 +157,9 @@
 - Added Gemini-powered checklist plan generation with Google Places enrichment for hotels, restaurants, and activities.
 - Added Firestore-backed place detail section loading for experiences, flavors, stays, and gallery.
 - Added structured flight and place metadata fields to checklist items for richer detail rendering.
+- Added snapshot-based checklist destination flow (destinationSnapshot, destinationNames, destinationSourceType).
+- Added city search in map home and temporary city “start journey” flow.
+- Added Mapbox city search integration in data/repository/DI layers.
 
 ### 🐛 Bug Fixes
 - Normalized Firestore language-map keys so zh/en variants resolve more reliably.
@@ -169,6 +172,8 @@
   Fix: replaced scattered image rendering with a shared AppNetworkImage path, blocked BoxFit.fill, kept preview pages on BoxFit.contain, and adjusted card cover ratios/alignment to reduce aggressive cropping without changing aspect ratio.
 - Bug: large images uploaded from admin mode were stored as-is, which increased load cost and made image-heavy    screens feel slower.
   Fix: added upload-side compression in the admin Firebase data source, targeting roughly 600 KB - 800 KB while preserving aspect ratio before upload.
+- Bug: Community like counts/state could become inconsistent after page reload because UI relied on partial/stale post fields.
+  Fix: Re-hydrated each post’s like state from the likes subcollection snapshot, then derived both likeCount and isLikedByCurrentUser from that snapshot. Added safe fallback behavior if a single likes read fails.
 
 ### ⚡ Improvements
 - Added a pure UI model to prepare the future Firestore -> Repository -> Controller data flow.
@@ -191,6 +196,9 @@
 - Added disk-cached network image loading with size-aware downsampling.
 - Added masked [ImageLoad] debug logs for start / loaded / error timing without exposing full URLs.
 - Reused a shared icon action button for map controls to keep the map toolbar consistent.
+- Added backward compatibility path for legacy checklist docs when destinationSnapshot/destinationNames are missing.
+- Improved map home/place details/checklist display to use resolved destination name and resolved coordinates consistently.
+
 
 ### 📚 Learnings
 - Only user-facing text should use language maps; structural fields should stay scalar.
@@ -199,3 +207,5 @@
 - Slow image loading was mostly a pipeline issue, not just a file-size issue; cache strategy and decode size mattered a lot.
 - Keeping BoxFit.cover is fine for card media, but container ratio and alignment have a big effect on perceived cropping quality.
 - Upload-side compression is a practical way to improve downstream image performance without changing Firebase data structures.
+- A snapshot-based destination schema reduces coupling to official place IDs and makes external city sources easier to support.
+- Deriving engagement state from source-of-truth subcollections is more reliable than trusting denormalized counters alone.

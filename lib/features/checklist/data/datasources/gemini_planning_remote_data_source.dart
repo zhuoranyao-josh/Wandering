@@ -298,7 +298,7 @@ class GeminiPlanningInput {
   GeminiPlanningInput({
     required this.id,
     required this.destination,
-    required this.placeId,
+    this.placeId,
     required this.latitude,
     required this.longitude,
     required this.departureCity,
@@ -321,7 +321,7 @@ class GeminiPlanningInput {
 
   final String id;
   final String destination;
-  final String placeId;
+  final String? placeId;
   final double latitude;
   final double longitude;
   final String departureCity;

@@ -3,6 +3,7 @@ import 'package:go_router/go_router.dart';
 
 import '../../../../app/app_router.dart';
 import '../../../../core/di/service_locator.dart';
+import '../../../../features/checklist/domain/entities/checklist_destination_snapshot.dart';
 import '../../../../features/checklist/presentation/controllers/checklist_controller.dart';
 import '../../../../l10n/app_localizations.dart';
 import '../controllers/place_detail_controller.dart';
@@ -32,6 +33,12 @@ class _PlaceDetailsPageState extends State<PlaceDetailsPage> {
   static const double _sectionSpacing = 28;
   static const double _bottomActionReservedSpace = 116;
   static const int _descriptionCollapsedMaxLines = 5;
+  static const TextStyle _descriptionTextStyle = TextStyle(
+    fontSize: 15,
+    height: 1.75,
+    color: Color(0xFF374151),
+    fontWeight: FontWeight.w500,
+  );
 
   late final ChecklistController _checklistController =
       ServiceLocator.checklistController;
@@ -55,6 +62,7 @@ class _PlaceDetailsPageState extends State<PlaceDetailsPage> {
   void didUpdateWidget(covariant PlaceDetailsPage oldWidget) {
     super.didUpdateWidget(oldWidget);
     if (oldWidget.placeId != widget.placeId) {
+      _isDescriptionExpanded = false;
       _placeDetailController.loadPlaceDetail(
         widget.placeId,
         forceRefresh: true,
@@ -84,10 +92,6 @@ class _PlaceDetailsPageState extends State<PlaceDetailsPage> {
         final resolvedQuote = model.resolveQuote(languageCode);
         final description = model.resolveDescription(languageCode) ?? '';
         final hasDescription = description.isNotEmpty;
-        final shouldShowDescriptionExpandAction =
-            hasDescription &&
-            !_isDescriptionExpanded &&
-            description.runes.length > 180;
 
         if (_placeDetailController.isLoading &&
             _placeDetailController.detailModel == null &&
@@ -137,9 +141,8 @@ class _PlaceDetailsPageState extends State<PlaceDetailsPage> {
                           if (hasDescription) ...<Widget>[
                             _buildDescriptionSection(
                               description: description,
-                              showExpandAction:
-                                  shouldShowDescriptionExpandAction,
-                              expandLabel: t.viewDetails,
+                              expandLabel: t.placeDetailsDescriptionExpand,
+                              collapseLabel: t.placeDetailsDescriptionCollapse,
                             ),
                             const SizedBox(height: _sectionSpacing),
                           ],
@@ -157,7 +160,8 @@ class _PlaceDetailsPageState extends State<PlaceDetailsPage> {
                             actionText: t.placeDetailsViewMore,
                             onActionTap: _noop,
                           ),
-                          const SizedBox(height: 6),
+                          // 本地风味区收紧标题与内容间距，减少视觉断层。
+                          const SizedBox(height: 2),
                           _buildFlavorsSection(model.flavors, languageCode),
                           const SizedBox(height: _sectionSpacing),
                           PlaceSectionHeader(
@@ -181,7 +185,8 @@ class _PlaceDetailsPageState extends State<PlaceDetailsPage> {
                             actionText: t.placeDetailsViewAll,
                             onActionTap: _noop,
                           ),
-                          const SizedBox(height: 12),
+                          // 图库区同样缩小标题与网格间距，保持上下节奏一致。
+                          const SizedBox(height: 6),
                           GalleryGrid(
                             imageUrls: model.galleryImageUrls,
                             overflowCount: model.galleryOverflowCount,
@@ -216,51 +221,79 @@ class _PlaceDetailsPageState extends State<PlaceDetailsPage> {
 
   Widget _buildDescriptionSection({
     required String description,
-    required bool showExpandAction,
     required String expandLabel,
+    required String collapseLabel,
   }) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: <Widget>[
-        Text(
-          description,
-          maxLines: _isDescriptionExpanded
-              ? null
-              : _descriptionCollapsedMaxLines,
-          overflow: _isDescriptionExpanded
-              ? TextOverflow.visible
-              : TextOverflow.fade,
-          style: const TextStyle(
-            fontSize: 15,
-            height: 1.75,
-            color: Color(0xFF374151),
-            fontWeight: FontWeight.w500,
-          ),
-        ),
-        if (showExpandAction)
-          TextButton(
-            onPressed: () {
-              setState(() {
-                _isDescriptionExpanded = true;
-              });
-            },
-            style: TextButton.styleFrom(
-              padding: const EdgeInsets.only(top: 4),
-              minimumSize: const Size(0, 0),
-              tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-              alignment: Alignment.centerLeft,
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        // 通过真实排版宽度判断是否溢出，避免仅按字符数导致“明明被省略却无法展开”。
+        final hasOverflow = _hasDescriptionOverflow(
+          context: context,
+          description: description,
+          maxWidth: constraints.maxWidth,
+        );
+        final showToggleAction = hasOverflow || _isDescriptionExpanded;
+        final actionLabel = _isDescriptionExpanded
+            ? collapseLabel
+            : expandLabel;
+
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: <Widget>[
+            Text(
+              description,
+              maxLines: _isDescriptionExpanded
+                  ? null
+                  : _descriptionCollapsedMaxLines,
+              overflow: _isDescriptionExpanded
+                  ? TextOverflow.visible
+                  : TextOverflow.fade,
+              style: _descriptionTextStyle,
             ),
-            child: Text(
-              expandLabel,
-              style: const TextStyle(
-                fontSize: 13,
-                fontWeight: FontWeight.w700,
-                color: Color(0xFF111827),
+            if (showToggleAction)
+              TextButton(
+                onPressed: () {
+                  setState(() {
+                    _isDescriptionExpanded = !_isDescriptionExpanded;
+                  });
+                },
+                style: TextButton.styleFrom(
+                  padding: const EdgeInsets.only(top: 4),
+                  minimumSize: const Size(0, 0),
+                  tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                  alignment: Alignment.centerLeft,
+                ),
+                child: Text(
+                  actionLabel,
+                  style: const TextStyle(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w700,
+                    color: Color(0xFF111827),
+                  ),
+                ),
               ),
-            ),
-          ),
-      ],
+          ],
+        );
+      },
     );
+  }
+
+  bool _hasDescriptionOverflow({
+    required BuildContext context,
+    required String description,
+    required double maxWidth,
+  }) {
+    if (_isDescriptionExpanded || maxWidth <= 0) {
+      return false;
+    }
+
+    final textPainter = TextPainter(
+      text: TextSpan(text: description, style: _descriptionTextStyle),
+      textDirection: Directionality.of(context),
+      maxLines: _descriptionCollapsedMaxLines,
+    )..layout(maxWidth: maxWidth);
+
+    return textPainter.didExceedMaxLines;
   }
 
   Widget _buildExperiencesSection(
@@ -300,6 +333,8 @@ class _PlaceDetailsPageState extends State<PlaceDetailsPage> {
     return ListView.separated(
       shrinkWrap: true,
       physics: const NeverScrollableScrollPhysics(),
+      // 禁用 ListView 默认媒体内边距，避免首项被意外下推。
+      padding: EdgeInsets.zero,
       itemCount: itemCount,
       separatorBuilder: (context, index) =>
           const Divider(height: 1, color: Color(0xFFE5E7EB)),
@@ -413,6 +448,20 @@ class _PlaceDetailsPageState extends State<PlaceDetailsPage> {
         placeId: widget.placeId,
         destination: destination,
         coverImageUrl: _model.heroImageUrl,
+        destinationNames: _buildDestinationNamesFromModel(destination),
+        destinationSnapshot: _model.latitude != null && _model.longitude != null
+            ? ChecklistDestinationSnapshot(
+                name: destination,
+                latitude: _model.latitude!,
+                longitude: _model.longitude!,
+                coverImageUrl: _model.heroImageUrl,
+                provider: ChecklistDestinationSourceType.official,
+                providerPlaceId: widget.placeId,
+                placeLevel: 'city',
+                country: _model.country,
+                region: _model.region,
+              )
+            : null,
       );
       if (!mounted) {
         return;
@@ -436,4 +485,21 @@ class _PlaceDetailsPageState extends State<PlaceDetailsPage> {
   }
 
   static void _noop() {}
+
+  Map<String, String> _buildDestinationNamesFromModel(String fallbackName) {
+    final result = <String, String>{};
+    final zh = _model.placeNameByLanguage['zh']?.trim() ?? '';
+    final en = _model.placeNameByLanguage['en']?.trim() ?? '';
+    if (zh.isNotEmpty) {
+      result['zh'] = zh;
+    }
+    if (en.isNotEmpty) {
+      result['en'] = en;
+    }
+
+    if (result.isEmpty && fallbackName.trim().isNotEmpty) {
+      result['en'] = fallbackName.trim();
+    }
+    return result;
+  }
 }

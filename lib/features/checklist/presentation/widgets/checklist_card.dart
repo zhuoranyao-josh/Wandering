@@ -12,7 +12,10 @@ class ChecklistCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final hasCoverImage = item.coverImageUrl.trim().isNotEmpty;
+    final coverImageUrl = item.resolvedCoverImageUrl;
+    final hasCoverImage = coverImageUrl.isNotEmpty;
+    final languageCode = Localizations.localeOf(context).languageCode;
+    final destinationName = item.resolveDestinationNameByLocale(languageCode);
     final displayStatusText = _resolveDisplayStatusText(item.statusText);
     final hasStatusText = displayStatusText != null;
     final dateRange = _buildDateRange(context);
@@ -46,7 +49,7 @@ class ChecklistCard extends StatelessWidget {
                     ClipRRect(
                       borderRadius: BorderRadius.circular(12),
                       child: AppNetworkImage(
-                        imageUrl: item.coverImageUrl.trim(),
+                        imageUrl: coverImageUrl,
                         pageName: 'checklist.listCard',
                         width: 56,
                         height: 56,
@@ -66,7 +69,8 @@ class ChecklistCard extends StatelessWidget {
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: <Widget>[
                         Text(
-                          item.destination,
+                          // 地点名称优先按当前语言读取 destinationNames，再回退旧字段。
+                          destinationName,
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
                           style: const TextStyle(

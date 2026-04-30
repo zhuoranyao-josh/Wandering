@@ -527,6 +527,24 @@ abstract class AppLocalizations {
   /// **'Switch to night mode'**
   String get mapHomeSwitchToNight;
 
+  /// No description provided for @mapHomeSearchHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Search for a city, district, or region'**
+  String get mapHomeSearchHint;
+
+  /// No description provided for @mapHomeSearchNoCityResults.
+  ///
+  /// In en, this message translates to:
+  /// **'No matching city, district, or region results found.'**
+  String get mapHomeSearchNoCityResults;
+
+  /// No description provided for @mapHomeSearchFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Unable to search cities right now.'**
+  String get mapHomeSearchFailed;
+
   /// No description provided for @locateMe.
   ///
   /// In en, this message translates to:
@@ -1102,6 +1120,18 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'View All'**
   String get placeDetailsViewAll;
+
+  /// No description provided for @placeDetailsDescriptionExpand.
+  ///
+  /// In en, this message translates to:
+  /// **'Read more'**
+  String get placeDetailsDescriptionExpand;
+
+  /// No description provided for @placeDetailsDescriptionCollapse.
+  ///
+  /// In en, this message translates to:
+  /// **'Show less'**
+  String get placeDetailsDescriptionCollapse;
 
   /// No description provided for @placeDetailsStartJourney.
   ///
@@ -2186,13 +2216,13 @@ abstract class AppLocalizations {
   /// No description provided for @adminRegionIdLowercaseOnly.
   ///
   /// In en, this message translates to:
-  /// **'Region ID must use lowercase letters only (a-z).'**
+  /// **'Region ID must use lowercase letters or underscores only (a-z, _).'**
   String get adminRegionIdLowercaseOnly;
 
   /// No description provided for @adminPlaceUidLowercaseOnly.
   ///
   /// In en, this message translates to:
-  /// **'UID must use lowercase letters only (a-z).'**
+  /// **'UID must use lowercase letters or underscores only (a-z, _).'**
   String get adminPlaceUidLowercaseOnly;
 
   /// No description provided for @adminPlaceSelectRegionHint.

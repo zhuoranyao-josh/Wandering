@@ -37,6 +37,8 @@ import '../../features/community/presentation/controllers/community_controller.d
 import '../../features/map_home/data/datasources/device_location_data_source.dart';
 import '../../features/map_home/data/datasources/firebase_map_home_remote_data_source.dart';
 import '../../features/map_home/data/datasources/geolocator_device_location_data_source.dart';
+import '../../features/map_home/data/datasources/map_home_city_search_remote_data_source.dart';
+import '../../features/map_home/data/datasources/mapbox_city_search_remote_data_source.dart';
 import '../../features/map_home/data/repositories/current_location_repository_impl.dart';
 import '../../features/map_home/data/datasources/map_home_remote_data_source.dart';
 import '../../features/map_home/data/repositories/map_home_repository_impl.dart';
@@ -92,7 +94,12 @@ class ServiceLocator {
     // Map Home 模块
     final MapHomeRemoteDataSource mapHomeRemoteDataSource =
         FirebaseMapHomeRemoteDataSource(firestore: firestore);
-    mapHomeRepository = MapHomeRepositoryImpl(mapHomeRemoteDataSource);
+    final MapHomeCitySearchRemoteDataSource citySearchRemoteDataSource =
+        MapboxCitySearchRemoteDataSource(httpClient: sharedHttpClient);
+    mapHomeRepository = MapHomeRepositoryImpl(
+      mapHomeRemoteDataSource,
+      citySearchRemoteDataSource,
+    );
     final DeviceLocationDataSource deviceLocationDataSource =
         GeolocatorDeviceLocationDataSource();
     currentLocationRepository = CurrentLocationRepositoryImpl(
