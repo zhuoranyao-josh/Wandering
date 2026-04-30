@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../../../core/widgets/app_button.dart';
+import '../../../../core/widgets/app_network_image.dart';
 
 class PlacePreviewCard extends StatelessWidget {
   const PlacePreviewCard({
@@ -89,7 +90,8 @@ class PlacePreviewCard extends StatelessWidget {
             ClipRRect(
               borderRadius: BorderRadius.circular(18),
               child: AspectRatio(
-                aspectRatio: 16 / 9,
+                // 预览卡封面保留 cover 裁切，但放宽比例以减少上下被吃掉的区域。
+                aspectRatio: 3 / 2,
                 child: _buildCoverImage(),
               ),
             ),
@@ -104,16 +106,13 @@ class PlacePreviewCard extends StatelessWidget {
   Widget _buildCoverImage() {
     if (imageUrl.startsWith('http://') || imageUrl.startsWith('https://')) {
       // Firestore 默认走网络图；加载失败时退回纯色占位，避免卡片直接空白。
-      return Image.network(
-        imageUrl,
+      return AppNetworkImage(
+        imageUrl: imageUrl,
+        pageName: 'map.placePreviewCard',
         fit: BoxFit.cover,
-        errorBuilder: (context, error, stackTrace) => _buildFallbackImage(),
-        loadingBuilder: (context, child, progress) {
-          if (progress == null) {
-            return child;
-          }
-          return _buildFallbackImage();
-        },
+        alignment: Alignment.topCenter,
+        placeholderBuilder: (context) => _buildFallbackImage(),
+        errorBuilder: (context, error) => _buildFallbackImage(),
       );
     }
     if (imageUrl.isNotEmpty) {

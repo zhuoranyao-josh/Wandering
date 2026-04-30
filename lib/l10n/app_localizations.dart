@@ -527,6 +527,48 @@ abstract class AppLocalizations {
   /// **'Switch to night mode'**
   String get mapHomeSwitchToNight;
 
+  /// No description provided for @locateMe.
+  ///
+  /// In en, this message translates to:
+  /// **'Locate me'**
+  String get locateMe;
+
+  /// No description provided for @currentLocation.
+  ///
+  /// In en, this message translates to:
+  /// **'Current location'**
+  String get currentLocation;
+
+  /// No description provided for @locationPermissionDenied.
+  ///
+  /// In en, this message translates to:
+  /// **'Location permission was denied.'**
+  String get locationPermissionDenied;
+
+  /// No description provided for @locationPermissionDeniedForever.
+  ///
+  /// In en, this message translates to:
+  /// **'Location permission is permanently denied. Please enable it in system settings.'**
+  String get locationPermissionDeniedForever;
+
+  /// No description provided for @locationServiceDisabled.
+  ///
+  /// In en, this message translates to:
+  /// **'Location services are turned off. Please enable them first.'**
+  String get locationServiceDisabled;
+
+  /// No description provided for @currentLocationUnavailable.
+  ///
+  /// In en, this message translates to:
+  /// **'Current location is temporarily unavailable.'**
+  String get currentLocationUnavailable;
+
+  /// No description provided for @currentLocationFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Unable to fetch your current location right now.'**
+  String get currentLocationFailed;
+
   /// No description provided for @mapPlaceTokyoName.
   ///
   /// In en, this message translates to:

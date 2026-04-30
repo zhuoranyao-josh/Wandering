@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import '../../../../core/widgets/app_network_image.dart';
+
 class PlaceHeroSection extends StatelessWidget {
   const PlaceHeroSection({
     super.key,
@@ -144,16 +146,12 @@ class PlaceHeroSection extends StatelessWidget {
   Widget _buildHeroImage() {
     final value = imageUrl?.trim() ?? '';
     if (value.startsWith('http://') || value.startsWith('https://')) {
-      return Image.network(
-        value,
+      return AppNetworkImage(
+        imageUrl: value,
+        pageName: 'map.placeHero',
         fit: BoxFit.cover,
-        errorBuilder: (context, error, stackTrace) => _buildFallback(),
-        loadingBuilder: (context, child, loadingProgress) {
-          if (loadingProgress == null) {
-            return child;
-          }
-          return _buildFallback();
-        },
+        placeholderBuilder: (context) => _buildFallback(),
+        errorBuilder: (context, error) => _buildFallback(),
       );
     }
     if (value.isNotEmpty) {

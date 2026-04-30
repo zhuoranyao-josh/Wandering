@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
+import '../../../../core/widgets/app_network_image.dart';
 import '../../domain/entities/checklist_item.dart';
 
 class ChecklistCard extends StatelessWidget {
@@ -44,11 +45,17 @@ class ChecklistCard extends StatelessWidget {
                   if (hasCoverImage) ...[
                     ClipRRect(
                       borderRadius: BorderRadius.circular(12),
-                      child: Image.network(
-                        item.coverImageUrl.trim(),
+                      child: AppNetworkImage(
+                        imageUrl: item.coverImageUrl.trim(),
+                        pageName: 'checklist.listCard',
                         width: 56,
                         height: 56,
                         fit: BoxFit.cover,
+                        alignment: Alignment.topCenter,
+                        placeholderBuilder: (context) =>
+                            _buildImagePlaceholder(),
+                        errorBuilder: (context, error) =>
+                            _buildImagePlaceholder(),
                       ),
                     ),
                     const SizedBox(width: 12),
@@ -147,5 +154,19 @@ class ChecklistCard extends StatelessWidget {
     }
 
     return text;
+  }
+
+  Widget _buildImagePlaceholder() {
+    return Container(
+      width: 56,
+      height: 56,
+      color: const Color(0xFFE5E7EB),
+      alignment: Alignment.center,
+      child: const Icon(
+        Icons.image_outlined,
+        size: 20,
+        color: Color(0xFF9CA3AF),
+      ),
+    );
   }
 }

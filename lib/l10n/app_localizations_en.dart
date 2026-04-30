@@ -225,6 +225,27 @@ class AppLocalizationsEn extends AppLocalizations {
   String get mapHomeSwitchToNight => 'Switch to night mode';
 
   @override
+  String get locateMe => 'Locate me';
+
+  @override
+  String get currentLocation => 'Current location';
+
+  @override
+  String get locationPermissionDenied => 'Location permission was denied.';
+
+  @override
+  String get locationPermissionDeniedForever => 'Location permission is permanently denied. Please enable it in system settings.';
+
+  @override
+  String get locationServiceDisabled => 'Location services are turned off. Please enable them first.';
+
+  @override
+  String get currentLocationUnavailable => 'Current location is temporarily unavailable.';
+
+  @override
+  String get currentLocationFailed => 'Unable to fetch your current location right now.';
+
+  @override
   String get mapPlaceTokyoName => 'Tokyo';
 
   @override

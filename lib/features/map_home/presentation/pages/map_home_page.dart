@@ -14,6 +14,7 @@ import '../../../../l10n/app_localizations.dart';
 import '../controllers/map_home_controller.dart';
 import '../models/place_detail_ui_model.dart';
 import '../support/place_localizations.dart';
+import '../widgets/map_icon_action_button.dart';
 import '../widgets/map_home_status_panel.dart';
 import '../widgets/map_mode_toggle_button.dart';
 import '../widgets/place_preview_card.dart';
@@ -40,6 +41,7 @@ class _MapHomePageState extends State<MapHomePage> {
       );
   Locale? _lastLocale;
   bool? _lastHasSelectedPlace;
+  int? _lastLocationNoticeVersion;
 
   CameraOptions get _initialCameraOptions => CameraOptions(
     center: Point(coordinates: Position(105.0, 30.0)),
@@ -124,6 +126,7 @@ class _MapHomePageState extends State<MapHomePage> {
                 );
               });
             }
+            _showLocationNoticeIfNeeded(context, t);
 
             return Stack(
               fit: StackFit.expand,
@@ -203,11 +206,36 @@ class _MapHomePageState extends State<MapHomePage> {
       ),
       child: Align(
         alignment: Alignment.topRight,
-        child: MapModeToggleButton(
-          isNightMode: isNightMode,
-          enabled: _controller.canToggleLightPreset,
-          tooltip: isNightMode ? t.mapHomeSwitchToDay : t.mapHomeSwitchToNight,
-          onPressed: _controller.toggleLightPreset,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            // 顶部操作按钮继续集中在右上角，避免影响现有卡片和地图手势区域。
+            MapModeToggleButton(
+              isNightMode: isNightMode,
+              enabled: _controller.canToggleLightPreset,
+              tooltip: isNightMode
+                  ? t.mapHomeSwitchToDay
+                  : t.mapHomeSwitchToNight,
+              onPressed: _controller.toggleLightPreset,
+            ),
+            const SizedBox(height: 10),
+            MapIconActionButton(
+              tooltip: t.locateMe,
+              enabled: !_controller.isLocating,
+              onPressed: _controller.locateMe,
+              child: _controller.isLocating
+                  ? const SizedBox(
+                      width: 20,
+                      height: 20,
+                      child: CircularProgressIndicator(strokeWidth: 2.4),
+                    )
+                  : const Icon(
+                      Icons.my_location_rounded,
+                      color: Color(0xFF111827),
+                      size: 24,
+                    ),
+            ),
+          ],
         ),
       ),
     );
@@ -306,5 +334,44 @@ class _MapHomePageState extends State<MapHomePage> {
         ),
       ),
     );
+  }
+
+  void _showLocationNoticeIfNeeded(BuildContext context, AppLocalizations t) {
+    final notice = _controller.locationNotice;
+    final version = _controller.locationNoticeVersion;
+    if (notice == null || _lastLocationNoticeVersion == version) {
+      return;
+    }
+
+    _lastLocationNoticeVersion = version;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) {
+        return;
+      }
+
+      final messenger = ScaffoldMessenger.maybeOf(context);
+      if (messenger == null) {
+        return;
+      }
+
+      messenger
+        ..hideCurrentSnackBar()
+        ..showSnackBar(SnackBar(content: Text(_locationNoticeText(t, notice))));
+    });
+  }
+
+  String _locationNoticeText(AppLocalizations t, MapHomeLocationNotice notice) {
+    switch (notice) {
+      case MapHomeLocationNotice.serviceDisabled:
+        return t.locationServiceDisabled;
+      case MapHomeLocationNotice.permissionDenied:
+        return t.locationPermissionDenied;
+      case MapHomeLocationNotice.permissionDeniedForever:
+        return t.locationPermissionDeniedForever;
+      case MapHomeLocationNotice.unavailable:
+        return t.currentLocationUnavailable;
+      case MapHomeLocationNotice.failed:
+        return t.currentLocationFailed;
+    }
   }
 }

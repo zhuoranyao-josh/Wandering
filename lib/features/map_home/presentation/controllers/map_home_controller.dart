@@ -5,10 +5,13 @@ import 'package:flutter/material.dart';
 import 'package:mapbox_maps_flutter/mapbox_maps_flutter.dart';
 
 import '../../../../core/error/app_exception.dart';
+import '../../domain/entities/current_location_entity.dart';
+import '../../domain/entities/current_location_result.dart';
 import '../../domain/entities/globe_marker_entity.dart';
 import '../../domain/entities/map_home_data_bundle.dart';
 import '../../domain/entities/map_home_region_entity.dart';
 import '../../domain/entities/place_entity.dart';
+import '../../domain/repositories/current_location_repository.dart';
 import '../../domain/repositories/map_home_repository.dart';
 
 enum MapHomeViewStatus { loading, ready, error }
@@ -35,6 +38,14 @@ enum MapHomeBasemapLanguage {
   final String styleValue;
 }
 
+enum MapHomeLocationNotice {
+  serviceDisabled,
+  permissionDenied,
+  permissionDeniedForever,
+  unavailable,
+  failed,
+}
+
 class MapHomeController extends ChangeNotifier {
   static const String _basemapImportId = 'basemap';
   static const String _overviewSourceId = 'map-home-overview-source';
@@ -44,6 +55,12 @@ class MapHomeController extends ChangeNotifier {
   static const String _clusterCircleLayerId = 'map-home-cluster-circle-layer';
   static const String _clusterCountLayerId = 'map-home-cluster-count-layer';
   static const String _cityPointLayerId = 'map-home-city-point-layer';
+  static const String _currentLocationSourceId =
+      'map-home-current-location-source';
+  static const String _currentLocationHaloLayerId =
+      'map-home-current-location-halo-layer';
+  static const String _currentLocationDotLayerId =
+      'map-home-current-location-dot-layer';
   static const double _clusterRadius = 38;
   static const double _clusterMaxZoom = 10;
   static const double _overviewMaxZoom = 3.2;
@@ -53,13 +70,18 @@ class MapHomeController extends ChangeNotifier {
   static const double _clusterMarkerRadius = 11.0;
   static const double _cityMarkerRadius = 8.4;
   static const double _selectedCityMarkerRadius = 10.2;
+  static const double _currentLocationHaloRadius = 16.0;
+  static const double _currentLocationDotRadius = 7.0;
+  static const double _locateMeTargetZoom = 8.8;
 
   MapHomeController({
     required this.mapHomeRepository,
+    required this.currentLocationRepository,
     required double initialMarkerZoom,
   }) : _initialMarkerZoom = initialMarkerZoom;
 
   final MapHomeRepository mapHomeRepository;
+  final CurrentLocationRepository currentLocationRepository;
   final double _initialMarkerZoom;
 
   MapHomeViewStatus _status = MapHomeViewStatus.loading;
@@ -69,13 +91,19 @@ class MapHomeController extends ChangeNotifier {
   List<MapHomeRegionEntity> _regions = <MapHomeRegionEntity>[];
   GeoJsonSource? _overviewSource;
   GeoJsonSource? _citySource;
+  GeoJsonSource? _currentLocationSource;
   MapboxMap? _mapboxMap;
   String? _errorDetails;
   int _mapWidgetVersion = 0;
   bool _isApplyingStyle = false;
   bool _areMarkersVisible = true;
   bool _isScaleBarVisible = true;
+  bool _isLocating = false;
+  bool _isHydratingCurrentLocation = false;
   PlaceEntity? _selectedPlace;
+  CurrentLocationEntity? _currentLocation;
+  MapHomeLocationNotice? _locationNotice;
+  int _locationNoticeVersion = 0;
   String? _selectedMarkerId;
   final Map<String, PlaceEntity> _placesById = <String, PlaceEntity>{};
   final Map<String, MapHomeRegionEntity> _regionsById =
@@ -91,6 +119,10 @@ class MapHomeController extends ChangeNotifier {
   PlaceEntity? get selectedPlace => _selectedPlace;
   String? get errorDetails => _errorDetails;
   int get mapWidgetVersion => _mapWidgetVersion;
+  bool get isLocating => _isLocating;
+  CurrentLocationEntity? get currentLocation => _currentLocation;
+  MapHomeLocationNotice? get locationNotice => _locationNotice;
+  int get locationNoticeVersion => _locationNoticeVersion;
 
   bool get isLoading => _status == MapHomeViewStatus.loading;
   bool get hasError => _status == MapHomeViewStatus.error;
@@ -102,6 +134,7 @@ class MapHomeController extends ChangeNotifier {
     _log('onMapCreated');
     _overviewSource = null;
     _citySource = null;
+    _currentLocationSource = null;
     _mapboxMap = mapboxMap;
     _areMarkersVisible = true;
     _status = MapHomeViewStatus.loading;
@@ -135,11 +168,14 @@ class MapHomeController extends ChangeNotifier {
         includeProjection: true,
       );
       await _syncMarkers();
+      await _syncCurrentLocationLayer();
       await _refreshMarkerVisuals();
+      await _refreshCurrentLocationVisuals();
       await _applyMarkerLayerVisibility(_areMarkersVisible);
       _status = MapHomeViewStatus.ready;
       _errorDetails = null;
       _log('onStyleLoaded ready');
+      unawaited(_hydrateCurrentLocationOnStartup());
     } catch (error) {
       _setError(error);
     } finally {
@@ -207,6 +243,7 @@ class MapHomeController extends ChangeNotifier {
   void retry() {
     _overviewSource = null;
     _citySource = null;
+    _currentLocationSource = null;
     _mapWidgetVersion += 1;
     _mapboxMap = null;
     _areMarkersVisible = true;
@@ -215,6 +252,70 @@ class MapHomeController extends ChangeNotifier {
     _isApplyingStyle = false;
     _log('retry => rebuild map widget');
     notifyListeners();
+  }
+
+  Future<void> locateMe() async {
+    if (_isLocating) {
+      return;
+    }
+
+    _isLocating = true;
+    notifyListeners();
+
+    try {
+      final location = await _refreshCurrentLocation(
+        showFailureNotice: true,
+        moveCamera: true,
+      );
+      if (location == null) {
+        return;
+      }
+      _log('locateMe => lat=${location.latitude}, lng=${location.longitude}');
+    } catch (error) {
+      _log('locateMe => error: $error');
+      _emitLocationNotice(MapHomeLocationNotice.failed);
+    } finally {
+      _isLocating = false;
+      notifyListeners();
+    }
+  }
+
+  Future<void> _hydrateCurrentLocationOnStartup() async {
+    if (_isHydratingCurrentLocation || _currentLocation != null) {
+      return;
+    }
+
+    _isHydratingCurrentLocation = true;
+    try {
+      await _refreshCurrentLocation(
+        showFailureNotice: false,
+        moveCamera: false,
+      );
+    } catch (error) {
+      _log('hydrateCurrentLocationOnStartup => error: $error');
+    } finally {
+      _isHydratingCurrentLocation = false;
+    }
+  }
+
+  Future<CurrentLocationEntity?> _refreshCurrentLocation({
+    required bool showFailureNotice,
+    required bool moveCamera,
+  }) async {
+    final result = await currentLocationRepository.fetchCurrentLocation();
+    if (!result.isSuccess || result.location == null) {
+      if (showFailureNotice) {
+        _emitLocationNotice(_mapFailureToNotice(result.failure));
+      }
+      return null;
+    }
+
+    _currentLocation = result.location;
+    await _refreshCurrentLocationVisuals();
+    if (moveCamera) {
+      await _moveCameraToCurrentLocation(result.location!);
+    }
+    return result.location;
   }
 
   Future<void> _applyMapStyle(
@@ -244,7 +345,7 @@ class MapHomeController extends ChangeNotifier {
 
   void _setError(Object error) {
     _status = MapHomeViewStatus.error;
-    // Firestore 閻庢鍠栭崐鎼佹偉閸洖鐭楁い蹇撴閼稿墎绱撴担鍝勬瀺缂佹梹鎸抽弻銊モ枎閹烘繂娈?UI闂佹寧绋戞總鏃傜箔婢舵劕绠┑鐘插€搁弬褍鈹戦纰卞剰闁诡喗顨堢划鈺咁敍濞嗗海绠氶梺璇″弾閸ㄥ啿煤閸ф绠抽柕澶涢檮閻﹀綊姊婚崶銊ョ祷闁糕晛鏈妵鍕偨閸涘﹥銆?
+    // 地图页统一使用安全文案，避免把底层异常原样暴露给用户。
     _errorDetails = error is AppException ? null : error.toString();
     _log('setError => ${error.runtimeType}: $_errorDetails');
   }
@@ -299,7 +400,7 @@ class MapHomeController extends ChangeNotifier {
         'selectPlaceById => fallback marker not found, use place coordinates',
       );
     }
-    // 鍏堟爣璁伴€変腑鎬侊紝鍐嶆墽琛岄琛屽姩鐢伙紝璁╁崱鐗囧拰鍦板浘鐘舵€佸悓姝ユ洿鐩存帴.
+    // 先同步选中态，再执行飞行动画，让卡片和地图状态保持一致。
     _selectedMarkerId = fallbackMarker?.id;
     await _refreshMarkerVisuals();
 
@@ -354,6 +455,54 @@ class MapHomeController extends ChangeNotifier {
     );
   }
 
+  Future<void> _moveCameraToCurrentLocation(
+    CurrentLocationEntity location,
+  ) async {
+    final mapboxMap = _mapboxMap;
+    if (mapboxMap == null) {
+      return;
+    }
+
+    final cameraState = await mapboxMap.getCameraState();
+    final targetZoom = cameraState.zoom < _locateMeTargetZoom
+        ? _locateMeTargetZoom
+        : cameraState.zoom;
+
+    await mapboxMap.easeTo(
+      CameraOptions(
+        center: Point(
+          coordinates: Position(location.longitude, location.latitude),
+        ),
+        zoom: targetZoom,
+        pitch: cameraState.pitch,
+        bearing: cameraState.bearing,
+      ),
+      MapAnimationOptions(duration: 1200),
+    );
+  }
+
+  void _emitLocationNotice(MapHomeLocationNotice notice) {
+    _locationNotice = notice;
+    _locationNoticeVersion += 1;
+    _log('locationNotice => $notice');
+  }
+
+  MapHomeLocationNotice _mapFailureToNotice(CurrentLocationFailure? failure) {
+    switch (failure) {
+      case CurrentLocationFailure.serviceDisabled:
+        return MapHomeLocationNotice.serviceDisabled;
+      case CurrentLocationFailure.permissionDenied:
+        return MapHomeLocationNotice.permissionDenied;
+      case CurrentLocationFailure.permissionDeniedForever:
+        return MapHomeLocationNotice.permissionDeniedForever;
+      case CurrentLocationFailure.unavailable:
+        return MapHomeLocationNotice.unavailable;
+      case CurrentLocationFailure.unknown:
+      case null:
+        return MapHomeLocationNotice.failed;
+    }
+  }
+
   Future<void> _syncMarkers() async {
     final mapboxMap = _mapboxMap;
     if (mapboxMap == null) {
@@ -362,7 +511,7 @@ class MapHomeController extends ChangeNotifier {
 
     await _removeMarkerLayersIfNeeded(mapboxMap);
     await _removeMarkerSourcesIfNeeded(mapboxMap);
-    // 鍏ㄥ眬瑙嗚鍏堟樉绀哄尯鍩熷眰锛岄伩鍏嶈法澶у尯鍩熺殑鑷姩 clustering 鍘嬫墎绌洪棿缁撴瀯.
+    // 全球远景优先展示区域层，避免跨大区域的自动聚合破坏空间结构。
     final overviewSource = GeoJsonSource(
       id: _overviewSourceId,
       data: _buildOverviewFeatureCollection(),
@@ -387,6 +536,27 @@ class MapHomeController extends ChangeNotifier {
     await mapboxMap.style.addLayer(_buildClusterCountLayer());
     await mapboxMap.style.addLayer(_buildCityPointLayer());
     _log('syncMarkers => layers added');
+  }
+
+  Future<void> _syncCurrentLocationLayer() async {
+    final mapboxMap = _mapboxMap;
+    if (mapboxMap == null) {
+      return;
+    }
+
+    await _removeCurrentLocationLayersIfNeeded(mapboxMap);
+    await _removeCurrentLocationSourcesIfNeeded(mapboxMap);
+
+    final locationSource = GeoJsonSource(
+      id: _currentLocationSourceId,
+      data: _buildCurrentLocationFeatureCollection(),
+    );
+    await mapboxMap.style.addSource(locationSource);
+    _currentLocationSource = locationSource;
+
+    await mapboxMap.style.addLayer(_buildCurrentLocationHaloLayer());
+    await mapboxMap.style.addLayer(_buildCurrentLocationDotLayer());
+    _log('syncCurrentLocationLayer => layers added');
   }
 
   Future<void> _syncMarkerVisibilityWithZoom(double zoom) async {
@@ -434,6 +604,12 @@ class MapHomeController extends ChangeNotifier {
   Future<void> _refreshMarkerVisuals() async {
     await _overviewSource?.updateGeoJSON(_buildOverviewFeatureCollection());
     await _citySource?.updateGeoJSON(_buildMarkerFeatureCollection());
+  }
+
+  Future<void> _refreshCurrentLocationVisuals() async {
+    await _currentLocationSource?.updateGeoJSON(
+      _buildCurrentLocationFeatureCollection(),
+    );
   }
 
   Future<void> _handleMapTap(MapContentGestureContext context) async {
@@ -619,6 +795,25 @@ class MapHomeController extends ChangeNotifier {
     }
   }
 
+  Future<void> _removeCurrentLocationLayersIfNeeded(MapboxMap mapboxMap) async {
+    for (final layerId in <String>[
+      _currentLocationDotLayerId,
+      _currentLocationHaloLayerId,
+    ]) {
+      if (await mapboxMap.style.styleLayerExists(layerId)) {
+        await mapboxMap.style.removeStyleLayer(layerId);
+      }
+    }
+  }
+
+  Future<void> _removeCurrentLocationSourcesIfNeeded(
+    MapboxMap mapboxMap,
+  ) async {
+    if (await mapboxMap.style.styleSourceExists(_currentLocationSourceId)) {
+      await mapboxMap.style.removeStyleSource(_currentLocationSourceId);
+    }
+  }
+
   String _buildOverviewFeatureCollection() {
     // 区域配置改成动态读取，只为命中的 region 生成 overview 聚合.
     final features = _regions
@@ -675,6 +870,27 @@ class MapHomeController extends ChangeNotifier {
         .map(_buildMarkerFeature)
         .whereType<Map<String, Object>>()
         .toList(growable: false);
+    return jsonEncode(<String, Object>{
+      'type': 'FeatureCollection',
+      'features': features,
+    });
+  }
+
+  String _buildCurrentLocationFeatureCollection() {
+    final location = _currentLocation;
+    final features = location == null
+        ? const <Map<String, Object>>[]
+        : <Map<String, Object>>[
+            <String, Object>{
+              'type': 'Feature',
+              'geometry': <String, Object>{
+                'type': 'Point',
+                'coordinates': <double>[location.longitude, location.latitude],
+              },
+              'properties': <String, Object>{'pointType': 'currentLocation'},
+            },
+          ];
+
     return jsonEncode(<String, Object>{
       'type': 'FeatureCollection',
       'features': features,
@@ -910,6 +1126,35 @@ class MapHomeController extends ChangeNotifier {
         1.6,
         1.2,
       ],
+      circleEmissiveStrength: 1.0,
+    );
+  }
+
+  CircleLayer _buildCurrentLocationHaloLayer() {
+    return CircleLayer(
+      id: _currentLocationHaloLayerId,
+      slot: 'top',
+      sourceId: _currentLocationSourceId,
+      circleColor: const Color(0xFF60A5FA).toARGB32(),
+      circleRadius: _currentLocationHaloRadius,
+      circleBlur: 0.22,
+      circleOpacity: 0.22,
+      circleEmissiveStrength: 1.0,
+    );
+  }
+
+  CircleLayer _buildCurrentLocationDotLayer() {
+    return CircleLayer(
+      id: _currentLocationDotLayerId,
+      slot: 'top',
+      sourceId: _currentLocationSourceId,
+      circleColor: const Color(0xFF2563EB).toARGB32(),
+      circleRadius: _currentLocationDotRadius,
+      circleBlur: 0.05,
+      circleOpacity: 0.98,
+      circleStrokeColor: const Color(0xFFFFFFFF).toARGB32(),
+      circleStrokeWidth: 2.2,
+      circleStrokeOpacity: 0.98,
       circleEmissiveStrength: 1.0,
     );
   }

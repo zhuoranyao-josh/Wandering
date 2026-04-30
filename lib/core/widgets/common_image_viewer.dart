@@ -1,8 +1,10 @@
 import 'dart:io';
 
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
+import 'app_network_image.dart';
 import '../../l10n/app_localizations.dart';
 
 enum CommonImageViewerSourceType { network, local, asset }
@@ -36,7 +38,7 @@ class CommonImageViewerItem {
 
     switch (sourceType) {
       case CommonImageViewerSourceType.network:
-        return NetworkImage(cleanValue);
+        return CachedNetworkImageProvider(cleanValue);
       case CommonImageViewerSourceType.local:
         return FileImage(File(cleanValue));
       case CommonImageViewerSourceType.asset:
@@ -264,8 +266,6 @@ class _ZoomableImagePageState extends State<_ZoomableImagePage> {
 
   @override
   Widget build(BuildContext context) {
-    final imageProvider = widget.image.buildImageProvider();
-
     return GestureDetector(
       onDoubleTapDown: _handleDoubleTapDown,
       onDoubleTap: _handleDoubleTap,
@@ -279,18 +279,38 @@ class _ZoomableImagePageState extends State<_ZoomableImagePage> {
             !_isIdentityMatrix(_transformationController.value),
           );
         },
-        child: Center(
-          child: imageProvider == null
-              ? _buildPlaceholder()
-              : Image(
-                  image: imageProvider,
-                  fit: BoxFit.contain,
-                  errorBuilder: (context, error, stackTrace) {
-                    return _buildPlaceholder();
-                  },
-                ),
-        ),
+        child: Center(child: _buildPreviewImage()),
       ),
+    );
+  }
+
+  Widget _buildPreviewImage() {
+    final image = widget.image;
+    if (image.sourceType == CommonImageViewerSourceType.network) {
+      if (image.isEmpty) {
+        return _buildPlaceholder();
+      }
+      // 全屏预览只允许完整展示图片，不能裁剪，也不能拉伸。
+      return AppNetworkImage(
+        imageUrl: image.cleanValue,
+        pageName: 'common.imageViewer',
+        fit: BoxFit.contain,
+        placeholderBuilder: (context) => _buildPlaceholder(),
+        errorBuilder: (context, error) => _buildPlaceholder(),
+      );
+    }
+
+    final imageProvider = image.buildImageProvider();
+    if (imageProvider == null) {
+      return _buildPlaceholder();
+    }
+
+    return Image(
+      image: imageProvider,
+      fit: BoxFit.contain,
+      errorBuilder: (context, error, stackTrace) {
+        return _buildPlaceholder();
+      },
     );
   }
 

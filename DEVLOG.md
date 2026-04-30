@@ -165,6 +165,10 @@
 - Fixed checklist plan generation failing when a single Google Places request hit a HandshakeException. Added request retries, timeout control, a shared HTTP client, and per-item fallback handling so one failed enrich request no longer marks the whole plan as failed.
 - Fixed My Trips cards showing raw exception text and overflowing the layout. Filtered unsafe status text and constrained the UI to avoid rendering long backend error messages.
 - Fixed checklist item cards overflowing on small screens by replacing multi-line mixed metadata blocks with a compact shared layout using fixed image sizing, Flexible/Expanded, and ellipsis.
+- Bug: network images on community, activity, place preview, checklist, and profile surfaces could appear stretched, squashed, or overly cropped.
+  Fix: replaced scattered image rendering with a shared AppNetworkImage path, blocked BoxFit.fill, kept preview pages on BoxFit.contain, and adjusted card cover ratios/alignment to reduce aggressive cropping without changing aspect ratio.
+- Bug: large images uploaded from admin mode were stored as-is, which increased load cost and made image-heavy    screens feel slower.
+  Fix: added upload-side compression in the admin Firebase data source, targeting roughly 600 KB - 800 KB while preserving aspect ratio before upload.
 
 ### ⚡ Improvements
 - Added a pure UI model to prepare the future Firestore -> Repository -> Controller data flow.
@@ -181,8 +185,17 @@
 - Reworked the flight card into a fixed template with a stable EST. price badge and structured route/timeline rendering.
 - Simplified hotel, restaurant, and activity cards to focus on title, image, short address, and a single-line price.
 - Added detailed debug logging across checklist generation, wizard submission, and My Trips loading for easier tracing.
+- Added current location support to the map home flow.
+- Introduced a locate-me button, current-location map layers, and localized permission/error feedback.
+- Added platform permissions and service locator wiring for device location access.
+- Added disk-cached network image loading with size-aware downsampling.
+- Added masked [ImageLoad] debug logs for start / loaded / error timing without exposing full URLs.
+- Reused a shared icon action button for map controls to keep the map toolbar consistent.
 
 ### 📚 Learnings
 - Only user-facing text should use language maps; structural fields should stay scalar.
 - OpenWeather forecast data needs date-range filtering and fallback handling.
 - Normalize IDs before save to avoid unstable document paths.
+- Slow image loading was mostly a pipeline issue, not just a file-size issue; cache strategy and decode size mattered a lot.
+- Keeping BoxFit.cover is fine for card media, but container ratio and alignment have a big effect on perceived cropping quality.
+- Upload-side compression is a practical way to improve downstream image performance without changing Firebase data structures.

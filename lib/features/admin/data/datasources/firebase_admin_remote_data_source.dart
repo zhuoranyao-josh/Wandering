@@ -3,6 +3,7 @@ import 'dart:math';
 
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_storage/firebase_storage.dart';
+import 'package:flutter_image_compress/flutter_image_compress.dart';
 
 import '../../../../core/error/app_exception.dart';
 import '../../domain/entities/admin_activity.dart';
@@ -22,6 +23,11 @@ class FirebaseAdminRemoteDataSource implements AdminRemoteDataSource {
   final FirebaseStorage storage;
   final Random _random = Random();
   static const String _base36Alphabet = 'abcdefghijklmnopqrstuvwxyz0123456789';
+  static const int _uploadTargetMinBytes = 600 * 1024;
+  static const int _uploadTargetMaxBytes = 800 * 1024;
+  static const List<int> _uploadQualities = <int>[90, 84, 78, 72, 66, 60];
+  static const List<int> _uploadMinWidths = <int>[2200, 1920, 1600];
+  static const List<int> _uploadMinHeights = <int>[2200, 1440, 1200];
 
   @override
   Future<String> uploadPlaceCoverImage({
@@ -221,7 +227,10 @@ class FirebaseAdminRemoteDataSource implements AdminRemoteDataSource {
 
   @override
   Future<AdminRegion?> getRegionById(String regionId) async {
-    final doc = await firestore.collection('regions').doc(regionId.trim()).get();
+    final doc = await firestore
+        .collection('regions')
+        .doc(regionId.trim())
+        .get();
     if (!doc.exists) {
       return null;
     }
@@ -231,7 +240,9 @@ class FirebaseAdminRemoteDataSource implements AdminRemoteDataSource {
   @override
   Future<String> upsertRegion(AdminRegion region) async {
     final collection = firestore.collection('regions');
-    final id = region.id.trim().isEmpty ? collection.doc().id : region.id.trim();
+    final id = region.id.trim().isEmpty
+        ? collection.doc().id
+        : region.id.trim();
     final isNew = region.id.trim().isEmpty;
     final payload = <String, dynamic>{
       'id': id,
@@ -411,7 +422,10 @@ class FirebaseAdminRemoteDataSource implements AdminRemoteDataSource {
   @override
   Future<String> upsertActivity(AdminActivity activity) async {
     final collection = firestore.collection('events');
-    final id = await _resolveActivityDocId(collection: collection, activity: activity);
+    final id = await _resolveActivityDocId(
+      collection: collection,
+      activity: activity,
+    );
     final ref = collection.doc(id);
     final normalizedCategories = _normalizeActivityCategories(
       activity.categories,
@@ -421,7 +435,9 @@ class FirebaseAdminRemoteDataSource implements AdminRemoteDataSource {
       'id': id,
       'title': _sanitizeLanguageMap(activity.title),
       'categories': normalizedCategories,
-      'category': normalizedCategories.isEmpty ? '' : normalizedCategories.first,
+      'category': normalizedCategories.isEmpty
+          ? ''
+          : normalizedCategories.first,
       'cityName': _sanitizeLanguageMap(activity.cityName),
       'countryName': _sanitizeLanguageMap(activity.countryName),
       'cityCode': activity.cityCode.trim(),
@@ -579,11 +595,165 @@ class FirebaseAdminRemoteDataSource implements AdminRemoteDataSource {
       throw Exception('image_file_not_found');
     }
 
-    final fileName =
-        'image_${DateTime.now().microsecondsSinceEpoch}${_resolveImageExtension(trimmedPath)}';
-    final storageRef = storage.ref().child(folderPath).child(fileName);
-    await storageRef.putFile(file);
-    return storageRef.getDownloadURL();
+    final preparedUpload = await _prepareImageForUpload(file);
+    try {
+      final fileName =
+          'image_${DateTime.now().microsecondsSinceEpoch}${_resolveImageExtension(preparedUpload.file.path)}';
+      final storageRef = storage.ref().child(folderPath).child(fileName);
+      await storageRef.putFile(
+        preparedUpload.file,
+        SettableMetadata(
+          contentType: _resolveUploadContentType(preparedUpload.file.path),
+        ),
+      );
+      return storageRef.getDownloadURL();
+    } finally {
+      if (preparedUpload.isTemporary) {
+        await _safeDeleteFile(preparedUpload.file);
+      }
+    }
+  }
+
+  Future<({File file, bool isTemporary})> _prepareImageForUpload(
+    File originalFile,
+  ) async {
+    final originalBytes = await originalFile.length();
+    if (originalBytes <= _uploadTargetMaxBytes) {
+      return (file: originalFile, isTemporary: false);
+    }
+
+    final compressedFile = await _compressImageToTarget(originalFile);
+    if (compressedFile != null && await compressedFile.exists()) {
+      return (file: compressedFile, isTemporary: true);
+    }
+
+    return (file: originalFile, isTemporary: false);
+  }
+
+  Future<File?> _compressImageToTarget(File originalFile) async {
+    if (_shouldSkipCompression(originalFile.path)) {
+      return null;
+    }
+
+    final tempFiles = <File>[];
+    File? bestCandidate;
+    var bestDistance = 1 << 30;
+
+    try {
+      for (
+        var sizeIndex = 0;
+        sizeIndex < _uploadMinWidths.length;
+        sizeIndex++
+      ) {
+        final minWidth = _uploadMinWidths[sizeIndex];
+        final minHeight = _uploadMinHeights[sizeIndex];
+
+        for (final quality in _uploadQualities) {
+          final candidate = await _compressImageVariant(
+            originalPath: originalFile.path,
+            quality: quality,
+            minWidth: minWidth,
+            minHeight: minHeight,
+          );
+          if (candidate == null || !await candidate.exists()) {
+            continue;
+          }
+
+          tempFiles.add(candidate);
+          final bytes = await candidate.length();
+          final distance = _resolveTargetDistance(bytes);
+          if (distance < bestDistance) {
+            bestDistance = distance;
+            bestCandidate = candidate;
+          }
+
+          if (bytes >= _uploadTargetMinBytes &&
+              bytes <= _uploadTargetMaxBytes) {
+            return candidate;
+          }
+        }
+      }
+
+      return bestCandidate;
+    } finally {
+      for (final file in tempFiles) {
+        if (bestCandidate != null && file.path == bestCandidate.path) {
+          continue;
+        }
+        await _safeDeleteFile(file);
+      }
+    }
+  }
+
+  Future<File?> _compressImageVariant({
+    required String originalPath,
+    required int quality,
+    required int minWidth,
+    required int minHeight,
+  }) async {
+    final targetPath =
+        '${Directory.systemTemp.path}${Platform.pathSeparator}'
+        'wandering_admin_${DateTime.now().microsecondsSinceEpoch}_'
+        '${quality}_${minWidth}x$minHeight.jpg';
+    final compressedFile = await FlutterImageCompress.compressAndGetFile(
+      originalPath,
+      targetPath,
+      format: CompressFormat.jpeg,
+      quality: quality,
+      minWidth: minWidth,
+      minHeight: minHeight,
+      autoCorrectionAngle: true,
+      keepExif: false,
+    );
+    if (compressedFile == null) {
+      return null;
+    }
+    return File(compressedFile.path);
+  }
+
+  bool _shouldSkipCompression(String filePath) {
+    final extension = _resolveImageExtension(filePath);
+    return extension == '.gif' || extension == '.svg';
+  }
+
+  int _resolveTargetDistance(int bytes) {
+    if (bytes < _uploadTargetMinBytes) {
+      return _uploadTargetMinBytes - bytes;
+    }
+    if (bytes > _uploadTargetMaxBytes) {
+      return bytes - _uploadTargetMaxBytes;
+    }
+    return 0;
+  }
+
+  String _resolveUploadContentType(String localPath) {
+    final extension = _resolveImageExtension(localPath);
+    switch (extension) {
+      case '.gif':
+        return 'image/gif';
+      case '.png':
+        return 'image/png';
+      case '.svg':
+        return 'image/svg+xml';
+      case '.webp':
+        return 'image/webp';
+      case '.heic':
+        return 'image/heic';
+      case '.heif':
+        return 'image/heif';
+      default:
+        return 'image/jpeg';
+    }
+  }
+
+  Future<void> _safeDeleteFile(File file) async {
+    try {
+      if (await file.exists()) {
+        await file.delete();
+      }
+    } catch (_) {
+      // 临时压缩文件删除失败不影响主上传流程。
+    }
   }
 
   String _resolveImageExtension(String localPath) {
@@ -593,6 +763,9 @@ class FirebaseAdminRemoteDataSource implements AdminRemoteDataSource {
     }
     final extension = localPath.substring(dotIndex).trim().toLowerCase();
     if (extension.length > 10) {
+      return '.jpg';
+    }
+    if (extension == '.jpeg' || extension == '.jpg') {
       return '.jpg';
     }
     return extension;

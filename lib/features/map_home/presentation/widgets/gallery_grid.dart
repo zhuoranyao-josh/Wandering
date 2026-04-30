@@ -2,6 +2,8 @@ import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 
+import '../../../../core/widgets/app_network_image.dart';
+
 class GalleryGrid extends StatelessWidget {
   const GalleryGrid({
     super.key,
@@ -101,16 +103,12 @@ class GalleryGrid extends StatelessWidget {
 
   Widget _buildImage(String imageUrl) {
     if (imageUrl.startsWith('http://') || imageUrl.startsWith('https://')) {
-      return Image.network(
-        imageUrl,
+      return AppNetworkImage(
+        imageUrl: imageUrl,
+        pageName: 'map.galleryGrid',
         fit: BoxFit.cover,
-        errorBuilder: (context, error, stackTrace) => _buildFallback(),
-        loadingBuilder: (context, child, loadingProgress) {
-          if (loadingProgress == null) {
-            return child;
-          }
-          return _buildFallback();
-        },
+        placeholderBuilder: (context) => _buildFallback(),
+        errorBuilder: (context, error) => _buildFallback(),
       );
     }
     return Image.asset(

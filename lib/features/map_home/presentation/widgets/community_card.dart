@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import '../../../../core/widgets/app_network_image.dart';
+
 class CommunityCard extends StatelessWidget {
   const CommunityCard({
     super.key,
@@ -43,7 +45,8 @@ class CommunityCard extends StatelessWidget {
                     top: Radius.circular(18),
                   ),
                   child: SizedBox(
-                    height: 142,
+                    // 略微增加封面高度，避免社区卡片被裁得过扁。
+                    height: 154,
                     width: double.infinity,
                     child: Stack(
                       fit: StackFit.expand,
@@ -116,16 +119,13 @@ class CommunityCard extends StatelessWidget {
   Widget _buildImage() {
     final value = imageUrl?.trim() ?? '';
     if (value.startsWith('http://') || value.startsWith('https://')) {
-      return Image.network(
-        value,
+      return AppNetworkImage(
+        imageUrl: value,
+        pageName: 'map.communityCard',
         fit: BoxFit.cover,
-        errorBuilder: (context, error, stackTrace) => _buildFallback(),
-        loadingBuilder: (context, child, loadingProgress) {
-          if (loadingProgress == null) {
-            return child;
-          }
-          return _buildFallback();
-        },
+        alignment: Alignment.topCenter,
+        placeholderBuilder: (context) => _buildFallback(),
+        errorBuilder: (context, error) => _buildFallback(),
       );
     }
     if (value.isNotEmpty) {
@@ -201,10 +201,14 @@ class _UserOverlay extends StatelessWidget {
   Widget _buildAvatar() {
     final value = avatarUrl?.trim() ?? '';
     if (value.startsWith('http://') || value.startsWith('https://')) {
-      return Image.network(
-        value,
+      return AppNetworkImage(
+        imageUrl: value,
+        pageName: 'map.communityCard.avatar',
         fit: BoxFit.cover,
-        errorBuilder: (context, error, stackTrace) => _avatarFallback(),
+        width: 20,
+        height: 20,
+        placeholderBuilder: (context) => _avatarFallback(),
+        errorBuilder: (context, error) => _avatarFallback(),
       );
     }
     if (value.isNotEmpty) {

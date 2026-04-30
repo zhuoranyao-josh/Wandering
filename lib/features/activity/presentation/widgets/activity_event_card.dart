@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../../../core/widgets/app_network_image.dart';
 import '../../../../l10n/app_localizations.dart';
 import '../../domain/entities/activity_event.dart';
 import '../support/activity_date_formatter.dart';
@@ -46,18 +47,22 @@ class ActivityEventCard extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // 保持封面固定比例显示，继续使用 cover 裁切，避免图片被拉伸变形。
+              // 适度提高封面高度，减少 cover 在首屏卡片上的裁切量。
               ClipRRect(
                 borderRadius: const BorderRadius.vertical(
                   top: Radius.circular(16),
                 ),
                 child: AspectRatio(
-                  aspectRatio: 16 / 9,
+                  aspectRatio: 3 / 2,
                   child: event.coverImageUrl.isNotEmpty
-                      ? Image.network(
-                          event.coverImageUrl,
+                      ? AppNetworkImage(
+                          imageUrl: event.coverImageUrl,
+                          pageName: 'activity.eventCard',
                           fit: BoxFit.cover,
-                          errorBuilder: (context, error, stackTrace) =>
+                          alignment: Alignment.topCenter,
+                          placeholderBuilder: (context) =>
+                              _buildImagePlaceholder(),
+                          errorBuilder: (context, error) =>
                               _buildImagePlaceholder(),
                         )
                       : _buildImagePlaceholder(),

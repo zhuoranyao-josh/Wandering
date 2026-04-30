@@ -225,6 +225,27 @@ class AppLocalizationsZh extends AppLocalizations {
   String get mapHomeSwitchToNight => '切换到夜晚模式';
 
   @override
+  String get locateMe => '定位到我';
+
+  @override
+  String get currentLocation => '当前位置';
+
+  @override
+  String get locationPermissionDenied => '定位权限已被拒绝。';
+
+  @override
+  String get locationPermissionDeniedForever => '定位权限已被永久拒绝，请前往系统设置开启。';
+
+  @override
+  String get locationServiceDisabled => '定位服务未开启，请先开启系统定位服务。';
+
+  @override
+  String get currentLocationUnavailable => '暂时无法获取当前位置。';
+
+  @override
+  String get currentLocationFailed => '当前无法获取你的位置信息，请稍后重试。';
+
+  @override
   String get mapPlaceTokyoName => '东京';
 
   @override

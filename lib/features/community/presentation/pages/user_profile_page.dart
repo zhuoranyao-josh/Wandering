@@ -5,6 +5,7 @@ import '../../../../app/app_router.dart';
 import '../../../../core/di/service_locator.dart';
 import '../../../../core/error/app_exception.dart';
 import '../../../../core/widgets/app_button.dart';
+import '../../../../core/widgets/app_network_image.dart';
 import '../../../../l10n/app_localizations.dart';
 import '../../domain/entities/post.dart';
 import '../../domain/entities/user_profile_summary.dart';
@@ -511,9 +512,26 @@ class _ProfileAvatar extends StatelessWidget {
     return CircleAvatar(
       radius: radius,
       backgroundColor: color.withValues(alpha: 0.18),
-      foregroundImage: cleanAvatarUrl != null && cleanAvatarUrl.isNotEmpty
-          ? NetworkImage(cleanAvatarUrl)
-          : null,
+      child: cleanAvatarUrl != null && cleanAvatarUrl.isNotEmpty
+          ? ClipOval(
+              child: SizedBox.expand(
+                child: AppNetworkImage(
+                  imageUrl: cleanAvatarUrl,
+                  pageName: 'community.userAvatar',
+                  fit: BoxFit.cover,
+                  placeholderBuilder: (context) =>
+                      _buildAvatarFallback(text, color, radius),
+                  errorBuilder: (context, error) =>
+                      _buildAvatarFallback(text, color, radius),
+                ),
+              ),
+            )
+          : _buildAvatarFallback(text, color, radius),
+    );
+  }
+
+  Widget _buildAvatarFallback(String text, Color color, double radius) {
+    return Center(
       child: Text(
         text,
         style: TextStyle(
@@ -582,10 +600,12 @@ class _ProfilePostImage extends StatelessWidget {
       return Image.asset(cleanImageUrl, fit: BoxFit.cover);
     }
 
-    return Image.network(
-      cleanImageUrl,
+    return AppNetworkImage(
+      imageUrl: cleanImageUrl,
+      pageName: 'community.userProfile',
       fit: BoxFit.cover,
-      errorBuilder: (context, error, stackTrace) => _buildPlaceholder(),
+      placeholderBuilder: (context) => _buildPlaceholder(),
+      errorBuilder: (context, error) => _buildPlaceholder(),
     );
   }
 

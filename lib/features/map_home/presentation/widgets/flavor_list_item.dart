@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import '../../../../core/widgets/app_network_image.dart';
+
 class FlavorListItem extends StatelessWidget {
   const FlavorListItem({
     super.key,
@@ -77,16 +79,14 @@ class FlavorListItem extends StatelessWidget {
   Widget _buildImage() {
     final value = imageUrl?.trim() ?? '';
     if (value.startsWith('http://') || value.startsWith('https://')) {
-      return Image.network(
-        value,
+      return AppNetworkImage(
+        imageUrl: value,
+        pageName: 'map.flavorListItem',
         fit: BoxFit.cover,
-        errorBuilder: (context, error, stackTrace) => _buildFallback(),
-        loadingBuilder: (context, child, loadingProgress) {
-          if (loadingProgress == null) {
-            return child;
-          }
-          return _buildFallback();
-        },
+        width: 70,
+        height: 70,
+        placeholderBuilder: (context) => _buildFallback(),
+        errorBuilder: (context, error) => _buildFallback(),
       );
     }
     if (value.isNotEmpty) {

@@ -5,6 +5,7 @@ import '../../../../app/app.dart';
 import '../../../../app/app_router.dart';
 import '../../../../app/language_controller.dart';
 import '../../../../core/di/service_locator.dart';
+import '../../../../core/widgets/app_network_image.dart';
 import '../../../../l10n/app_localizations.dart';
 import '../../../auth/domain/entities/auth_user.dart';
 import '../../domain/entities/user_profile.dart';
@@ -169,15 +170,7 @@ class _MePageState extends State<MePage> {
                 ),
                 child: Row(
                   children: [
-                    CircleAvatar(
-                      radius: 24,
-                      backgroundImage: avatarUrl != null && avatarUrl.isNotEmpty
-                          ? NetworkImage(avatarUrl)
-                          : null,
-                      child: avatarUrl == null || avatarUrl.isEmpty
-                          ? const Icon(Icons.person)
-                          : null,
-                    ),
+                    _ProfileAvatar(avatarUrl: avatarUrl),
                     const SizedBox(width: 12),
                     Expanded(
                       child: Text(
@@ -266,5 +259,37 @@ class _MePageState extends State<MePage> {
         ),
       ),
     );
+  }
+}
+
+class _ProfileAvatar extends StatelessWidget {
+  const _ProfileAvatar({required this.avatarUrl});
+
+  final String? avatarUrl;
+
+  @override
+  Widget build(BuildContext context) {
+    final cleanAvatarUrl = avatarUrl?.trim() ?? '';
+    return CircleAvatar(
+      radius: 24,
+      backgroundColor: const Color(0xFFE5E7EB),
+      child: cleanAvatarUrl.isNotEmpty
+          ? ClipOval(
+              child: SizedBox.expand(
+                child: AppNetworkImage(
+                  imageUrl: cleanAvatarUrl,
+                  pageName: 'profile.meAvatar',
+                  fit: BoxFit.cover,
+                  placeholderBuilder: (context) => _buildFallback(),
+                  errorBuilder: (context, error) => _buildFallback(),
+                ),
+              ),
+            )
+          : _buildFallback(),
+    );
+  }
+
+  Widget _buildFallback() {
+    return const Icon(Icons.person);
   }
 }

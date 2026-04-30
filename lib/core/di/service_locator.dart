@@ -34,9 +34,13 @@ import '../../features/community/data/datasources/firebase_community_remote_data
 import '../../features/community/data/repositories/community_repository_impl.dart';
 import '../../features/community/domain/repositories/community_repository.dart';
 import '../../features/community/presentation/controllers/community_controller.dart';
+import '../../features/map_home/data/datasources/device_location_data_source.dart';
 import '../../features/map_home/data/datasources/firebase_map_home_remote_data_source.dart';
+import '../../features/map_home/data/datasources/geolocator_device_location_data_source.dart';
+import '../../features/map_home/data/repositories/current_location_repository_impl.dart';
 import '../../features/map_home/data/datasources/map_home_remote_data_source.dart';
 import '../../features/map_home/data/repositories/map_home_repository_impl.dart';
+import '../../features/map_home/domain/repositories/current_location_repository.dart';
 import '../../features/map_home/domain/repositories/map_home_repository.dart';
 import '../../features/map_home/presentation/controllers/map_home_controller.dart';
 import '../../features/profile/data/datasources/firebase_profile_remote_data_source.dart';
@@ -50,6 +54,7 @@ class ServiceLocator {
   static late final ActivityController activityController;
   static late final CommunityController communityController;
   static late final MapHomeRepository mapHomeRepository;
+  static late final CurrentLocationRepository currentLocationRepository;
   static late final ProfileSetupController profileSetupController;
   static late final ChecklistRepository checklistRepository;
   static late final ChecklistController checklistController;
@@ -88,6 +93,11 @@ class ServiceLocator {
     final MapHomeRemoteDataSource mapHomeRemoteDataSource =
         FirebaseMapHomeRemoteDataSource(firestore: firestore);
     mapHomeRepository = MapHomeRepositoryImpl(mapHomeRemoteDataSource);
+    final DeviceLocationDataSource deviceLocationDataSource =
+        GeolocatorDeviceLocationDataSource();
+    currentLocationRepository = CurrentLocationRepositoryImpl(
+      deviceLocationDataSource,
+    );
 
     // Profile 模块
     final ProfileRemoteDataSource profileRemoteDataSource =
@@ -140,6 +150,7 @@ class ServiceLocator {
   }) {
     return MapHomeController(
       mapHomeRepository: mapHomeRepository,
+      currentLocationRepository: currentLocationRepository,
       initialMarkerZoom: initialMarkerZoom,
     );
   }

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
+import '../../../../core/widgets/app_network_image.dart';
 import '../../../../core/widgets/common_image_viewer.dart';
 import '../../../../l10n/app_localizations.dart';
 import '../../domain/entities/post.dart';
@@ -328,9 +329,26 @@ class _PostAvatar extends StatelessWidget {
     return CircleAvatar(
       radius: 22,
       backgroundColor: const Color(0xFFE2E8F0),
-      foregroundImage: cleanAvatarUrl != null && cleanAvatarUrl.isNotEmpty
-          ? NetworkImage(cleanAvatarUrl)
-          : null,
+      child: cleanAvatarUrl != null && cleanAvatarUrl.isNotEmpty
+          ? ClipOval(
+              child: SizedBox.expand(
+                child: AppNetworkImage(
+                  imageUrl: cleanAvatarUrl,
+                  pageName: 'community.postAvatar',
+                  fit: BoxFit.cover,
+                  placeholderBuilder: (context) =>
+                      _buildAvatarFallback(avatarText),
+                  errorBuilder: (context, error) =>
+                      _buildAvatarFallback(avatarText),
+                ),
+              ),
+            )
+          : _buildAvatarFallback(avatarText),
+    );
+  }
+
+  Widget _buildAvatarFallback(String avatarText) {
+    return Center(
       child: Text(
         avatarText,
         style: const TextStyle(
@@ -359,10 +377,12 @@ class _PostImage extends StatelessWidget {
       return Image.asset(cleanImageUrl, fit: BoxFit.cover);
     }
 
-    return Image.network(
-      cleanImageUrl,
+    return AppNetworkImage(
+      imageUrl: cleanImageUrl,
+      pageName: 'community.postCard',
       fit: BoxFit.cover,
-      errorBuilder: (context, error, stackTrace) => _buildPlaceholder(),
+      placeholderBuilder: (context) => _buildPlaceholder(),
+      errorBuilder: (context, error) => _buildPlaceholder(),
     );
   }
 

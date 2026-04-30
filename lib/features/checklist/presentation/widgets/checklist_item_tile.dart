@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+
+import '../../../../core/widgets/app_network_image.dart';
 import '../../../../l10n/app_localizations.dart';
 import '../../domain/entities/checklist_detail.dart';
 import '../support/checklist_price_formatter.dart';
@@ -856,12 +858,14 @@ class _HotelImage extends StatelessWidget {
 
     return ClipRRect(
       borderRadius: BorderRadius.circular(6),
-      child: Image.network(
-        resolved,
+      child: AppNetworkImage(
+        imageUrl: resolved,
+        pageName: 'checklist.hotelImage',
         width: width,
         height: height,
         fit: BoxFit.cover,
-        errorBuilder: (context, error, stackTrace) => _buildPlaceholder(),
+        placeholderBuilder: (context) => _buildPlaceholder(),
+        errorBuilder: (context, error) => _buildPlaceholder(),
       ),
     );
   }
@@ -894,12 +898,14 @@ class _AirlineLogo extends StatelessWidget {
     }
     return ClipRRect(
       borderRadius: BorderRadius.circular(4),
-      child: Image.network(
-        url!.trim(),
+      child: AppNetworkImage(
+        imageUrl: url!.trim(),
+        pageName: 'checklist.airlineLogo',
         width: 18,
         height: 18,
         fit: BoxFit.cover,
-        errorBuilder: (context, error, stackTrace) => _buildFallbackIcon(),
+        placeholderBuilder: (context) => _buildFallbackIcon(),
+        errorBuilder: (context, error) => _buildFallbackIcon(),
       ),
     );
   }

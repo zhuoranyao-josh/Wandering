@@ -5,6 +5,7 @@ import 'package:intl/intl.dart';
 import '../../../../app/app_router.dart';
 import '../../../../core/di/service_locator.dart';
 import '../../../../core/error/app_exception.dart';
+import '../../../../core/widgets/app_network_image.dart';
 import '../../../../core/widgets/common_image_viewer.dart';
 import '../../../../l10n/app_localizations.dart';
 import '../../domain/entities/comment.dart';
@@ -989,9 +990,26 @@ class _DetailAvatar extends StatelessWidget {
     return CircleAvatar(
       radius: radius,
       backgroundColor: const Color(0xFFE2E8F0),
-      foregroundImage: cleanAvatarUrl != null && cleanAvatarUrl.isNotEmpty
-          ? NetworkImage(cleanAvatarUrl)
-          : null,
+      child: cleanAvatarUrl != null && cleanAvatarUrl.isNotEmpty
+          ? ClipOval(
+              child: SizedBox.expand(
+                child: AppNetworkImage(
+                  imageUrl: cleanAvatarUrl,
+                  pageName: 'community.detailAvatar',
+                  fit: BoxFit.cover,
+                  placeholderBuilder: (context) =>
+                      _buildAvatarFallback(avatarText),
+                  errorBuilder: (context, error) =>
+                      _buildAvatarFallback(avatarText),
+                ),
+              ),
+            )
+          : _buildAvatarFallback(avatarText),
+    );
+  }
+
+  Widget _buildAvatarFallback(String avatarText) {
+    return Center(
       child: Text(
         avatarText,
         style: const TextStyle(
@@ -1084,10 +1102,12 @@ class _DetailImage extends StatelessWidget {
       return Image.asset(cleanImagePath, fit: BoxFit.cover);
     }
 
-    return Image.network(
-      cleanImagePath,
+    return AppNetworkImage(
+      imageUrl: cleanImagePath,
+      pageName: 'community.postDetail',
       fit: BoxFit.cover,
-      errorBuilder: (context, error, stackTrace) => _buildPlaceholder(),
+      placeholderBuilder: (context) => _buildPlaceholder(),
+      errorBuilder: (context, error) => _buildPlaceholder(),
     );
   }
 

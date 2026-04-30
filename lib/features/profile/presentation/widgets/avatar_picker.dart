@@ -2,6 +2,8 @@ import 'dart:io';
 
 import 'package:flutter/material.dart';
 
+import '../../../../core/widgets/app_network_image.dart';
+
 class AvatarPicker extends StatelessWidget {
   final String? imagePath;
   final String? imageUrl;
@@ -26,7 +28,18 @@ class AvatarPicker extends StatelessWidget {
     } else if (imageUrl != null && imageUrl!.isNotEmpty) {
       avatarChild = CircleAvatar(
         radius: 46,
-        backgroundImage: NetworkImage(imageUrl!),
+        backgroundColor: const Color(0xFFE5E7EB),
+        child: ClipOval(
+          child: SizedBox.expand(
+            child: AppNetworkImage(
+              imageUrl: imageUrl!,
+              pageName: 'profile.avatarPicker',
+              fit: BoxFit.cover,
+              placeholderBuilder: (context) => _buildFallbackAvatar(),
+              errorBuilder: (context, error) => _buildFallbackAvatar(),
+            ),
+          ),
+        ),
       );
     } else {
       avatarChild = const CircleAvatar(
@@ -42,5 +55,9 @@ class AvatarPicker extends StatelessWidget {
         const Text('Tap to choose avatar'),
       ],
     );
+  }
+
+  Widget _buildFallbackAvatar() {
+    return const Center(child: Icon(Icons.person, size: 40));
   }
 }

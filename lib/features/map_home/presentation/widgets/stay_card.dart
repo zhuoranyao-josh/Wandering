@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import '../../../../core/widgets/app_network_image.dart';
+
 class StayCard extends StatelessWidget {
   const StayCard({
     super.key,
@@ -42,7 +44,8 @@ class StayCard extends StatelessWidget {
                     top: Radius.circular(18),
                   ),
                   child: SizedBox(
-                    height: 156,
+                    // 酒店卡片适度加高，减少封面图在 cover 下的纵向裁切。
+                    height: 164,
                     width: double.infinity,
                     child: Stack(
                       fit: StackFit.expand,
@@ -120,16 +123,13 @@ class StayCard extends StatelessWidget {
   Widget _buildImage() {
     final value = imageUrl?.trim() ?? '';
     if (value.startsWith('http://') || value.startsWith('https://')) {
-      return Image.network(
-        value,
+      return AppNetworkImage(
+        imageUrl: value,
+        pageName: 'map.stayCard',
         fit: BoxFit.cover,
-        errorBuilder: (context, error, stackTrace) => _buildFallback(),
-        loadingBuilder: (context, child, loadingProgress) {
-          if (loadingProgress == null) {
-            return child;
-          }
-          return _buildFallback();
-        },
+        alignment: Alignment.topCenter,
+        placeholderBuilder: (context) => _buildFallback(),
+        errorBuilder: (context, error) => _buildFallback(),
       );
     }
     if (value.isNotEmpty) {
