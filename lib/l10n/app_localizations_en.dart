@@ -180,6 +180,15 @@ class AppLocalizationsEn extends AppLocalizations {
   String get languageEnglish => 'English';
 
   @override
+  String get navCommunity => 'Posts';
+
+  @override
+  String get navActivity => 'Events';
+
+  @override
+  String get navMe => 'Me';
+
+  @override
   String get profileEditTitle => 'Edit Profile';
 
   @override
@@ -737,6 +746,104 @@ class AppLocalizationsEn extends AppLocalizations {
   String get checklistGenerateFailed => 'Failed to generate plan.';
 
   @override
+  String checklistPlanProgressPercent(Object percent) {
+    return '$percent%';
+  }
+
+  @override
+  String get checklistPlanProgressStillGeneratingTitle => 'Your plan is still being generated';
+
+  @override
+  String get checklistPlanProgressStillGeneratingMessage => 'Please stay on this page. We are still working on your plan.';
+
+  @override
+  String get checklistPlanProgressPreparingTitle => 'Preparing your trip information';
+
+  @override
+  String get checklistPlanProgressPreparingMessage => 'Checking dates, travelers, destination, and required details.';
+
+  @override
+  String get checklistPlanProgressAnalyzingBudgetTitle => 'Analyzing your budget';
+
+  @override
+  String get checklistPlanProgressAnalyzingBudgetMessage => 'Reviewing total budget, stay budget, and spending split.';
+
+  @override
+  String get checklistPlanProgressGeneratingAiTitle => 'Generating your AI travel plan';
+
+  @override
+  String get checklistPlanProgressGeneratingAiMessage => 'Building structured suggestions for your trip.';
+
+  @override
+  String get checklistPlanProgressFindingFlightsTitle => 'Finding flight suggestions';
+
+  @override
+  String get checklistPlanProgressFindingFlightsMessage => 'Preparing route-aware flight suggestions.';
+
+  @override
+  String get checklistPlanProgressFindingHotelsTitle => 'Finding hotels';
+
+  @override
+  String get checklistPlanProgressFindingHotelsMessage => 'Matching hotels with your budget and stay preference.';
+
+  @override
+  String checklistPlanProgressFindingHotelsCount(Object current, Object total) {
+    return 'Finding hotels $current/$total';
+  }
+
+  @override
+  String get checklistPlanProgressFindingRestaurantsTitle => 'Finding restaurants';
+
+  @override
+  String get checklistPlanProgressFindingRestaurantsMessage => 'Looking for food options around your destination.';
+
+  @override
+  String checklistPlanProgressFindingRestaurantsCount(Object current, Object total) {
+    return 'Finding restaurants $current/$total';
+  }
+
+  @override
+  String get checklistPlanProgressFindingActivitiesTitle => 'Finding activities';
+
+  @override
+  String get checklistPlanProgressFindingActivitiesMessage => 'Searching activities based on your trip pace.';
+
+  @override
+  String checklistPlanProgressFindingActivitiesCount(Object current, Object total) {
+    return 'Finding activities $current/$total';
+  }
+
+  @override
+  String get checklistPlanProgressSavingTitle => 'Saving your checklist';
+
+  @override
+  String get checklistPlanProgressSavingMessage => 'Saving generated plan data to your checklist.';
+
+  @override
+  String get checklistPlanProgressPreparingCardsTitle => 'Preparing your cards';
+
+  @override
+  String get checklistPlanProgressPreparingCardsMessage => 'Preparing your cards for display.';
+
+  @override
+  String get checklistPlanProgressFinalizingTitle => 'Finalizing your plan';
+
+  @override
+  String get checklistPlanProgressFinalizingMessage => 'Wrapping up the final details.';
+
+  @override
+  String get checklistPlanProgressCompletedTitle => 'Plan ready';
+
+  @override
+  String get checklistPlanProgressCompletedMessage => 'Your checklist has been generated successfully.';
+
+  @override
+  String get checklistPlanProgressFailedTitle => 'Plan generation failed';
+
+  @override
+  String get checklistPlanProgressPartialEnrichMessage => 'Some places could not be enriched, continuing...';
+
+  @override
   String get checklistEstimateShort => 'EST.';
 
   @override
@@ -905,7 +1012,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get journeyWizardPaceIntensive => 'Intensive';
 
   @override
-  String get journeyWizardAccommodationBudget => 'Budget';
+  String get journeyWizardAccommodationBudget => 'Budget-friendly';
 
   @override
   String get journeyWizardAccommodationConvenient => 'Convenient';
@@ -915,6 +1022,9 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get journeyWizardAccommodationPremium => 'Premium';
+
+  @override
+  String get journeyWizardAccommodationLuxury => 'Luxury';
 
   @override
   String get journeyWizardErrorDepartureCityRequired => 'Please enter departure city.';

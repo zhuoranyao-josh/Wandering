@@ -1,6 +1,7 @@
 import '../../domain/entities/checklist_detail.dart';
 import '../../domain/entities/checklist_destination_snapshot.dart';
 import '../../domain/entities/checklist_item.dart';
+import '../../domain/entities/checklist_plan_progress.dart';
 import '../../domain/entities/journey_basic_info_input.dart';
 import '../../domain/repositories/checklist_repository.dart';
 import '../datasources/checklist_remote_data_source.dart';
@@ -65,8 +66,16 @@ class ChecklistRepositoryImpl implements ChecklistRepository {
   }
 
   @override
-  Future<void> generateChecklistPlan(String checklistId) {
-    return remoteDataSource.generateChecklistPlan(checklistId);
+  Future<ChecklistDetail> generateChecklistPlan(
+    String checklistId, {
+    ChecklistPlanProgressCallback? onProgress,
+    ChecklistPlanCancelChecker? shouldCancel,
+  }) {
+    return remoteDataSource.generateChecklistPlan(
+      checklistId,
+      onProgress: onProgress,
+      shouldCancel: shouldCancel,
+    );
   }
 
   @override
@@ -109,8 +118,16 @@ class ChecklistRepositoryImpl implements ChecklistRepository {
   }
 
   @override
-  Future<void> updatePlan(String checklistId) {
-    return remoteDataSource.updatePlan(checklistId);
+  Future<void> updatePlan(
+    String checklistId, {
+    ChecklistPlanProgressCallback? onProgress,
+    ChecklistPlanCancelChecker? shouldCancel,
+  }) {
+    return remoteDataSource.updatePlan(
+      checklistId,
+      onProgress: onProgress,
+      shouldCancel: shouldCancel,
+    );
   }
 
   @override

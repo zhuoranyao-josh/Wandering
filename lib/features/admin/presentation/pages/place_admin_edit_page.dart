@@ -259,7 +259,12 @@ class _PlaceAdminEditPageState extends State<PlaceAdminEditPage> {
     }
     _showSnack(t.save);
     if (widget.isCreating) {
-      context.go(AppRouter.adminPlaceEdit(savedId));
+      // 新建成功后优先返回上一页；若当前路由没有返回栈，则回到地点列表页。
+      if (context.canPop()) {
+        context.pop();
+      } else {
+        context.go(AppRouter.adminPlaces);
+      }
     }
   }
 

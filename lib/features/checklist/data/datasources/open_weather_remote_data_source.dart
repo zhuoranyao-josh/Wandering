@@ -100,6 +100,8 @@ class OpenWeatherRemoteDataSource implements WeatherRemoteDataSource {
 
       double? minTemp;
       double? maxTemp;
+      var humidityTotal = 0;
+      var humidityCount = 0;
       var hasRain = false;
       var hasSnow = false;
 
@@ -117,6 +119,11 @@ class OpenWeatherRemoteDataSource implements WeatherRemoteDataSource {
             maxTemp = maxTemp == null
                 ? tempMax
                 : (tempMax > maxTemp ? tempMax : maxTemp);
+          }
+          final humidity = _asInt(main['humidity']);
+          if (humidity != null) {
+            humidityTotal += humidity;
+            humidityCount++;
           }
         }
 
@@ -165,11 +172,15 @@ class OpenWeatherRemoteDataSource implements WeatherRemoteDataSource {
 
       final minText = minTemp.round();
       final maxText = maxTemp.round();
+      final humidityPercent = humidityCount > 0
+          ? (humidityTotal / humidityCount).round()
+          : null;
       if (hasSnow) {
         return TripWeatherSummary(
           isAvailable: true,
           minTemp: minTemp,
           maxTemp: maxTemp,
+          humidityPercent: humidityPercent,
           hasRain: hasRain,
           hasSnow: true,
           mainText: '$minText°C – $maxText°C · Snow',
@@ -182,6 +193,7 @@ class OpenWeatherRemoteDataSource implements WeatherRemoteDataSource {
           isAvailable: true,
           minTemp: minTemp,
           maxTemp: maxTemp,
+          humidityPercent: humidityPercent,
           hasRain: true,
           hasSnow: false,
           mainText: '$minText°C – $maxText°C · Rainy',
@@ -194,6 +206,7 @@ class OpenWeatherRemoteDataSource implements WeatherRemoteDataSource {
         isAvailable: true,
         minTemp: minTemp,
         maxTemp: maxTemp,
+        humidityPercent: humidityPercent,
         hasRain: false,
         hasSnow: false,
         mainText: '$minText°C – $maxText°C',

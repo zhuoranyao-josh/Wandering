@@ -3,6 +3,7 @@ class TripWeatherSummary {
     required this.isAvailable,
     required this.minTemp,
     required this.maxTemp,
+    required this.humidityPercent,
     required this.hasRain,
     required this.hasSnow,
     required this.mainText,
@@ -14,6 +15,7 @@ class TripWeatherSummary {
   final bool isAvailable;
   final double? minTemp;
   final double? maxTemp;
+  final int? humidityPercent;
   final bool hasRain;
   final bool hasSnow;
   final String mainText;
@@ -31,6 +33,7 @@ class TripWeatherSummary {
       isAvailable: false,
       minTemp: null,
       maxTemp: null,
+      humidityPercent: null,
       hasRain: false,
       hasSnow: false,
       mainText: mainText,

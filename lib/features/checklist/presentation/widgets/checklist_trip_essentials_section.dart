@@ -40,8 +40,8 @@ class ChecklistTripEssentialsSection extends StatelessWidget {
             crossAxisCount: 2,
             crossAxisSpacing: 12,
             mainAxisSpacing: 12,
-            // 固定卡片高度，避免摘要文案稍长时把内容挤坏。
-            mainAxisExtent: 140,
+            // 适度增加高度，优先给文本换行空间，减少过早省略。
+            mainAxisExtent: 150,
           ),
           itemBuilder: (context, index) {
             return _EssentialCard(item: displayItems[index]);
@@ -61,6 +61,7 @@ class _EssentialCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final mainText = item.mainText.trim();
     final subText = item.subText?.trim() ?? '';
+    final isWeatherCard = _isWeatherCard(item);
 
     return DecoratedBox(
       decoration: BoxDecoration(
@@ -82,36 +83,39 @@ class _EssentialCard extends StatelessWidget {
           children: <Widget>[
             Text(
               item.title.trim().toUpperCase(),
-              maxLines: 1,
+              maxLines: 2,
               overflow: TextOverflow.ellipsis,
-              style: const TextStyle(
-                fontSize: 12.5,
-                color: Color(0xFF2563EB),
+              style: TextStyle(
+                fontSize: isWeatherCard ? 12.5 : 12.5,
+                color: const Color(0xFF2563EB),
                 fontWeight: FontWeight.w700,
-                letterSpacing: 0.7,
+                letterSpacing: isWeatherCard ? 0.7 : 0.7,
+                height: isWeatherCard ? 1.3 : 1.2,
               ),
             ),
-            const SizedBox(height: 8),
+            SizedBox(height: isWeatherCard ? 5 : 6),
             Text(
               mainText,
-              maxLines: 1,
+              maxLines: 2,
               overflow: TextOverflow.ellipsis,
-              style: const TextStyle(
-                fontSize: 16,
-                color: Color(0xFF111827),
+              style: TextStyle(
+                fontSize: isWeatherCard ? 16 : 13.5,
+                color: const Color(0xFF111827),
                 fontWeight: FontWeight.w600,
+                height: isWeatherCard ? 1.25 : 1.2,
               ),
             ),
             if (subText.isNotEmpty) ...<Widget>[
-              const SizedBox(height: 4),
+              SizedBox(height: isWeatherCard ? 1 : 6),
               Text(
                 subText,
-                maxLines: 1,
+                maxLines: 3,
                 overflow: TextOverflow.ellipsis,
-                style: const TextStyle(
-                  fontSize: 13,
-                  color: Color(0xFF6B7280),
+                style: TextStyle(
+                  fontSize: isWeatherCard ? 14 : 12.5,
+                  color: const Color(0xFF6B7280),
                   fontWeight: FontWeight.w500,
+                  height: isWeatherCard ? 1.4 : 1.2,
                 ),
               ),
             ],
@@ -119,5 +123,22 @@ class _EssentialCard extends StatelessWidget {
         ),
       ),
     );
+  }
+
+  bool _isWeatherCard(ChecklistEssential source) {
+    final normalizedTitle = source.title.trim().toLowerCase().replaceAll(
+      ' ',
+      '',
+    );
+    final normalizedIconType = source.iconType.trim().toLowerCase().replaceAll(
+      ' ',
+      '',
+    );
+    return normalizedTitle == 'weather' ||
+        normalizedIconType == 'weather' ||
+        normalizedIconType == 'rain' ||
+        normalizedIconType == 'snow' ||
+        normalizedIconType == 'clear' ||
+        normalizedIconType == 'cloud_off';
   }
 }

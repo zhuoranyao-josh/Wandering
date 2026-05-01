@@ -57,6 +57,9 @@
   "language": "语言",
   "languageChinese": "中文",
   "languageEnglish": "English",
+  "navCommunity": "帖子",
+  "navActivity": "活动",
+  "navMe": "我的",
   "profileEditTitle": "编辑资料",
   "save": "保存",
   "mapTabTitle": "地图页",
@@ -263,6 +266,59 @@
   "checklistStartPlanning": "开始规划",
   "checklistGeneratePlan": "生成计划",
   "checklistGenerateFailed": "生成计划失败。",
+  "checklistPlanProgressPercent": "{percent}%",
+  "@checklistPlanProgressPercent": {
+    "placeholders": {
+      "percent": {}
+    }
+  },
+  "checklistPlanProgressStillGeneratingTitle": "你的计划仍在生成中",
+  "checklistPlanProgressStillGeneratingMessage": "请保持在当前页面，我们仍在为你生成计划。",
+  "checklistPlanProgressPreparingTitle": "正在准备行程信息",
+  "checklistPlanProgressPreparingMessage": "正在检查日期、人数、目的地和必填信息。",
+  "checklistPlanProgressAnalyzingBudgetTitle": "正在分析预算",
+  "checklistPlanProgressAnalyzingBudgetMessage": "正在评估总预算、住宿预算和分配比例。",
+  "checklistPlanProgressGeneratingAiTitle": "正在生成 AI 旅行计划",
+  "checklistPlanProgressGeneratingAiMessage": "正在生成结构化行程建议。",
+  "checklistPlanProgressFindingFlightsTitle": "正在查找航班建议",
+  "checklistPlanProgressFindingFlightsMessage": "正在准备符合线路的航班建议。",
+  "checklistPlanProgressFindingHotelsTitle": "正在查找酒店",
+  "checklistPlanProgressFindingHotelsMessage": "正在按你的预算和住宿偏好匹配酒店。",
+  "checklistPlanProgressFindingHotelsCount": "正在查找酒店 {current}/{total}",
+  "@checklistPlanProgressFindingHotelsCount": {
+    "placeholders": {
+      "current": {},
+      "total": {}
+    }
+  },
+  "checklistPlanProgressFindingRestaurantsTitle": "正在查找餐厅",
+  "checklistPlanProgressFindingRestaurantsMessage": "正在目的地周边查找餐饮选项。",
+  "checklistPlanProgressFindingRestaurantsCount": "正在查找餐厅 {current}/{total}",
+  "@checklistPlanProgressFindingRestaurantsCount": {
+    "placeholders": {
+      "current": {},
+      "total": {}
+    }
+  },
+  "checklistPlanProgressFindingActivitiesTitle": "正在查找活动",
+  "checklistPlanProgressFindingActivitiesMessage": "正在根据行程节奏匹配活动建议。",
+  "checklistPlanProgressFindingActivitiesCount": "正在查找活动 {current}/{total}",
+  "@checklistPlanProgressFindingActivitiesCount": {
+    "placeholders": {
+      "current": {},
+      "total": {}
+    }
+  },
+  "checklistPlanProgressSavingTitle": "正在保存清单",
+  "checklistPlanProgressSavingMessage": "正在将生成结果保存到你的清单。",
+  "checklistPlanProgressPreparingCardsTitle": "正在准备卡片",
+  "checklistPlanProgressPreparingCardsMessage": "正在准备卡片展示内容。",
+  "checklistPlanProgressFinalizingTitle": "正在完成最后处理",
+  "checklistPlanProgressFinalizingMessage": "正在收尾并整理最终结果。",
+  "checklistPlanProgressCompletedTitle": "计划已就绪",
+  "checklistPlanProgressCompletedMessage": "你的清单已成功生成。",
+  "checklistPlanProgressFailedTitle": "计划生成失败",
+  "checklistPlanProgressPartialEnrichMessage": "部分地点信息补全失败，正在继续...",
   "checklistEstimateShort": "EST.",
   "checklistDemoEstimateBadge": "演示估算",
   "checklistTravelStyleTitle": "旅行风格",
@@ -346,10 +402,11 @@
   "journeyWizardPaceRelaxed": "轻松",
   "journeyWizardPaceBalanced": "均衡",
   "journeyWizardPaceIntensive": "紧凑",
-  "journeyWizardAccommodationBudget": "经济",
+  "journeyWizardAccommodationBudget": "经济型",
   "journeyWizardAccommodationConvenient": "便捷",
-  "journeyWizardAccommodationComfortable": "舒适",
+  "journeyWizardAccommodationComfortable": "舒适型",
   "journeyWizardAccommodationPremium": "高端",
+  "journeyWizardAccommodationLuxury": "豪华型",
   "journeyWizardErrorDepartureCityRequired": "请输入出发城市。",
   "journeyWizardErrorStartDateRequired": "请选择出发日期。",
   "journeyWizardErrorEndDateRequired": "请选择返回日期。",

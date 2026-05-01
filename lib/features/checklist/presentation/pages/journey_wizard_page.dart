@@ -755,12 +755,14 @@ class _JourneyWizardPageState extends State<JourneyWizardPage> {
     switch (key) {
       case 'budget':
         return t.journeyWizardAccommodationBudget;
+      case 'luxury':
+        return t.journeyWizardAccommodationLuxury;
       case 'convenient':
-        return t.journeyWizardAccommodationConvenient;
+        return t.journeyWizardAccommodationComfortable;
       case 'comfortable':
         return t.journeyWizardAccommodationComfortable;
       case 'premium':
-        return t.journeyWizardAccommodationPremium;
+        return t.journeyWizardAccommodationLuxury;
       default:
         return key;
     }

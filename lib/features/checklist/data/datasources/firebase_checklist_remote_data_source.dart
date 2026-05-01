@@ -6,6 +6,7 @@ import '../../../../core/error/app_exception.dart';
 import '../../domain/entities/checklist_detail.dart';
 import '../../domain/entities/checklist_destination_snapshot.dart';
 import '../../domain/entities/checklist_item.dart';
+import '../../domain/entities/checklist_plan_progress.dart';
 import '../../domain/entities/journey_basic_info_input.dart';
 import 'checklist_remote_data_source.dart';
 import 'gemini_planning_remote_data_source.dart';
@@ -26,6 +27,23 @@ class FirebaseChecklistRemoteDataSource implements ChecklistRemoteDataSource {
 
   void _log(String message) {
     debugPrint('[ChecklistPlan] $message');
+  }
+
+  void _logProgress({
+    required ChecklistPlanProgressStep step,
+    required double progressPercent,
+    String? message,
+    int? currentItemIndex,
+    int? totalItemCount,
+  }) {
+    final buffer = StringBuffer(
+      '[ChecklistPlanProgress] step=$step message=${message ?? ''} '
+      'progress=${(progressPercent * 100).toStringAsFixed(0)}%',
+    );
+    if (currentItemIndex != null && totalItemCount != null) {
+      buffer.write(' index=$currentItemIndex total=$totalItemCount');
+    }
+    debugPrint(buffer.toString());
   }
 
   @override
@@ -270,12 +288,60 @@ class FirebaseChecklistRemoteDataSource implements ChecklistRemoteDataSource {
   }
 
   @override
-  Future<void> generateChecklistPlan(String checklistId) async {
+  Future<ChecklistDetail> generateChecklistPlan(
+    String checklistId, {
+    ChecklistPlanProgressCallback? onProgress,
+    ChecklistPlanCancelChecker? shouldCancel,
+  }) async {
     final trimmedId = checklistId.trim();
+    void throwIfCancelled() {
+      if (shouldCancel?.call() ?? false) {
+        throw AppException('checklist_generate_cancelled');
+      }
+    }
+
+    void emitProgress(
+      ChecklistPlanProgressStep step,
+      double progressPercent, {
+      int? currentItemIndex,
+      int? totalItemCount,
+      bool hasPartialFailures = false,
+      String? errorCode,
+      String? errorDetail,
+      String? debugMessage,
+    }) {
+      _logProgress(
+        step: step,
+        progressPercent: progressPercent,
+        message: debugMessage,
+        currentItemIndex: currentItemIndex,
+        totalItemCount: totalItemCount,
+      );
+      onProgress?.call(
+        ChecklistPlanProgress(
+          step: step,
+          progressPercent: progressPercent,
+          messageCode: debugMessage,
+          currentItemIndex: currentItemIndex,
+          totalItemCount: totalItemCount,
+          hasPartialFailures: hasPartialFailures,
+          errorCode: errorCode,
+          errorDetail: errorDetail,
+        ),
+      );
+    }
+
+    emitProgress(
+      ChecklistPlanProgressStep.preparingTripInformation,
+      0.05,
+      debugMessage: 'preparing_trip_information',
+    );
     try {
+      throwIfCancelled();
       _log('repository generateChecklistPlan started checklistId=$trimmedId');
       final checklistRef = _resolveChecklistCollection().doc(trimmedId);
       final checklistDoc = await checklistRef.get();
+      throwIfCancelled();
       final checklistData = checklistDoc.data();
       if (!checklistDoc.exists || checklistData == null) {
         _log('checklist document not found checklistId=$trimmedId');
@@ -286,46 +352,135 @@ class FirebaseChecklistRemoteDataSource implements ChecklistRemoteDataSource {
         checklistDoc.id,
         checklistData,
       );
+      throwIfCancelled();
+      emitProgress(
+        ChecklistPlanProgressStep.analyzingBudget,
+        0.15,
+        debugMessage: 'analyzing_budget',
+      );
       final input = _buildGeminiPlanningInput(detail);
       if (input == null) {
+        emitProgress(
+          ChecklistPlanProgressStep.failed,
+          1,
+          errorCode: 'missing_required_fields',
+          debugMessage: 'failed_missing_required_fields',
+        );
         await _updatePlanningStatus(checklistRef, 'failed');
         throw AppException('Missing required planning fields.');
       }
 
       await _updatePlanningStatus(checklistRef, 'generating');
+      throwIfCancelled();
 
+      emitProgress(
+        ChecklistPlanProgressStep.generatingAiTravelPlan,
+        0.3,
+        debugMessage: 'gemini_request_started',
+      );
       GeminiGeneratedPlan generatedPlan;
       try {
+        throwIfCancelled();
         generatedPlan = await geminiPlanningRemoteDataSource.generatePlan(
           input: input,
         );
+        throwIfCancelled();
+        emitProgress(
+          ChecklistPlanProgressStep.generatingAiTravelPlan,
+          0.42,
+          debugMessage: 'gemini_response_parsed',
+        );
       } catch (error) {
         _log('Gemini generation failed error=$error');
+        emitProgress(
+          ChecklistPlanProgressStep.failed,
+          1,
+          errorCode: 'gemini_generation_failed',
+          errorDetail: error.toString(),
+          debugMessage: 'failed_gemini_generation',
+        );
         await _updatePlanningStatus(checklistRef, 'failed');
         rethrow;
       }
 
+      final buildItemsStopwatch = Stopwatch()..start();
+      _log('build items started');
       final generatedItems = await _buildGeneratedItems(
         detail: detail,
         input: input,
         generatedPlan: generatedPlan,
+        onProgress: emitProgress,
+        shouldCancel: shouldCancel,
+      );
+      final validatedItems = _normalizeAndValidateGeneratedItems(
+        input: input,
+        budgetSplit: generatedPlan.budgetSplit,
+        items: generatedItems,
+      );
+      throwIfCancelled();
+      _log(
+        'build items completed elapsed='
+        '${buildItemsStopwatch.elapsedMilliseconds}ms',
       );
 
-      _log('saving generated plan checklistId=$trimmedId');
+      emitProgress(
+        ChecklistPlanProgressStep.savingChecklist,
+        0.92,
+        debugMessage: 'saving_checklist',
+      );
+      final saveStopwatch = Stopwatch()..start();
+      _log('save to Firestore started checklistId=$trimmedId');
       await checklistRef.set(<String, dynamic>{
         'budgetSplit': _toBudgetSplitJson(generatedPlan.budgetSplit),
         'essentials': generatedPlan.essentials
             .map(_toEssentialJson)
             .toList(growable: false),
         'proTip': _toProTipJson(generatedPlan.proTip),
-        'items': generatedItems.map(_toItemJson).toList(growable: false),
+        'items': validatedItems.map(_toItemJson).toList(growable: false),
         'planningStatus': 'completed',
         'aiGenerated': true,
         'updatedAt': FieldValue.serverTimestamp(),
       }, SetOptions(merge: true));
+      throwIfCancelled();
+      final nextDetail = detail.copyWith(
+        planningStatus: 'completed',
+        budgetSplit: generatedPlan.budgetSplit.hasAnyValue
+            ? generatedPlan.budgetSplit
+            : null,
+        essentials: generatedPlan.essentials,
+        proTip: generatedPlan.proTip?.isEmpty == true
+            ? null
+            : generatedPlan.proTip,
+        items: _sortItems(validatedItems),
+      );
+      emitProgress(
+        ChecklistPlanProgressStep.finalizingPlan,
+        0.985,
+        debugMessage: 'finalizing_plan',
+      );
+      _log(
+        'save to Firestore completed elapsed='
+        '${saveStopwatch.elapsedMilliseconds}ms',
+      );
       _log('save success checklistId=$trimmedId');
+      return nextDetail;
     } catch (error) {
+      if (error is AppException &&
+          error.code == 'checklist_generate_cancelled') {
+        _log('generate cancelled checklistId=$trimmedId');
+        rethrow;
+      }
       _log('save failed checklistId=$trimmedId error=$error');
+      debugPrint('[ChecklistPlanProgress] failed reason=$error');
+      onProgress?.call(
+        ChecklistPlanProgress(
+          step: ChecklistPlanProgressStep.failed,
+          progressPercent: 1,
+          messageCode: 'failed',
+          errorCode: 'checklist_generate_failed',
+          errorDetail: error.toString(),
+        ),
+      );
       if (error is AppException) {
         rethrow;
       }
@@ -430,9 +585,17 @@ class FirebaseChecklistRemoteDataSource implements ChecklistRemoteDataSource {
   }
 
   @override
-  Future<void> updatePlan(String checklistId) async {
+  Future<void> updatePlan(
+    String checklistId, {
+    ChecklistPlanProgressCallback? onProgress,
+    ChecklistPlanCancelChecker? shouldCancel,
+  }) async {
     // 兼容旧调用：统一复用真实链路，不再触发 mock 生成。
-    await generateChecklistPlan(checklistId);
+    await generateChecklistPlan(
+      checklistId,
+      onProgress: onProgress,
+      shouldCancel: shouldCancel,
+    );
   }
 
   GeminiPlanningInput? _buildGeminiPlanningInput(ChecklistDetail detail) {
@@ -548,22 +711,52 @@ class FirebaseChecklistRemoteDataSource implements ChecklistRemoteDataSource {
     required ChecklistDetail detail,
     required GeminiPlanningInput input,
     required GeminiGeneratedPlan generatedPlan,
+    required ChecklistPlanCancelChecker? shouldCancel,
+    required void Function(
+      ChecklistPlanProgressStep step,
+      double progressPercent, {
+      int? currentItemIndex,
+      int? totalItemCount,
+      bool hasPartialFailures,
+      String? errorCode,
+      String? errorDetail,
+      String? debugMessage,
+    })
+    onProgress,
   }) async {
+    void throwIfCancelled() {
+      if (shouldCancel?.call() ?? false) {
+        throw AppException('checklist_generate_cancelled');
+      }
+    }
+
     final items = <ChecklistDetailItem>[];
     var flightItemCount = 0;
-    final flightItem = _buildFlightItem(
-      input: input,
-      flight: generatedPlan.flight,
+    throwIfCancelled();
+    onProgress(
+      ChecklistPlanProgressStep.findingFlightSuggestions,
+      0.46,
+      debugMessage: 'finding_flight_suggestions',
     );
-    items.add(flightItem);
-    flightItemCount = 1;
+    final flightItems = _buildFlightItems(
+      input: input,
+      flights: generatedPlan.flights,
+    );
+    if (flightItems.$1 != null) {
+      items.add(flightItems.$1!);
+      flightItemCount += 1;
+    }
+    throwIfCancelled();
 
     final hotelItems = await _buildHotelItems(
       input: input,
       candidates: generatedPlan.hotelCandidates,
       startingOrder: items.length,
+      shouldCancel: shouldCancel,
+      onProgress: onProgress,
     );
     items.addAll(hotelItems);
+    throwIfCancelled();
 
     final restaurantItems = await _buildPlaceItems(
       input: input,
@@ -571,8 +764,11 @@ class FirebaseChecklistRemoteDataSource implements ChecklistRemoteDataSource {
       type: 'restaurant',
       groupType: 'food',
       startingOrder: items.length,
+      shouldCancel: shouldCancel,
+      onProgress: onProgress,
     );
     items.addAll(restaurantItems);
+    throwIfCancelled();
 
     final activityItems = await _buildPlaceItems(
       input: input,
@@ -580,8 +776,19 @@ class FirebaseChecklistRemoteDataSource implements ChecklistRemoteDataSource {
       type: 'activity',
       groupType: 'activity',
       startingOrder: items.length,
+      shouldCancel: shouldCancel,
+      onProgress: onProgress,
     );
     items.addAll(activityItems);
+    if (flightItems.$2 != null) {
+      items.add(
+        flightItems.$2!.copyWith(
+          displayOrder: items.length,
+          dayIndex: input.tripDays,
+        ),
+      );
+      flightItemCount += 1;
+    }
 
     _log('flight item count=$flightItemCount');
     _log('hotel item count=${hotelItems.length}');
@@ -599,109 +806,105 @@ class FirebaseChecklistRemoteDataSource implements ChecklistRemoteDataSource {
     return items;
   }
 
-  ChecklistDetailItem _buildFlightItem({
+  (ChecklistDetailItem?, ChecklistDetailItem?) _buildFlightItems({
     required GeminiPlanningInput input,
-    required GeminiFlightPlan? flight,
+    required List<GeminiFlightPlan> flights,
   }) {
-    final fallbackUrl = _buildGoogleFlightsSearchUrl(input);
-    if (flight == null) {
-      return ChecklistDetailItem(
-        id: _buildItemId(prefix: 'flight', order: 0),
-        groupType: 'transportation',
-        title: 'Search flights',
-        subtitle: '${input.departureCity} -> ${input.destination}',
-        isCompleted: false,
-        type: 'flight',
-        estimatedPriceMin: null,
-        estimatedPriceMax: null,
-        estimatedCostMin: null,
-        estimatedCostMax: null,
-        costUnit: 'per_ticket',
-        currency: input.currency,
-        routeText: '${input.departureCity} -> ${input.destination}',
-        suggestedAirports: const <String>[],
-        providerName: 'Google Flights',
-        externalUrl: fallbackUrl,
-        dataSource: 'fallback',
-        status: 'suggested',
-        displayOrder: 0,
-        dayIndex: 0,
-        departureAirport: input.departureCity,
-        arrivalAirport: input.destination,
-      );
+    // 固定双航段：第一张出发航班，最后一张返程航班。
+    GeminiFlightPlan? outboundPlan;
+    GeminiFlightPlan? returnPlan;
+    for (final flight in flights) {
+      final direction = flight.tripDirection.trim().toLowerCase();
+      if (direction == 'outbound' && outboundPlan == null) {
+        outboundPlan = flight;
+      } else if (direction == 'return' && returnPlan == null) {
+        returnPlan = flight;
+      }
+    }
+    if (outboundPlan == null && flights.isNotEmpty) {
+      outboundPlan = flights.first;
+    }
+    if (returnPlan == null && flights.length > 1) {
+      returnPlan = flights.last;
     }
 
-    final airline = flight.airline?.trim() ?? '';
-    final flightNumber = flight.flightNumber?.trim() ?? '';
-    final composedTitle = [
-      airline,
-      flightNumber,
-    ].where((value) => value.isNotEmpty).join(' ').trim();
-    final departureAirport = flight.departureAirport?.trim() ?? '';
-    final arrivalAirport = flight.arrivalAirport?.trim() ?? '';
-    final subtitle = departureAirport.isNotEmpty && arrivalAirport.isNotEmpty
-        ? '$departureAirport -> $arrivalAirport'
-        : '${input.departureCity} -> ${input.destination}';
-    final routeText = _buildFlightRouteText(
-      flight: flight,
-      fallbackDeparture: input.departureCity,
-      fallbackArrival: input.destination,
+    final resolvedOutbound = _fillFlightPlanFallback(
+      input: input,
+      tripDirection: 'outbound',
+      flight: outboundPlan,
     );
-    final suggestedAirports = <String>{
-      ...flight.suggestedAirports,
-      if (departureAirport.isNotEmpty) departureAirport,
-      if (arrivalAirport.isNotEmpty) arrivalAirport,
-    }.toList(growable: false);
-    final resolvedTitle = composedTitle.isNotEmpty
-        ? composedTitle
-        : (flight.title.trim().isNotEmpty
-              ? flight.title.trim()
-              : 'Google Flights');
+    final resolvedReturn = _fillFlightPlanFallback(
+      input: input,
+      tripDirection: 'return',
+      flight: returnPlan,
+    );
 
-    return ChecklistDetailItem(
-      id: _buildItemId(prefix: 'flight', order: 0),
-      groupType: 'transportation',
-      title: resolvedTitle,
-      subtitle: subtitle.isNotEmpty
-          ? subtitle
-          : '${input.departureCity} -> ${input.destination}',
-      isCompleted: false,
-      type: 'flight',
-      estimatedPriceMin: flight.estimatedCostMin,
-      estimatedPriceMax: flight.estimatedCostMax,
-      estimatedCostMin: flight.estimatedCostMin,
-      estimatedCostMax: flight.estimatedCostMax,
-      costUnit: 'per_ticket',
-      currency: flight.currency,
-      routeText: routeText,
-      suggestedAirports: suggestedAirports,
-      providerName: 'Google Flights',
-      externalUrl: (flight.externalUrl ?? '').trim().isNotEmpty
-          ? flight.externalUrl!.trim()
-          : fallbackUrl,
-      dataSource: 'gemini',
-      status: 'suggested',
+    final outboundItem = _buildFlightItemFromPlan(
+      input: input,
+      flight: resolvedOutbound,
       displayOrder: 0,
-      dayIndex: 0,
-      budgetWarning: flight.budgetWarning,
-      airline: airline.isNotEmpty ? airline : null,
-      flightNumber: flightNumber.isNotEmpty ? flightNumber : null,
-      departureAirport: departureAirport.isNotEmpty ? departureAirport : null,
-      arrivalAirport: arrivalAirport.isNotEmpty ? arrivalAirport : null,
-      departureTime: flight.departureTime?.trim(),
-      arrivalTime: flight.arrivalTime?.trim(),
-      departureDate: flight.departureDate?.trim(),
-      arrivalDate: flight.arrivalDate?.trim(),
+      dayIndex: 1,
     );
+    final returnItem = _buildFlightItemFromPlan(
+      input: input,
+      flight: resolvedReturn,
+      displayOrder: 9999,
+      dayIndex: input.tripDays,
+    );
+
+    return (outboundItem, returnItem);
   }
 
   Future<List<ChecklistDetailItem>> _buildHotelItems({
     required GeminiPlanningInput input,
     required List<GeminiHotelCandidate> candidates,
     required int startingOrder,
+    required ChecklistPlanCancelChecker? shouldCancel,
+    required void Function(
+      ChecklistPlanProgressStep step,
+      double progressPercent, {
+      int? currentItemIndex,
+      int? totalItemCount,
+      bool hasPartialFailures,
+      String? errorCode,
+      String? errorDetail,
+      String? debugMessage,
+    })
+    onProgress,
   }) async {
+    void throwIfCancelled() {
+      if (shouldCancel?.call() ?? false) {
+        throw AppException('checklist_generate_cancelled');
+      }
+    }
+
     final items = <ChecklistDetailItem>[];
-    for (final candidate in candidates.take(3)) {
+    final scopedCandidates = candidates.take(3).toList(growable: false);
+    final total = scopedCandidates.length;
+    if (total > 0) {
+      onProgress(
+        ChecklistPlanProgressStep.findingHotels,
+        0.55,
+        currentItemIndex: 0,
+        totalItemCount: total,
+        debugMessage: 'finding_hotels_started',
+      );
+    }
+    for (var index = 0; index < scopedCandidates.length; index++) {
+      throwIfCancelled();
+      final candidate = scopedCandidates[index];
+      final current = index + 1;
+      final stageProgress = 0.55 + (0.12 * current / total);
+      debugPrint(
+        '[ChecklistPlanProgress] enrich type=hotel index=$current total=$total',
+      );
+      onProgress(
+        ChecklistPlanProgressStep.findingHotels,
+        stageProgress,
+        currentItemIndex: current,
+        totalItemCount: total,
+        debugMessage: 'finding_hotels_progress',
+      );
       final order = startingOrder + items.length;
       final fallbackItem = _buildFallbackHotelItem(
         input: input,
@@ -709,15 +912,26 @@ class FirebaseChecklistRemoteDataSource implements ChecklistRemoteDataSource {
         order: order,
       );
       try {
+        throwIfCancelled();
         final place = await googlePlacesRemoteDataSource.searchHotelByName(
           hotelName: candidate.name,
           destination: input.destination,
           latitude: input.latitude,
           longitude: input.longitude,
         );
+        throwIfCancelled();
         if (place == null || place.placeId.trim().isEmpty) {
           _log('hotel enrich skipped name=${candidate.name}');
           items.add(fallbackItem);
+          onProgress(
+            ChecklistPlanProgressStep.findingHotels,
+            stageProgress,
+            currentItemIndex: current,
+            totalItemCount: total,
+            hasPartialFailures: true,
+            errorCode: 'partial_enrich',
+            debugMessage: 'hotel_partial_enrich_continue',
+          );
           continue;
         }
 
@@ -740,6 +954,15 @@ class FirebaseChecklistRemoteDataSource implements ChecklistRemoteDataSource {
       } catch (error) {
         _log('hotel enrich failed name=${candidate.name} error=$error');
         items.add(fallbackItem);
+        onProgress(
+          ChecklistPlanProgressStep.findingHotels,
+          stageProgress,
+          currentItemIndex: current,
+          totalItemCount: total,
+          hasPartialFailures: true,
+          errorCode: 'partial_enrich',
+          debugMessage: 'hotel_partial_enrich_continue',
+        );
       }
     }
     _log('hotel deduped count=${items.length}');
@@ -753,7 +976,26 @@ class FirebaseChecklistRemoteDataSource implements ChecklistRemoteDataSource {
     required String type,
     required String groupType,
     required int startingOrder,
+    required ChecklistPlanCancelChecker? shouldCancel,
+    required void Function(
+      ChecklistPlanProgressStep step,
+      double progressPercent, {
+      int? currentItemIndex,
+      int? totalItemCount,
+      bool hasPartialFailures,
+      String? errorCode,
+      String? errorDetail,
+      String? debugMessage,
+    })
+    onProgress,
   }) async {
+    void throwIfCancelled() {
+      if (shouldCancel?.call() ?? false) {
+        throw AppException('checklist_generate_cancelled');
+      }
+    }
+
+    throwIfCancelled();
     if (queries.isEmpty) {
       _log('$type query list empty');
       return const <ChecklistDetailItem>[];
@@ -765,9 +1007,35 @@ class FirebaseChecklistRemoteDataSource implements ChecklistRemoteDataSource {
     );
     final seenPlaceIds = <String>{};
     final items = <ChecklistDetailItem>[];
+    final progressStep = type == 'restaurant'
+        ? ChecklistPlanProgressStep.findingRestaurants
+        : ChecklistPlanProgressStep.findingActivities;
+    final progressStart = type == 'restaurant' ? 0.68 : 0.82;
+    final progressSpan = type == 'restaurant' ? 0.12 : 0.08;
+    onProgress(
+      progressStep,
+      progressStart,
+      currentItemIndex: 0,
+      totalItemCount: queries.length,
+      debugMessage: 'finding_${type}s_started',
+    );
 
     for (var index = 0; index < queries.length; index++) {
+      throwIfCancelled();
       final query = queries[index];
+      final current = index + 1;
+      final stageProgress =
+          progressStart + (progressSpan * current / queries.length);
+      debugPrint(
+        '[ChecklistPlanProgress] enrich type=$type index=$current total=${queries.length}',
+      );
+      onProgress(
+        progressStep,
+        stageProgress,
+        currentItemIndex: current,
+        totalItemCount: queries.length,
+        debugMessage: 'finding_${type}s_progress',
+      );
       final order = startingOrder + items.length;
       final resolvedDayIndex = _resolveDayIndex(
         rawDayIndex: query.dayIndex,
@@ -783,6 +1051,7 @@ class FirebaseChecklistRemoteDataSource implements ChecklistRemoteDataSource {
         dayIndex: resolvedDayIndex,
       );
       try {
+        throwIfCancelled();
         final places = await googlePlacesRemoteDataSource.searchPlacesByText(
           query: query.query,
           type: type,
@@ -790,9 +1059,19 @@ class FirebaseChecklistRemoteDataSource implements ChecklistRemoteDataSource {
           longitude: input.longitude,
           limit: 1,
         );
+        throwIfCancelled();
         if (places.isEmpty) {
           _log('$type query returned 0 results query=${query.query}');
           items.add(fallbackItem);
+          onProgress(
+            progressStep,
+            stageProgress,
+            currentItemIndex: current,
+            totalItemCount: queries.length,
+            hasPartialFailures: true,
+            errorCode: 'partial_enrich',
+            debugMessage: '${type}_partial_enrich_continue',
+          );
           continue;
         }
 
@@ -803,6 +1082,15 @@ class FirebaseChecklistRemoteDataSource implements ChecklistRemoteDataSource {
             '$type query skipped duplicateOrEmpty placeId=$placeId query=${query.query}',
           );
           items.add(fallbackItem);
+          onProgress(
+            progressStep,
+            stageProgress,
+            currentItemIndex: current,
+            totalItemCount: queries.length,
+            hasPartialFailures: true,
+            errorCode: 'partial_enrich',
+            debugMessage: '${type}_partial_enrich_continue',
+          );
           continue;
         }
         seenPlaceIds.add(placeId);
@@ -826,6 +1114,15 @@ class FirebaseChecklistRemoteDataSource implements ChecklistRemoteDataSource {
       } catch (error) {
         _log('$type enrich failed query=${query.query} error=$error');
         items.add(fallbackItem);
+        onProgress(
+          progressStep,
+          stageProgress,
+          currentItemIndex: current,
+          totalItemCount: queries.length,
+          hasPartialFailures: true,
+          errorCode: 'partial_enrich',
+          debugMessage: '${type}_partial_enrich_continue',
+        );
       }
     }
 
@@ -840,6 +1137,10 @@ class FirebaseChecklistRemoteDataSource implements ChecklistRemoteDataSource {
     required GeminiHotelCandidate candidate,
     required int order,
   }) {
+    final nightlyRange = _normalizeHotelCandidatePriceRange(
+      candidate: candidate,
+      nightCount: input.nightCount,
+    );
     return ChecklistDetailItem(
       id: _buildItemId(prefix: 'hotel', order: order),
       groupType: 'stay',
@@ -847,9 +1148,12 @@ class FirebaseChecklistRemoteDataSource implements ChecklistRemoteDataSource {
       subtitle: candidate.matchPreference,
       isCompleted: false,
       type: 'hotel',
-      estimatedCostMin: candidate.expectedCostMin,
-      estimatedCostMax: candidate.expectedCostMax,
-      costUnit: candidate.costUnit,
+      estimatedCostMin: nightlyRange.$1,
+      estimatedCostMax: nightlyRange.$2,
+      originalPriceMin: candidate.expectedCostMin,
+      originalPriceMax: candidate.expectedCostMax,
+      originalCurrency: input.currency,
+      costUnit: 'per_night',
       currency: input.currency,
       routeText: _joinNonEmptyText(<String?>[
         candidate.reason,
@@ -872,6 +1176,11 @@ class FirebaseChecklistRemoteDataSource implements ChecklistRemoteDataSource {
     required int order,
     required int dayIndex,
   }) {
+    final normalizedPrice = _normalizePlaceQueryPriceRange(
+      query: query,
+      type: type,
+      travelerCount: input.travelerCount,
+    );
     return ChecklistDetailItem(
       id: _buildItemId(prefix: type, order: order),
       groupType: groupType,
@@ -879,9 +1188,12 @@ class FirebaseChecklistRemoteDataSource implements ChecklistRemoteDataSource {
       subtitle: null,
       isCompleted: false,
       type: type,
-      estimatedCostMin: query.estimatedCostMin,
-      estimatedCostMax: query.estimatedCostMax,
-      costUnit: query.costUnit,
+      estimatedCostMin: normalizedPrice.$1,
+      estimatedCostMax: normalizedPrice.$2,
+      originalPriceMin: query.estimatedCostMin,
+      originalPriceMax: query.estimatedCostMax,
+      originalCurrency: input.currency,
+      costUnit: normalizedPrice.$3,
       currency: input.currency,
       routeText: query.query,
       providerName: 'Google Places',
@@ -890,6 +1202,299 @@ class FirebaseChecklistRemoteDataSource implements ChecklistRemoteDataSource {
       displayOrder: order,
       dayIndex: dayIndex,
     );
+  }
+
+  List<ChecklistDetailItem> _normalizeAndValidateGeneratedItems({
+    required GeminiPlanningInput input,
+    required ChecklistBudgetSplit budgetSplit,
+    required List<ChecklistDetailItem> items,
+  }) {
+    final hotelBudget = budgetSplit.hotelBudget;
+    final maxHotelNightlyBudget = hotelBudget != null && input.nightCount > 0
+        ? hotelBudget / input.nightCount
+        : null;
+
+    return items
+        .map(
+          (item) => _normalizeAndValidateGeneratedItem(
+            input: input,
+            hotelBudget: hotelBudget,
+            maxHotelNightlyBudget: maxHotelNightlyBudget,
+            item: item,
+          ),
+        )
+        .toList(growable: false);
+  }
+
+  ChecklistDetailItem _normalizeAndValidateGeneratedItem({
+    required GeminiPlanningInput input,
+    required double? hotelBudget,
+    required double? maxHotelNightlyBudget,
+    required ChecklistDetailItem item,
+  }) {
+    final normalizedType = (item.type ?? '').trim().toLowerCase();
+    final normalizedGroup = item.groupType.trim().toLowerCase();
+    final isHotel = normalizedType == 'hotel' || normalizedGroup == 'stay';
+    final isRestaurant =
+        normalizedType == 'restaurant' ||
+        normalizedType == 'food' ||
+        normalizedGroup == 'food';
+    final isActivity =
+        normalizedType == 'activity' || normalizedGroup == 'activity';
+    final isFlight =
+        normalizedType == 'flight' || normalizedGroup == 'transportation';
+
+    var nextItem = item.copyWith(currency: input.currency);
+    var min = nextItem.estimatedCostMin;
+    var max = nextItem.estimatedCostMax;
+    var costUnit = (nextItem.costUnit ?? '').trim().toLowerCase();
+    String? budgetWarning = nextItem.budgetWarning;
+
+    if (isFlight) {
+      costUnit = 'per_ticket';
+    } else if (isHotel) {
+      if (costUnit == 'total' && input.nightCount > 0) {
+        min = min == null ? null : min / input.nightCount;
+        max = max == null ? null : max / input.nightCount;
+      }
+      costUnit = 'per_night';
+    } else if (isRestaurant) {
+      if (costUnit == 'total' && input.travelerCount > 0) {
+        min = min == null ? null : min / input.travelerCount;
+        max = max == null ? null : max / input.travelerCount;
+      }
+      costUnit = 'per_person';
+    } else if (isActivity) {
+      final average = _readAverageAmount(min: min, max: max);
+      if ((average ?? 0) <= 0) {
+        min = 0;
+        max = 0;
+        costUnit = 'total';
+      } else {
+        if (costUnit == 'total' && input.travelerCount > 0) {
+          min = min == null ? null : min / input.travelerCount;
+          max = max == null ? null : max / input.travelerCount;
+        }
+        costUnit = 'per_person';
+      }
+    }
+
+    final isSuspiciousPriceUnit = _isSuspiciousPriceUnit(
+      currency: input.currency,
+      type: normalizedType,
+      min: min,
+      max: max,
+      maxHotelNightlyBudget: maxHotelNightlyBudget,
+    );
+
+    if (isSuspiciousPriceUnit) {
+      final fallbackRange = _buildFallbackPriceRange(
+        input: input,
+        item: nextItem,
+        hotelBudget: hotelBudget,
+        maxHotelNightlyBudget: maxHotelNightlyBudget,
+      );
+      min = fallbackRange.$1;
+      max = fallbackRange.$2;
+      budgetWarning = _mergeWarning(budgetWarning, 'suspicious_price_unit');
+    }
+
+    final isWithinBudget =
+        !isHotel ||
+        maxHotelNightlyBudget == null ||
+        max == null ||
+        max <= maxHotelNightlyBudget * 1.15;
+    if (isHotel && !isWithinBudget) {
+      budgetWarning = _mergeWarning(budgetWarning, 'over_budget');
+      if (maxHotelNightlyBudget > 0) {
+        final fallbackMin = maxHotelNightlyBudget * 0.82;
+        final fallbackMax = maxHotelNightlyBudget * 0.98;
+        min = fallbackMin;
+        max = fallbackMax;
+      }
+    }
+
+    _log(
+      'price validation title=${nextItem.title} '
+      'type=${nextItem.type ?? ''} '
+      'currency=${input.currency} '
+      'costUnit=$costUnit '
+      'estimatedCostMin=$min '
+      'estimatedCostMax=$max '
+      'hotelBudget=$hotelBudget '
+      'nightCount=${input.nightCount} '
+      'maxHotelNightlyBudget=$maxHotelNightlyBudget '
+      'isWithinBudget=$isWithinBudget',
+    );
+
+    return nextItem.copyWith(
+      currency: input.currency,
+      originalCurrency: nextItem.originalCurrency ?? nextItem.currency,
+      originalPriceMin: nextItem.originalPriceMin ?? nextItem.estimatedCostMin,
+      originalPriceMax: nextItem.originalPriceMax ?? nextItem.estimatedCostMax,
+      estimatedCostMin: min,
+      estimatedCostMax: max,
+      estimatedPriceMin: isFlight ? min : nextItem.estimatedPriceMin,
+      estimatedPriceMax: isFlight ? max : nextItem.estimatedPriceMax,
+      costUnit: costUnit,
+      budgetWarning: budgetWarning,
+    );
+  }
+
+  bool _isSuspiciousPriceUnit({
+    required String currency,
+    required String type,
+    required double? min,
+    required double? max,
+    required double? maxHotelNightlyBudget,
+  }) {
+    if (currency.trim().toUpperCase() != 'CNY') {
+      return false;
+    }
+    final average = _readAverageAmount(min: min, max: max);
+    if (average == null) {
+      return false;
+    }
+    switch (type) {
+      case 'hotel':
+        if (average <= 0) {
+          return false;
+        }
+        if (average < 60) {
+          return true;
+        }
+        final limit = maxHotelNightlyBudget == null
+            ? 8000
+            : (maxHotelNightlyBudget * 2.8).clamp(8000, 30000).toDouble();
+        return average > limit;
+      case 'restaurant':
+      case 'food':
+        return average > 1500;
+      case 'activity':
+        return average > 5000;
+      default:
+        return false;
+    }
+  }
+
+  (double?, double?) _buildFallbackPriceRange({
+    required GeminiPlanningInput input,
+    required ChecklistDetailItem item,
+    required double? hotelBudget,
+    required double? maxHotelNightlyBudget,
+  }) {
+    final normalizedType = (item.type ?? '').trim().toLowerCase();
+    final normalizedGroup = item.groupType.trim().toLowerCase();
+    if (normalizedType == 'hotel' || normalizedGroup == 'stay') {
+      final nightlyBudget =
+          maxHotelNightlyBudget ??
+          ((hotelBudget ?? 0) > 0 && input.nightCount > 0
+              ? hotelBudget! / input.nightCount
+              : null);
+      if (nightlyBudget != null && nightlyBudget > 0) {
+        return (nightlyBudget * 0.72, nightlyBudget * 0.92);
+      }
+      return (480, 920);
+    }
+    if (normalizedType == 'restaurant' ||
+        normalizedType == 'food' ||
+        normalizedGroup == 'food') {
+      switch (input.accommodationPreference.trim().toLowerCase()) {
+        case 'luxury':
+          return (220, 480);
+        case 'budget':
+          return (45, 120);
+        default:
+          return (80, 220);
+      }
+    }
+    if (normalizedType == 'activity' || normalizedGroup == 'activity') {
+      return (60, 260);
+    }
+    return (
+      _readAverageAmount(
+        min: item.estimatedCostMin,
+        max: item.estimatedCostMax,
+      ),
+      item.estimatedCostMax,
+    );
+  }
+
+  String _mergeWarning(String? current, String next) {
+    final currentValue = (current ?? '').trim();
+    if (currentValue.isEmpty) {
+      return next;
+    }
+    if (currentValue.split('|').contains(next)) {
+      return currentValue;
+    }
+    return '$currentValue|$next';
+  }
+
+  double? _readAverageAmount({required double? min, required double? max}) {
+    if (min != null && max != null) {
+      return (min + max) / 2;
+    }
+    return min ?? max;
+  }
+
+  (double?, double?) _normalizeHotelCandidatePriceRange({
+    required GeminiHotelCandidate candidate,
+    required int nightCount,
+  }) {
+    if (candidate.costUnit.trim().toLowerCase() != 'total' || nightCount <= 0) {
+      return (candidate.expectedCostMin, candidate.expectedCostMax);
+    }
+    return (
+      candidate.expectedCostMin == null
+          ? null
+          : candidate.expectedCostMin! / nightCount,
+      candidate.expectedCostMax == null
+          ? null
+          : candidate.expectedCostMax! / nightCount,
+    );
+  }
+
+  (double?, double?, String) _normalizePlaceQueryPriceRange({
+    required GeminiPlaceQuery query,
+    required String type,
+    required int travelerCount,
+  }) {
+    final normalizedType = type.trim().toLowerCase();
+    if (normalizedType == 'restaurant') {
+      if (query.costUnit.trim().toLowerCase() == 'total' && travelerCount > 0) {
+        return (
+          query.estimatedCostMin == null
+              ? null
+              : query.estimatedCostMin! / travelerCount,
+          query.estimatedCostMax == null
+              ? null
+              : query.estimatedCostMax! / travelerCount,
+          'per_person',
+        );
+      }
+      return (query.estimatedCostMin, query.estimatedCostMax, 'per_person');
+    }
+
+    final average = _readAverageAmount(
+      min: query.estimatedCostMin,
+      max: query.estimatedCostMax,
+    );
+    if ((average ?? 0) <= 0) {
+      return (0, 0, 'total');
+    }
+    if (query.costUnit.trim().toLowerCase() == 'total' && travelerCount > 0) {
+      return (
+        query.estimatedCostMin == null
+            ? null
+            : query.estimatedCostMin! / travelerCount,
+        query.estimatedCostMax == null
+            ? null
+            : query.estimatedCostMax! / travelerCount,
+        'per_person',
+      );
+    }
+    return (query.estimatedCostMin, query.estimatedCostMax, 'per_person');
   }
 
   List<int> _buildEvenDayIndexes({
@@ -936,38 +1541,253 @@ class FirebaseChecklistRemoteDataSource implements ChecklistRemoteDataSource {
     return '${prefix}_${DateTime.now().microsecondsSinceEpoch}_$order';
   }
 
-  String _buildFlightRouteText({
+  ChecklistDetailItem _buildFlightItemFromPlan({
+    required GeminiPlanningInput input,
     required GeminiFlightPlan flight,
-    required String fallbackDeparture,
-    required String fallbackArrival,
+    required int displayOrder,
+    required int dayIndex,
   }) {
-    return _joinNonEmptyText(<String?>[
+    final airlineName = flight.airlineName?.trim() ?? '';
+    final flightNumber = flight.flightNumber?.trim() ?? '';
+    final departureAirportDisplay = _composeAirportDisplay(
+      airportName: flight.departureAirportName,
+      airportCode: flight.departureAirportCode,
+      terminal: flight.departureTerminal,
+    );
+    final arrivalAirportDisplay = _composeAirportDisplay(
+      airportName: flight.arrivalAirportName,
+      airportCode: flight.arrivalAirportCode,
+      terminal: flight.arrivalTerminal,
+    );
+    final fallbackUrl = _buildGoogleFlightsSearchUrl(
+      input: input,
+      tripDirection: flight.tripDirection,
+    );
+    final routeText = _joinNonEmptyText(<String?>[
       _joinNonEmptyText(<String?>[
         flight.departureDate,
         flight.departureTime,
       ], separator: ' '),
       _joinNonEmptyText(<String?>[
-        flight.departureAirport ?? fallbackDeparture,
-        flight.arrivalAirport ?? fallbackArrival,
+        departureAirportDisplay,
+        arrivalAirportDisplay,
       ], separator: ' -> '),
-      _joinNonEmptyText(<String?>[
-        flight.arrivalDate,
-        flight.arrivalTime,
-      ], separator: ' '),
+      flight.arrivalTime,
     ], separator: ' · ');
+    final estimatedCostMin =
+        flight.estimatedCostMin ??
+        (flight.estimatedPrice == null ? null : flight.estimatedPrice! * 0.95);
+    final estimatedCostMax =
+        flight.estimatedCostMax ??
+        (flight.estimatedPrice == null ? null : flight.estimatedPrice! * 1.05);
+
+    return ChecklistDetailItem(
+      id: _buildItemId(prefix: 'flight', order: displayOrder),
+      groupType: 'transportation',
+      title: airlineName,
+      subtitle: flightNumber.isNotEmpty ? flightNumber : null,
+      isCompleted: false,
+      type: 'flight',
+      estimatedPriceMin: estimatedCostMin,
+      estimatedPriceMax: estimatedCostMax,
+      estimatedCostMin: estimatedCostMin,
+      estimatedCostMax: estimatedCostMax,
+      costUnit: 'per_ticket',
+      currency: flight.currency,
+      routeText: routeText,
+      suggestedAirports: <String>[
+        if ((flight.departureAirportCode ?? '').trim().isNotEmpty)
+          flight.departureAirportCode!.trim(),
+        if ((flight.arrivalAirportCode ?? '').trim().isNotEmpty)
+          flight.arrivalAirportCode!.trim(),
+      ],
+      providerName: 'Google Flights',
+      externalUrl: (flight.googleFlightsUrl ?? '').trim().isNotEmpty
+          ? flight.googleFlightsUrl!.trim()
+          : fallbackUrl,
+      dataSource: 'gemini',
+      status: 'suggested',
+      displayOrder: displayOrder,
+      dayIndex: dayIndex,
+      airline: airlineName,
+      airlineCode: flight.airlineCode,
+      flightNumber: flightNumber,
+      departureAirport: departureAirportDisplay,
+      arrivalAirport: arrivalAirportDisplay,
+      departureTime: flight.departureTime,
+      arrivalTime: flight.arrivalTime,
+      departureDate: flight.departureDate,
+      arrivalDate: flight.departureDate,
+      tripDirection: flight.tripDirection,
+      departureCity: flight.departureCity,
+      arrivalCity: flight.arrivalCity,
+      departureAirportName: flight.departureAirportName,
+      departureAirportCode: flight.departureAirportCode,
+      departureTerminal: flight.departureTerminal,
+      arrivalAirportName: flight.arrivalAirportName,
+      arrivalAirportCode: flight.arrivalAirportCode,
+      arrivalTerminal: flight.arrivalTerminal,
+      estimatedPrice: flight.estimatedPrice,
+      googleFlightsUrl: (flight.googleFlightsUrl ?? '').trim().isNotEmpty
+          ? flight.googleFlightsUrl!.trim()
+          : fallbackUrl,
+    );
   }
 
-  String _buildGoogleFlightsSearchUrl(GeminiPlanningInput input) {
+  GeminiFlightPlan _fillFlightPlanFallback({
+    required GeminiPlanningInput input,
+    required String tripDirection,
+    required GeminiFlightPlan? flight,
+  }) {
+    // Gemini 字段缺失时做结构化补全，保证 flight 卡片稳定展示。
+    final isOutbound = tripDirection == 'outbound';
+    final departureCity = (flight?.departureCity ?? '').trim().isNotEmpty
+        ? flight!.departureCity!.trim()
+        : (isOutbound ? input.departureCity : input.destination);
+    final arrivalCity = (flight?.arrivalCity ?? '').trim().isNotEmpty
+        ? flight!.arrivalCity!.trim()
+        : (isOutbound ? input.destination : input.departureCity);
+    final departureAirportCode = (flight?.departureAirportCode ?? '').trim();
+    final arrivalAirportCode = (flight?.arrivalAirportCode ?? '').trim();
+    final estimatedPrice =
+        flight?.estimatedPrice ??
+        flight?.estimatedCostMin ??
+        flight?.estimatedCostMax ??
+        _fallbackEstimatedFlightPrice(input.totalBudget);
+
+    return GeminiFlightPlan(
+      tripDirection: tripDirection,
+      airlineName: (flight?.airlineName ?? '').trim().isNotEmpty
+          ? flight!.airlineName!.trim()
+          : 'Sample Air',
+      airlineCode: (flight?.airlineCode ?? '').trim().isNotEmpty
+          ? flight!.airlineCode!.trim()
+          : 'SA',
+      flightNumber: (flight?.flightNumber ?? '').trim().isNotEmpty
+          ? flight!.flightNumber!.trim()
+          : (tripDirection == 'outbound' ? 'SA101' : 'SA202'),
+      departureDate: (flight?.departureDate ?? '').trim().isNotEmpty
+          ? flight!.departureDate!.trim()
+          : _formatDate(isOutbound ? input.startDate : input.endDate),
+      departureTime: _normalizeFlightTime(
+        raw: flight?.departureTime,
+        fallback: isOutbound ? '09:30' : '18:40',
+      ),
+      arrivalTime: _normalizeFlightTime(
+        raw: flight?.arrivalTime,
+        fallback: isOutbound ? '12:10' : '22:10',
+      ),
+      departureCity: departureCity,
+      arrivalCity: arrivalCity,
+      departureAirportName:
+          (flight?.departureAirportName ?? '').trim().isNotEmpty
+          ? flight!.departureAirportName!.trim()
+          : '$departureCity International Airport',
+      departureAirportCode: departureAirportCode.isNotEmpty
+          ? departureAirportCode
+          : _guessAirportCode(departureCity),
+      departureTerminal: _normalizeTerminal(
+        raw: flight?.departureTerminal,
+        fallback: 'T1',
+      ),
+      arrivalAirportName: (flight?.arrivalAirportName ?? '').trim().isNotEmpty
+          ? flight!.arrivalAirportName!.trim()
+          : '$arrivalCity International Airport',
+      arrivalAirportCode: arrivalAirportCode.isNotEmpty
+          ? arrivalAirportCode
+          : _guessAirportCode(arrivalCity),
+      arrivalTerminal: _normalizeTerminal(
+        raw: flight?.arrivalTerminal,
+        fallback: 'T1',
+      ),
+      estimatedPrice: estimatedPrice,
+      estimatedCostMin: flight?.estimatedCostMin,
+      estimatedCostMax: flight?.estimatedCostMax,
+      currency: (flight?.currency ?? '').trim().isNotEmpty
+          ? flight!.currency.trim()
+          : input.currency,
+      googleFlightsUrl: (flight?.googleFlightsUrl ?? '').trim().isNotEmpty
+          ? flight!.googleFlightsUrl!.trim()
+          : _buildGoogleFlightsSearchUrl(
+              input: input,
+              tripDirection: tripDirection,
+            ),
+    );
+  }
+
+  String _composeAirportDisplay({
+    required String? airportName,
+    required String? airportCode,
+    required String? terminal,
+  }) {
+    return _joinNonEmptyText(<String?>[
+      airportName,
+      _normalizeAirportCode(airportCode),
+      _normalizeTerminal(raw: terminal),
+    ]);
+  }
+
+  String _normalizeAirportCode(String? value) {
+    final raw = (value ?? '').trim().toUpperCase();
+    if (raw.isEmpty) {
+      return '';
+    }
+    return raw.length >= 3 ? raw.substring(0, 3) : raw.padRight(3, 'X');
+  }
+
+  String _normalizeTerminal({String? raw, String fallback = 'T1'}) {
+    final text = (raw ?? '').trim().toUpperCase();
+    if (text.isEmpty) {
+      return fallback;
+    }
+    if (text.startsWith('T')) {
+      return text;
+    }
+    return 'T$text';
+  }
+
+  String _normalizeFlightTime({String? raw, required String fallback}) {
+    final text = (raw ?? '').trim();
+    if (RegExp(r'^\d{2}:\d{2}$').hasMatch(text)) {
+      return text;
+    }
+    return fallback;
+  }
+
+  String _guessAirportCode(String city) {
+    final normalized = city.replaceAll(RegExp(r'[^A-Za-z]'), '').toUpperCase();
+    if (normalized.length >= 3) {
+      return normalized.substring(0, 3);
+    }
+    return normalized.padRight(3, 'X');
+  }
+
+  double _fallbackEstimatedFlightPrice(double totalBudget) {
+    final candidate = totalBudget * 0.18;
+    if (candidate < 600) {
+      return 600;
+    }
+    return candidate;
+  }
+
+  String _buildGoogleFlightsSearchUrl({
+    required GeminiPlanningInput input,
+    required String tripDirection,
+  }) {
+    final isOutbound = tripDirection.trim().toLowerCase() != 'return';
+    final fromCity = isOutbound ? input.departureCity : input.destination;
+    final toCity = isOutbound ? input.destination : input.departureCity;
+    final departDate = _formatDate(
+      isOutbound ? input.startDate : input.endDate,
+    );
     final query = _joinNonEmptyText(<String>[
       'Flights',
       'from',
-      input.departureCity,
+      fromCity,
       'to',
-      input.destination,
+      toCity,
       'departing',
-      _formatDate(input.startDate),
-      'returning',
-      _formatDate(input.endDate),
+      departDate,
     ], separator: ' ');
     return Uri.https('www.google.com', '/travel/flights', <String, String>{
       'q': query,
@@ -1661,6 +2481,9 @@ class FirebaseChecklistRemoteDataSource implements ChecklistRemoteDataSource {
           estimatedCostMax: _readDouble(map['estimatedCostMax']),
           costUnit: (map['costUnit'] as String?)?.trim(),
           currency: (map['currency'] as String?)?.trim(),
+          originalCurrency: (map['originalCurrency'] as String?)?.trim(),
+          originalPriceMin: _readDouble(map['originalPriceMin']),
+          originalPriceMax: _readDouble(map['originalPriceMax']),
           routeText: (map['routeText'] as String?)?.trim(),
           suggestedAirports: _readStringList(map['suggestedAirports']),
           providerName: (map['providerName'] as String?)?.trim(),
@@ -1688,6 +2511,20 @@ class FirebaseChecklistRemoteDataSource implements ChecklistRemoteDataSource {
           arrivalTime: (map['arrivalTime'] as String?)?.trim(),
           departureDate: (map['departureDate'] as String?)?.trim(),
           arrivalDate: (map['arrivalDate'] as String?)?.trim(),
+          tripDirection: (map['tripDirection'] as String?)?.trim(),
+          airlineCode: (map['airlineCode'] as String?)?.trim(),
+          departureCity: (map['departureCity'] as String?)?.trim(),
+          arrivalCity: (map['arrivalCity'] as String?)?.trim(),
+          departureAirportName: (map['departureAirportName'] as String?)
+              ?.trim(),
+          departureAirportCode: (map['departureAirportCode'] as String?)
+              ?.trim(),
+          departureTerminal: (map['departureTerminal'] as String?)?.trim(),
+          arrivalAirportName: (map['arrivalAirportName'] as String?)?.trim(),
+          arrivalAirportCode: (map['arrivalAirportCode'] as String?)?.trim(),
+          arrivalTerminal: (map['arrivalTerminal'] as String?)?.trim(),
+          estimatedPrice: _readDouble(map['estimatedPrice']),
+          googleFlightsUrl: (map['googleFlightsUrl'] as String?)?.trim(),
         ),
       );
     }
@@ -1709,6 +2546,9 @@ class FirebaseChecklistRemoteDataSource implements ChecklistRemoteDataSource {
       'estimatedCostMax': item.estimatedCostMax,
       'costUnit': item.costUnit,
       'currency': item.currency,
+      'originalCurrency': item.originalCurrency,
+      'originalPriceMin': item.originalPriceMin,
+      'originalPriceMax': item.originalPriceMax,
       'routeText': item.routeText,
       'suggestedAirports': item.suggestedAirports,
       'providerName': item.providerName,
@@ -1734,6 +2574,18 @@ class FirebaseChecklistRemoteDataSource implements ChecklistRemoteDataSource {
       'arrivalTime': item.arrivalTime,
       'departureDate': item.departureDate,
       'arrivalDate': item.arrivalDate,
+      'tripDirection': item.tripDirection,
+      'airlineCode': item.airlineCode,
+      'departureCity': item.departureCity,
+      'arrivalCity': item.arrivalCity,
+      'departureAirportName': item.departureAirportName,
+      'departureAirportCode': item.departureAirportCode,
+      'departureTerminal': item.departureTerminal,
+      'arrivalAirportName': item.arrivalAirportName,
+      'arrivalAirportCode': item.arrivalAirportCode,
+      'arrivalTerminal': item.arrivalTerminal,
+      'estimatedPrice': item.estimatedPrice,
+      'googleFlightsUrl': item.googleFlightsUrl,
     };
   }
 
@@ -1812,6 +2664,9 @@ class FirebaseChecklistRemoteDataSource implements ChecklistRemoteDataSource {
       estimatedCostMax: _readDouble(data['estimatedCostMax']),
       costUnit: (data['costUnit'] as String?)?.trim(),
       currency: (data['currency'] as String?)?.trim(),
+      originalCurrency: (data['originalCurrency'] as String?)?.trim(),
+      originalPriceMin: _readDouble(data['originalPriceMin']),
+      originalPriceMax: _readDouble(data['originalPriceMax']),
       routeText: (data['routeText'] as String?)?.trim(),
       suggestedAirports: _readStringList(data['suggestedAirports']),
       providerName: (data['providerName'] as String?)?.trim(),
@@ -1839,6 +2694,18 @@ class FirebaseChecklistRemoteDataSource implements ChecklistRemoteDataSource {
       arrivalTime: (data['arrivalTime'] as String?)?.trim(),
       departureDate: (data['departureDate'] as String?)?.trim(),
       arrivalDate: (data['arrivalDate'] as String?)?.trim(),
+      tripDirection: (data['tripDirection'] as String?)?.trim(),
+      airlineCode: (data['airlineCode'] as String?)?.trim(),
+      departureCity: (data['departureCity'] as String?)?.trim(),
+      arrivalCity: (data['arrivalCity'] as String?)?.trim(),
+      departureAirportName: (data['departureAirportName'] as String?)?.trim(),
+      departureAirportCode: (data['departureAirportCode'] as String?)?.trim(),
+      departureTerminal: (data['departureTerminal'] as String?)?.trim(),
+      arrivalAirportName: (data['arrivalAirportName'] as String?)?.trim(),
+      arrivalAirportCode: (data['arrivalAirportCode'] as String?)?.trim(),
+      arrivalTerminal: (data['arrivalTerminal'] as String?)?.trim(),
+      estimatedPrice: _readDouble(data['estimatedPrice']),
+      googleFlightsUrl: (data['googleFlightsUrl'] as String?)?.trim(),
     );
   }
 

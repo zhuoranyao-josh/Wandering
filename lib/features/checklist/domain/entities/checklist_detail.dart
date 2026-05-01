@@ -267,6 +267,9 @@ class ChecklistDetailItem {
     this.estimatedCostMax,
     this.costUnit,
     this.currency,
+    this.originalCurrency,
+    this.originalPriceMin,
+    this.originalPriceMax,
     this.routeText,
     this.suggestedAirports = const <String>[],
     this.providerName,
@@ -292,6 +295,18 @@ class ChecklistDetailItem {
     this.arrivalTime,
     this.departureDate,
     this.arrivalDate,
+    this.tripDirection,
+    this.airlineCode,
+    this.departureCity,
+    this.arrivalCity,
+    this.departureAirportName,
+    this.departureAirportCode,
+    this.departureTerminal,
+    this.arrivalAirportName,
+    this.arrivalAirportCode,
+    this.arrivalTerminal,
+    this.estimatedPrice,
+    this.googleFlightsUrl,
   });
 
   final String id;
@@ -307,6 +322,9 @@ class ChecklistDetailItem {
   final double? estimatedCostMax;
   final String? costUnit;
   final String? currency;
+  final String? originalCurrency;
+  final double? originalPriceMin;
+  final double? originalPriceMax;
   final String? routeText;
   final List<String> suggestedAirports;
   final String? providerName;
@@ -332,6 +350,18 @@ class ChecklistDetailItem {
   final String? arrivalTime;
   final String? departureDate;
   final String? arrivalDate;
+  final String? tripDirection;
+  final String? airlineCode;
+  final String? departureCity;
+  final String? arrivalCity;
+  final String? departureAirportName;
+  final String? departureAirportCode;
+  final String? departureTerminal;
+  final String? arrivalAirportName;
+  final String? arrivalAirportCode;
+  final String? arrivalTerminal;
+  final double? estimatedPrice;
+  final String? googleFlightsUrl;
 
   ChecklistDetailItem copyWith({
     String? id,
@@ -347,6 +377,9 @@ class ChecklistDetailItem {
     double? estimatedCostMax,
     String? costUnit,
     String? currency,
+    String? originalCurrency,
+    double? originalPriceMin,
+    double? originalPriceMax,
     String? routeText,
     List<String>? suggestedAirports,
     String? providerName,
@@ -372,6 +405,18 @@ class ChecklistDetailItem {
     String? arrivalTime,
     String? departureDate,
     String? arrivalDate,
+    String? tripDirection,
+    String? airlineCode,
+    String? departureCity,
+    String? arrivalCity,
+    String? departureAirportName,
+    String? departureAirportCode,
+    String? departureTerminal,
+    String? arrivalAirportName,
+    String? arrivalAirportCode,
+    String? arrivalTerminal,
+    double? estimatedPrice,
+    String? googleFlightsUrl,
   }) {
     return ChecklistDetailItem(
       id: id ?? this.id,
@@ -387,6 +432,9 @@ class ChecklistDetailItem {
       estimatedCostMax: estimatedCostMax ?? this.estimatedCostMax,
       costUnit: costUnit ?? this.costUnit,
       currency: currency ?? this.currency,
+      originalCurrency: originalCurrency ?? this.originalCurrency,
+      originalPriceMin: originalPriceMin ?? this.originalPriceMin,
+      originalPriceMax: originalPriceMax ?? this.originalPriceMax,
       routeText: routeText ?? this.routeText,
       suggestedAirports: suggestedAirports ?? this.suggestedAirports,
       providerName: providerName ?? this.providerName,
@@ -412,6 +460,18 @@ class ChecklistDetailItem {
       arrivalTime: arrivalTime ?? this.arrivalTime,
       departureDate: departureDate ?? this.departureDate,
       arrivalDate: arrivalDate ?? this.arrivalDate,
+      tripDirection: tripDirection ?? this.tripDirection,
+      airlineCode: airlineCode ?? this.airlineCode,
+      departureCity: departureCity ?? this.departureCity,
+      arrivalCity: arrivalCity ?? this.arrivalCity,
+      departureAirportName: departureAirportName ?? this.departureAirportName,
+      departureAirportCode: departureAirportCode ?? this.departureAirportCode,
+      departureTerminal: departureTerminal ?? this.departureTerminal,
+      arrivalAirportName: arrivalAirportName ?? this.arrivalAirportName,
+      arrivalAirportCode: arrivalAirportCode ?? this.arrivalAirportCode,
+      arrivalTerminal: arrivalTerminal ?? this.arrivalTerminal,
+      estimatedPrice: estimatedPrice ?? this.estimatedPrice,
+      googleFlightsUrl: googleFlightsUrl ?? this.googleFlightsUrl,
     );
   }
 }

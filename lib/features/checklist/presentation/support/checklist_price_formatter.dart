@@ -4,10 +4,7 @@ import '../../../../l10n/app_localizations.dart';
 import '../../domain/entities/checklist_detail.dart';
 
 class ChecklistPriceDisplay {
-  const ChecklistPriceDisplay({
-    required this.primaryText,
-    this.secondaryText,
-  });
+  const ChecklistPriceDisplay({required this.primaryText, this.secondaryText});
 
   final String primaryText;
   final String? secondaryText;
@@ -17,6 +14,7 @@ class ChecklistPriceDisplay {
 }
 
 class ChecklistPriceFormatter {
+  // 统一价格入口：默认卡片、紧凑卡片、航班 badge 都从这里取数。
   static ChecklistPriceDisplay build({
     required ChecklistDetailItem item,
     required AppLocalizations? t,
@@ -24,7 +22,9 @@ class ChecklistPriceFormatter {
     final currencySymbol = _resolveCurrencySymbol(item.currency);
     final unitText = _resolveUnitText(item.costUnit, t);
     final structuredRange = _selectStructuredRange(item);
-    final legacyRange = structuredRange == null ? _selectLegacyRange(item) : null;
+    final legacyRange = structuredRange == null
+        ? _selectLegacyRange(item)
+        : null;
     final range = structuredRange ?? legacyRange;
 
     if (range == null) {
@@ -58,6 +58,60 @@ class ChecklistPriceFormatter {
       primaryText: primaryText,
       secondaryText: secondaryText,
     );
+  }
+
+  static String formatCompactDisplayPrice({
+    required ChecklistDetailItem item,
+    required AppLocalizations? t,
+  }) {
+    final normalizedType = (item.type ?? '').trim().toLowerCase();
+    final normalizedGroup = item.groupType.trim().toLowerCase();
+    final isHotel = normalizedType == 'hotel' || normalizedGroup == 'stay';
+    final isRestaurant =
+        normalizedType == 'restaurant' ||
+        normalizedType == 'food' ||
+        normalizedGroup == 'food';
+    final isActivity =
+        normalizedType == 'activity' || normalizedGroup == 'activity';
+    final amount = _resolvePrimaryAmount(item);
+
+    if (isActivity && (amount ?? 0) <= 0) {
+      return t?.checklistPriceFree ?? 'Free';
+    }
+    if (amount == null) {
+      return t?.checklistPriceUnavailable ?? 'Price unavailable';
+    }
+
+    final unitText = isHotel
+        ? (t?.checklistPriceUnitNight ?? 'night')
+        : (t?.checklistPriceUnitPerson ?? 'person');
+    final currencySymbol = _resolveCurrencySymbol(item.currency);
+    final amountText = _formatAmount(amount);
+    if (isHotel || isRestaurant || isActivity) {
+      return '$currencySymbol$amountText / $unitText';
+    }
+    return '$currencySymbol$amountText';
+  }
+
+  static String? formatFlightEstimateBadge({
+    required ChecklistDetailItem item,
+    required AppLocalizations? t,
+  }) {
+    final amount = item.estimatedPrice ?? _resolvePrimaryAmount(item);
+    if (amount == null) {
+      return null;
+    }
+    final prefix = t?.checklistEstimateShort ?? 'EST.';
+    final currencySymbol = _resolveCurrencySymbol(item.currency);
+    return '$prefix $currencySymbol${_formatAmount(amount)}';
+  }
+
+  static double? _resolvePrimaryAmount(ChecklistDetailItem item) {
+    final structuredRange = _selectStructuredRange(item);
+    final legacyRange = structuredRange == null
+        ? _selectLegacyRange(item)
+        : null;
+    return (structuredRange ?? legacyRange)?.average;
   }
 
   static String _buildPrimaryText({
@@ -138,10 +192,7 @@ class ChecklistPriceFormatter {
 }
 
 class _PriceRange {
-  const _PriceRange({
-    required this.min,
-    required this.max,
-  });
+  const _PriceRange({required this.min, required this.max});
 
   final double? min;
   final double? max;

@@ -57,6 +57,9 @@
   "language": "Language",
   "languageChinese": "Chinese",
   "languageEnglish": "English",
+  "navCommunity": "Posts",
+  "navActivity": "Events",
+  "navMe": "Me",
   "profileEditTitle": "Edit Profile",
   "save": "Save",
   "mapTabTitle": "Map Tab",
@@ -263,6 +266,59 @@
   "checklistStartPlanning": "Start Planning",
   "checklistGeneratePlan": "Generate Plan",
   "checklistGenerateFailed": "Failed to generate plan.",
+  "checklistPlanProgressPercent": "{percent}%",
+  "@checklistPlanProgressPercent": {
+    "placeholders": {
+      "percent": {}
+    }
+  },
+  "checklistPlanProgressStillGeneratingTitle": "Your plan is still being generated",
+  "checklistPlanProgressStillGeneratingMessage": "Please stay on this page. We are still working on your plan.",
+  "checklistPlanProgressPreparingTitle": "Preparing your trip information",
+  "checklistPlanProgressPreparingMessage": "Checking dates, travelers, destination, and required details.",
+  "checklistPlanProgressAnalyzingBudgetTitle": "Analyzing your budget",
+  "checklistPlanProgressAnalyzingBudgetMessage": "Reviewing total budget, stay budget, and spending split.",
+  "checklistPlanProgressGeneratingAiTitle": "Generating your AI travel plan",
+  "checklistPlanProgressGeneratingAiMessage": "Building structured suggestions for your trip.",
+  "checklistPlanProgressFindingFlightsTitle": "Finding flight suggestions",
+  "checklistPlanProgressFindingFlightsMessage": "Preparing route-aware flight suggestions.",
+  "checklistPlanProgressFindingHotelsTitle": "Finding hotels",
+  "checklistPlanProgressFindingHotelsMessage": "Matching hotels with your budget and stay preference.",
+  "checklistPlanProgressFindingHotelsCount": "Finding hotels {current}/{total}",
+  "@checklistPlanProgressFindingHotelsCount": {
+    "placeholders": {
+      "current": {},
+      "total": {}
+    }
+  },
+  "checklistPlanProgressFindingRestaurantsTitle": "Finding restaurants",
+  "checklistPlanProgressFindingRestaurantsMessage": "Looking for food options around your destination.",
+  "checklistPlanProgressFindingRestaurantsCount": "Finding restaurants {current}/{total}",
+  "@checklistPlanProgressFindingRestaurantsCount": {
+    "placeholders": {
+      "current": {},
+      "total": {}
+    }
+  },
+  "checklistPlanProgressFindingActivitiesTitle": "Finding activities",
+  "checklistPlanProgressFindingActivitiesMessage": "Searching activities based on your trip pace.",
+  "checklistPlanProgressFindingActivitiesCount": "Finding activities {current}/{total}",
+  "@checklistPlanProgressFindingActivitiesCount": {
+    "placeholders": {
+      "current": {},
+      "total": {}
+    }
+  },
+  "checklistPlanProgressSavingTitle": "Saving your checklist",
+  "checklistPlanProgressSavingMessage": "Saving generated plan data to your checklist.",
+  "checklistPlanProgressPreparingCardsTitle": "Preparing your cards",
+  "checklistPlanProgressPreparingCardsMessage": "Preparing your cards for display.",
+  "checklistPlanProgressFinalizingTitle": "Finalizing your plan",
+  "checklistPlanProgressFinalizingMessage": "Wrapping up the final details.",
+  "checklistPlanProgressCompletedTitle": "Plan ready",
+  "checklistPlanProgressCompletedMessage": "Your checklist has been generated successfully.",
+  "checklistPlanProgressFailedTitle": "Plan generation failed",
+  "checklistPlanProgressPartialEnrichMessage": "Some places could not be enriched, continuing...",
   "checklistEstimateShort": "EST.",
   "checklistDemoEstimateBadge": "Demo estimate",
   "checklistTravelStyleTitle": "Travel Style",
@@ -346,10 +402,11 @@
   "journeyWizardPaceRelaxed": "Relaxed",
   "journeyWizardPaceBalanced": "Balanced",
   "journeyWizardPaceIntensive": "Intensive",
-  "journeyWizardAccommodationBudget": "Budget",
+  "journeyWizardAccommodationBudget": "Budget-friendly",
   "journeyWizardAccommodationConvenient": "Convenient",
   "journeyWizardAccommodationComfortable": "Comfortable",
   "journeyWizardAccommodationPremium": "Premium",
+  "journeyWizardAccommodationLuxury": "Luxury",
   "journeyWizardErrorDepartureCityRequired": "Please enter departure city.",
   "journeyWizardErrorStartDateRequired": "Please select start date.",
   "journeyWizardErrorEndDateRequired": "Please select end date.",

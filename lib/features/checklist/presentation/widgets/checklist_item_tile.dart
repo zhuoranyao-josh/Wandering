@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:intl/intl.dart';
 
 import '../../../../core/widgets/app_network_image.dart';
 import '../../../../l10n/app_localizations.dart';
@@ -426,58 +425,47 @@ class _TransportFlightViewData {
     required ChecklistDetailItem item,
     required AppLocalizations? t,
   }) {
-    final estimateValue = _readEstimateValue(item);
-    if (estimateValue == null) {
-      return null;
-    }
-
-    final currencySymbol = _resolveCurrencySymbol(item.currency);
-    final amountText = NumberFormat.decimalPattern().format(estimateValue);
-    final prefix = t?.checklistEstimateShort ?? 'EST.';
-    return '$prefix $currencySymbol$amountText';
-  }
-
-  // 航班卡右上角价格固定展示估算均值，不展示区间和单位。
-  static double? _readEstimateValue(ChecklistDetailItem item) {
-    final structuredMin = item.estimatedCostMin;
-    final structuredMax = item.estimatedCostMax;
-    if (structuredMin != null && structuredMax != null) {
-      return (structuredMin + structuredMax) / 2;
-    }
-    if (structuredMin != null || structuredMax != null) {
-      return structuredMin ?? structuredMax;
-    }
-
-    final legacyMin = item.estimatedPriceMin;
-    final legacyMax = item.estimatedPriceMax;
-    if (legacyMin != null && legacyMax != null) {
-      return (legacyMin + legacyMax) / 2;
-    }
-    return legacyMin ?? legacyMax;
-  }
-
-  static String _resolveCurrencySymbol(String? currencyCode) {
-    switch ((currencyCode ?? '').trim().toUpperCase()) {
-      case 'CNY':
-      case 'JPY':
-        return '\u00A5';
-      case 'USD':
-        return '\$';
-      case 'EUR':
-        return '\u20AC';
-      case 'GBP':
-        return '\u00A3';
-      default:
-        final code = (currencyCode ?? '').trim();
-        return code.isNotEmpty ? '$code ' : '\u00A5';
-    }
+    return ChecklistPriceFormatter.formatFlightEstimateBadge(item: item, t: t);
   }
 
   static (String?, String?, String?, String?) _readStructuredTimeline(
     ChecklistDetailItem item,
   ) {
-    final departureAirport = (item.departureAirport ?? '').trim();
-    final arrivalAirport = (item.arrivalAirport ?? '').trim();
+    String composeAirport({
+      required String? airportName,
+      required String? airportCode,
+      required String? terminal,
+      required String? fallback,
+    }) {
+      final normalizedCode = (airportCode ?? '').trim().toUpperCase();
+      final normalizedTerminal = (terminal ?? '').trim().toUpperCase();
+      final normalizedFallback = (fallback ?? '').trim();
+      final joined = <String>[
+        if ((airportName ?? '').trim().isNotEmpty) airportName!.trim(),
+        if (normalizedCode.isNotEmpty) normalizedCode,
+        if (normalizedTerminal.isNotEmpty)
+          normalizedTerminal.startsWith('T')
+              ? normalizedTerminal
+              : 'T$normalizedTerminal',
+      ].join(' ');
+      if (joined.trim().isNotEmpty) {
+        return joined.trim();
+      }
+      return normalizedFallback;
+    }
+
+    final departureAirport = composeAirport(
+      airportName: item.departureAirportName,
+      airportCode: item.departureAirportCode,
+      terminal: item.departureTerminal,
+      fallback: item.departureAirport,
+    );
+    final arrivalAirport = composeAirport(
+      airportName: item.arrivalAirportName,
+      airportCode: item.arrivalAirportCode,
+      terminal: item.arrivalTerminal,
+      fallback: item.arrivalAirport,
+    );
     final departureTime = (item.departureTime ?? '').trim();
     final arrivalTime = (item.arrivalTime ?? '').trim();
     return (
@@ -605,69 +593,7 @@ class _CompactItemViewData {
     ChecklistDetailItem item,
     AppLocalizations? t,
   ) {
-    final amount = _readAverageAmount(item);
-    final normalizedType = (item.type ?? '').trim().toLowerCase();
-    final normalizedGroup = item.groupType.trim().toLowerCase();
-    final isHotel = normalizedType == 'hotel' || normalizedGroup == 'stay';
-    final isRestaurant =
-        normalizedType == 'restaurant' ||
-        normalizedType == 'food' ||
-        normalizedGroup == 'food';
-    final isActivity =
-        normalizedType == 'activity' || normalizedGroup == 'activity';
-
-    if (isActivity && amount != null && amount <= 0) {
-      return t?.checklistPriceFree ?? 'Free';
-    }
-
-    if (amount == null) {
-      return t?.checklistPriceUnavailable ?? 'Price unavailable';
-    }
-
-    final currencySymbol = _resolveCurrencySymbol(item.currency);
-    final amountText = NumberFormat.decimalPattern().format(amount);
-    final unitText = isHotel
-        ? (t?.checklistPriceUnitNight ?? 'night')
-        : (t?.checklistPriceUnitPerson ?? 'person');
-    if (isRestaurant || isActivity || isHotel) {
-      return '$currencySymbol$amountText / $unitText';
-    }
-    return '$currencySymbol$amountText';
-  }
-
-  static double? _readAverageAmount(ChecklistDetailItem item) {
-    final structuredMin = item.estimatedCostMin;
-    final structuredMax = item.estimatedCostMax;
-    if (structuredMin != null && structuredMax != null) {
-      return (structuredMin + structuredMax) / 2;
-    }
-    if (structuredMin != null || structuredMax != null) {
-      return structuredMin ?? structuredMax;
-    }
-
-    final legacyMin = item.estimatedPriceMin;
-    final legacyMax = item.estimatedPriceMax;
-    if (legacyMin != null && legacyMax != null) {
-      return (legacyMin + legacyMax) / 2;
-    }
-    return legacyMin ?? legacyMax;
-  }
-
-  static String _resolveCurrencySymbol(String? currencyCode) {
-    switch ((currencyCode ?? '').trim().toUpperCase()) {
-      case 'CNY':
-      case 'JPY':
-        return '\u00A5';
-      case 'USD':
-        return '\$';
-      case 'EUR':
-        return '\u20AC';
-      case 'GBP':
-        return '\u00A3';
-      default:
-        final code = (currencyCode ?? '').trim();
-        return code.isNotEmpty ? '$code ' : '\u00A5';
-    }
+    return ChecklistPriceFormatter.formatCompactDisplayPrice(item: item, t: t);
   }
 
   static String? _extractImageUrl(String source) {

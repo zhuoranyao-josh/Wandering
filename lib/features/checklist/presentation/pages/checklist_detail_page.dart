@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 import '../../../../app/app_router.dart';
 import '../../../../core/di/service_locator.dart';
 import '../../domain/entities/checklist_detail.dart';
+import '../../domain/entities/checklist_plan_progress.dart';
 import '../../../../l10n/app_localizations.dart';
 import '../controllers/checklist_detail_controller.dart';
 import '../widgets/checklist_budget_overview_section.dart';
@@ -31,6 +33,9 @@ class _ChecklistDetailPageState extends State<ChecklistDetailPage>
   String? _lastErrorKey;
   Locale? _lastLocale;
   PageRoute<dynamic>? _pageRoute;
+  bool _isPlanProgressDialogVisible = false;
+  Stopwatch? _generateUiRenderStopwatch;
+  bool _awaitingFirstGeneratedRender = false;
 
   @override
   void initState() {
@@ -180,7 +185,9 @@ class _ChecklistDetailPageState extends State<ChecklistDetailPage>
             return _buildNotFoundState(t);
           }
 
-          final displayEssentials = _buildTravelEssentials(detail);
+          _logFirstRenderAfterGenerated(detail);
+
+          final displayEssentials = _buildTravelEssentials(detail, t);
           final displayProTip = _buildDisplayProTip(detail);
           final visibleChecklistItems = _buildVisibleChecklistItems(
             detail.items,
@@ -280,7 +287,7 @@ class _ChecklistDetailPageState extends State<ChecklistDetailPage>
                   items: visibleChecklistItems,
                   startDate: detail.startDate,
                   onToggleCompleted: _controller.toggleItemCompleted,
-                  onItemTap: (_) {},
+                  onItemTap: _handleChecklistItemTap,
                 ),
               ],
             ),
@@ -322,7 +329,7 @@ class _ChecklistDetailPageState extends State<ChecklistDetailPage>
                             );
                             return;
                           }
-                          await _controller.generateChecklistPlan();
+                          await _openPlanProgressDialogAndGenerate();
                         },
                   style: ElevatedButton.styleFrom(
                     elevation: 0,
@@ -399,6 +406,230 @@ class _ChecklistDetailPageState extends State<ChecklistDetailPage>
     return key;
   }
 
+  Future<void> _openPlanProgressDialogAndGenerate() async {
+    if (!mounted || _isPlanProgressDialogVisible) {
+      return;
+    }
+
+    _isPlanProgressDialogVisible = true;
+    _markGenerationStartForUiRender();
+    final dialogFuture = showDialog<void>(
+      context: context,
+      barrierDismissible: false,
+      builder: (dialogContext) {
+        return PopScope(
+          canPop: !_controller.isGeneratingPlan,
+          child: Dialog(
+            insetPadding: const EdgeInsets.symmetric(horizontal: 24),
+            backgroundColor: Colors.transparent,
+            surfaceTintColor: Colors.transparent,
+            elevation: 0,
+            child: AnimatedBuilder(
+              animation: _controller,
+              builder: (context, _) {
+                final t = AppLocalizations.of(context);
+                final detail = _controller.checklistDetail;
+                if (t == null || detail == null) {
+                  return const Padding(
+                    padding: EdgeInsets.all(20),
+                    child: SizedBox(
+                      height: 96,
+                      child: Center(child: CircularProgressIndicator()),
+                    ),
+                  );
+                }
+
+                final isFailed = _isPlanProgressFailed(detail);
+                return ConstrainedBox(
+                  constraints: BoxConstraints(
+                    maxWidth: 420,
+                    maxHeight: MediaQuery.of(context).size.height * 0.62,
+                  ),
+                  child: _PlanGenerationProgressCard(
+                    title: _resolvePlanProgressTitle(t, detail),
+                    message: _resolvePlanProgressMessage(t, detail),
+                    progressPercent: _controller.progressPercent,
+                    progressLabel: _resolvePlanProgressLabel(t),
+                    isGenerating: _controller.isGeneratingPlan,
+                    isFailed: isFailed,
+                    retryLabel: t.checklistRetry,
+                    cancelLabel: t.cancel,
+                    onCancel: _controller.isGeneratingPlan
+                        ? () {
+                            _controller.cancelPlanGeneration();
+                            if (dialogContext.mounted) {
+                              Navigator.of(dialogContext).pop();
+                            }
+                          }
+                        : null,
+                    onRetry: isFailed && !_controller.isGeneratingPlan
+                        ? () async {
+                            _markGenerationStartForUiRender();
+                            final success = await _controller
+                                .generateChecklistPlan();
+                            if (!mounted || !success) {
+                              return;
+                            }
+                            _markGenerationCompletedAwaitingRender();
+                            if (dialogContext.mounted) {
+                              Navigator.of(dialogContext).pop();
+                            }
+                          }
+                        : null,
+                  ),
+                );
+              },
+            ),
+          ),
+        );
+      },
+    );
+
+    final success = await _controller.generateChecklistPlan();
+    if (success && mounted) {
+      _markGenerationCompletedAwaitingRender();
+      Navigator.of(context, rootNavigator: true).pop();
+    }
+    await dialogFuture;
+    _isPlanProgressDialogVisible = false;
+  }
+
+  void _markGenerationStartForUiRender() {
+    _generateUiRenderStopwatch = Stopwatch()..start();
+    _awaitingFirstGeneratedRender = false;
+  }
+
+  void _markGenerationCompletedAwaitingRender() {
+    _awaitingFirstGeneratedRender = true;
+  }
+
+  void _logFirstRenderAfterGenerated(ChecklistDetail detail) {
+    if (!_awaitingFirstGeneratedRender) {
+      return;
+    }
+    final planningStatus = (detail.planningStatus ?? '').trim().toLowerCase();
+    if (planningStatus != 'completed') {
+      return;
+    }
+    _awaitingFirstGeneratedRender = false;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final stopwatch = _generateUiRenderStopwatch;
+      if (stopwatch == null) {
+        return;
+      }
+      debugPrint(
+        '[ChecklistPlan] first UI render after generated '
+        'elapsed=${stopwatch.elapsedMilliseconds}ms',
+      );
+      _generateUiRenderStopwatch = null;
+    });
+  }
+
+  bool _isPlanProgressFailed(ChecklistDetail detail) {
+    if (_controller.progressStep == ChecklistPlanProgressStep.failed) {
+      return true;
+    }
+    final planningStatus = (detail.planningStatus ?? '').trim().toLowerCase();
+    return planningStatus == 'failed';
+  }
+
+  String _resolvePlanProgressLabel(AppLocalizations t) {
+    final percent = (_controller.progressPercent * 100).clamp(0, 100).round();
+    return t.checklistPlanProgressPercent(percent);
+  }
+
+  String _resolvePlanProgressTitle(AppLocalizations t, ChecklistDetail detail) {
+    final step = _controller.progressStep;
+    if (step == null &&
+        (detail.planningStatus ?? '').trim().toLowerCase() == 'generating') {
+      return t.checklistPlanProgressStillGeneratingTitle;
+    }
+    switch (step) {
+      case ChecklistPlanProgressStep.preparingTripInformation:
+        return t.checklistPlanProgressPreparingTitle;
+      case ChecklistPlanProgressStep.analyzingBudget:
+        return t.checklistPlanProgressAnalyzingBudgetTitle;
+      case ChecklistPlanProgressStep.generatingAiTravelPlan:
+        return t.checklistPlanProgressGeneratingAiTitle;
+      case ChecklistPlanProgressStep.findingFlightSuggestions:
+        return t.checklistPlanProgressFindingFlightsTitle;
+      case ChecklistPlanProgressStep.findingHotels:
+        return t.checklistPlanProgressFindingHotelsTitle;
+      case ChecklistPlanProgressStep.findingRestaurants:
+        return t.checklistPlanProgressFindingRestaurantsTitle;
+      case ChecklistPlanProgressStep.findingActivities:
+        return t.checklistPlanProgressFindingActivitiesTitle;
+      case ChecklistPlanProgressStep.savingChecklist:
+        return t.checklistPlanProgressSavingTitle;
+      case ChecklistPlanProgressStep.preparingCards:
+        return t.checklistPlanProgressPreparingCardsTitle;
+      case ChecklistPlanProgressStep.finalizingPlan:
+        return t.checklistPlanProgressFinalizingTitle;
+      case ChecklistPlanProgressStep.completed:
+        return t.checklistPlanProgressCompletedTitle;
+      case ChecklistPlanProgressStep.failed:
+        return t.checklistPlanProgressFailedTitle;
+      case null:
+        return t.checklistPlanProgressPreparingTitle;
+    }
+  }
+
+  String _resolvePlanProgressMessage(
+    AppLocalizations t,
+    ChecklistDetail detail,
+  ) {
+    final step = _controller.progressStep;
+    final current = _controller.progressCurrentItemIndex;
+    final total = _controller.progressTotalItemCount;
+    final hasPartialFailures = _controller.progressHasPartialFailures;
+
+    final baseMessage = switch (step) {
+      ChecklistPlanProgressStep.preparingTripInformation =>
+        t.checklistPlanProgressPreparingMessage,
+      ChecklistPlanProgressStep.analyzingBudget =>
+        t.checklistPlanProgressAnalyzingBudgetMessage,
+      ChecklistPlanProgressStep.generatingAiTravelPlan =>
+        t.checklistPlanProgressGeneratingAiMessage,
+      ChecklistPlanProgressStep.findingFlightSuggestions =>
+        t.checklistPlanProgressFindingFlightsMessage,
+      ChecklistPlanProgressStep.findingHotels =>
+        (current != null && total != null && total > 0)
+            ? t.checklistPlanProgressFindingHotelsCount(current, total)
+            : t.checklistPlanProgressFindingHotelsMessage,
+      ChecklistPlanProgressStep.findingRestaurants =>
+        (current != null && total != null && total > 0)
+            ? t.checklistPlanProgressFindingRestaurantsCount(current, total)
+            : t.checklistPlanProgressFindingRestaurantsMessage,
+      ChecklistPlanProgressStep.findingActivities =>
+        (current != null && total != null && total > 0)
+            ? t.checklistPlanProgressFindingActivitiesCount(current, total)
+            : t.checklistPlanProgressFindingActivitiesMessage,
+      ChecklistPlanProgressStep.savingChecklist =>
+        t.checklistPlanProgressSavingMessage,
+      ChecklistPlanProgressStep.preparingCards =>
+        t.checklistPlanProgressPreparingCardsMessage,
+      ChecklistPlanProgressStep.finalizingPlan =>
+        t.checklistPlanProgressFinalizingMessage,
+      ChecklistPlanProgressStep.completed =>
+        t.checklistPlanProgressCompletedMessage,
+      ChecklistPlanProgressStep.failed => _resolveErrorMessage(
+        t,
+        _controller.errorMessage ?? 'checklistGenerateFailed',
+      ),
+      null =>
+        (detail.planningStatus ?? '').trim().toLowerCase() == 'generating'
+            ? t.checklistPlanProgressStillGeneratingMessage
+            : t.checklistPlanProgressPreparingMessage,
+    };
+
+    if (hasPartialFailures &&
+        step != ChecklistPlanProgressStep.failed &&
+        step != ChecklistPlanProgressStep.completed) {
+      return '$baseMessage\n${t.checklistPlanProgressPartialEnrichMessage}';
+    }
+    return baseMessage;
+  }
+
   Widget _buildNotFoundState(AppLocalizations t) {
     return Center(
       child: Padding(
@@ -423,14 +654,84 @@ class _ChecklistDetailPageState extends State<ChecklistDetailPage>
     return hasPreferences || hasPace || hasAccommodation;
   }
 
-  List<ChecklistEssential> _buildTravelEssentials(ChecklistDetail detail) {
-    // 仅展示真实 essentials；天气卡由 controller 注入真实/不可用状态。
-    return detail.essentials
-        .where(
-          (item) =>
-              item.title.trim().isNotEmpty || item.mainText.trim().isNotEmpty,
-        )
-        .toList(growable: false);
+  List<ChecklistEssential> _buildTravelEssentials(
+    ChecklistDetail detail,
+    AppLocalizations t,
+  ) {
+    // 四宫格标题固定，AI 只负责填充正文，避免标题随模型输出漂移。
+    final slots = <_EssentialSlot, ChecklistEssential>{};
+    for (final item in detail.essentials) {
+      final slot = _resolveEssentialSlot(item);
+      if (slot == null || slots.containsKey(slot)) {
+        continue;
+      }
+      slots[slot] = item;
+    }
+
+    ChecklistEssential compose({
+      required _EssentialSlot slot,
+      required String fixedTitle,
+      required String fallbackIconType,
+    }) {
+      final source = slots[slot];
+      return ChecklistEssential(
+        iconType: source?.iconType.trim().isNotEmpty == true
+            ? source!.iconType
+            : fallbackIconType,
+        title: fixedTitle,
+        mainText: source?.mainText.trim() ?? '',
+        subText: source?.subText?.trim(),
+      );
+    }
+
+    return <ChecklistEssential>[
+      compose(
+        slot: _EssentialSlot.weather,
+        fixedTitle: t.checklistEssentialWeatherTitle,
+        fallbackIconType: 'weather',
+      ),
+      compose(
+        slot: _EssentialSlot.tradeOff,
+        fixedTitle: t.checklistEssentialTradeOffTitle,
+        fallbackIconType: 'trade_off',
+      ),
+      compose(
+        slot: _EssentialSlot.strategy,
+        fixedTitle: t.checklistEssentialStrategyTitle,
+        fallbackIconType: 'strategy',
+      ),
+      compose(
+        slot: _EssentialSlot.tips,
+        fixedTitle: t.checklistEssentialTipsTitle,
+        fallbackIconType: 'tips',
+      ),
+    ];
+  }
+
+  _EssentialSlot? _resolveEssentialSlot(ChecklistEssential item) {
+    final typeCandidate = _normalizeEssentialToken(item.iconType);
+    final titleCandidate = _normalizeEssentialToken(item.title);
+    final candidates = <String>[typeCandidate, titleCandidate];
+
+    for (final token in candidates) {
+      if (token.contains('weather')) {
+        return _EssentialSlot.weather;
+      }
+      if (token.contains('tradeoff') || token.contains('trade_off')) {
+        return _EssentialSlot.tradeOff;
+      }
+      if (token.contains('strategy')) {
+        return _EssentialSlot.strategy;
+      }
+      if (token.contains('tips') || token == 'tip') {
+        return _EssentialSlot.tips;
+      }
+    }
+    return null;
+  }
+
+  String _normalizeEssentialToken(String value) {
+    return value.trim().toLowerCase().replaceAll(RegExp(r'[^a-z0-9_]'), '');
   }
 
   ChecklistProTip _buildDisplayProTip(ChecklistDetail detail) {
@@ -454,7 +755,26 @@ class _ChecklistDetailPageState extends State<ChecklistDetailPage>
         })
         .toList(growable: false);
   }
+
+  Future<void> _handleChecklistItemTap(ChecklistDetailItem item) async {
+    // 仅航班卡支持外链跳转，其他类型维持现有交互。
+    final normalizedType = (item.type ?? '').trim().toLowerCase();
+    if (normalizedType != 'flight') {
+      return;
+    }
+    final rawUrl = (item.externalUrl ?? item.googleFlightsUrl ?? '').trim();
+    if (rawUrl.isEmpty) {
+      return;
+    }
+    final uri = Uri.tryParse(rawUrl);
+    if (uri == null) {
+      return;
+    }
+    await launchUrl(uri, mode: LaunchMode.externalApplication);
+  }
 }
+
+enum _EssentialSlot { weather, tradeOff, strategy, tips }
 
 class _PlanningPromptCard extends StatelessWidget {
   const _PlanningPromptCard({
@@ -543,6 +863,151 @@ class _InlineErrorBanner extends StatelessWidget {
           height: 1.4,
           color: Color(0xFFB91C1C),
           fontWeight: FontWeight.w600,
+        ),
+      ),
+    );
+  }
+}
+
+class _PlanGenerationProgressCard extends StatelessWidget {
+  const _PlanGenerationProgressCard({
+    required this.title,
+    required this.message,
+    required this.progressPercent,
+    required this.progressLabel,
+    required this.isGenerating,
+    required this.isFailed,
+    required this.retryLabel,
+    required this.cancelLabel,
+    this.onRetry,
+    this.onCancel,
+  });
+
+  final String title;
+  final String message;
+  final double progressPercent;
+  final String progressLabel;
+  final bool isGenerating;
+  final bool isFailed;
+  final String retryLabel;
+  final String cancelLabel;
+  final VoidCallback? onRetry;
+  final VoidCallback? onCancel;
+
+  @override
+  Widget build(BuildContext context) {
+    final clampedProgress = progressPercent.clamp(0.0, 1.0).toDouble();
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(
+          color: isFailed ? const Color(0xFFFECACA) : const Color(0xFFE5E7EB),
+        ),
+      ),
+      child: SingleChildScrollView(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: <Widget>[
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: <Widget>[
+                if (isGenerating)
+                  const Padding(
+                    padding: EdgeInsets.only(top: 1.5),
+                    child: SizedBox(
+                      width: 18,
+                      height: 18,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2.2,
+                        color: Color(0xFF2F62EC),
+                      ),
+                    ),
+                  ),
+                if (isGenerating) const SizedBox(width: 8),
+                Flexible(
+                  child: Text(
+                    title,
+                    style: TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w700,
+                      color: isFailed
+                          ? const Color(0xFFB91C1C)
+                          : const Color(0xFF111827),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 8),
+            Text(
+              message,
+              style: TextStyle(
+                fontSize: 12.5,
+                height: 1.35,
+                color: isFailed
+                    ? const Color(0xFFB91C1C)
+                    : const Color(0xFF667085),
+              ),
+            ),
+            const SizedBox(height: 10),
+            ClipRRect(
+              borderRadius: BorderRadius.circular(999),
+              child: LinearProgressIndicator(
+                minHeight: 6,
+                value: isFailed ? null : clampedProgress,
+                backgroundColor: const Color(0xFFE5E7EB),
+                valueColor: AlwaysStoppedAnimation<Color>(
+                  isFailed ? const Color(0xFFEF4444) : const Color(0xFF2F62EC),
+                ),
+              ),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              progressLabel,
+              style: const TextStyle(
+                fontSize: 11.5,
+                fontWeight: FontWeight.w700,
+                color: Color(0xFF6B7280),
+              ),
+            ),
+            if (isGenerating || (isFailed && onRetry != null)) ...<Widget>[
+              const SizedBox(height: 8),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.end,
+                children: <Widget>[
+                  if (isGenerating && onCancel != null)
+                    TextButton(
+                      onPressed: onCancel,
+                      style: TextButton.styleFrom(
+                        minimumSize: Size.zero,
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 10,
+                          vertical: 4,
+                        ),
+                        tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                      ),
+                      child: Text(cancelLabel),
+                    ),
+                  if (isFailed && onRetry != null)
+                    TextButton(
+                      onPressed: onRetry,
+                      style: TextButton.styleFrom(
+                        minimumSize: Size.zero,
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 10,
+                          vertical: 4,
+                        ),
+                        tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                      ),
+                      child: Text(retryLabel),
+                    ),
+                ],
+              ),
+            ],
+          ],
         ),
       ),
     );
@@ -698,12 +1163,14 @@ class _TravelStyleSummaryCard extends StatelessWidget {
     switch (key) {
       case 'budget':
         return t.journeyWizardAccommodationBudget;
+      case 'luxury':
+        return t.journeyWizardAccommodationLuxury;
       case 'convenient':
-        return t.journeyWizardAccommodationConvenient;
+        return t.journeyWizardAccommodationComfortable;
       case 'comfortable':
         return t.journeyWizardAccommodationComfortable;
       case 'premium':
-        return t.journeyWizardAccommodationPremium;
+        return t.journeyWizardAccommodationLuxury;
       default:
         return key;
     }

@@ -35,9 +35,8 @@ class JourneyWizardController extends ChangeNotifier {
 
   static const List<String> accommodationOptions = <String>[
     'budget',
-    'convenient',
     'comfortable',
-    'premium',
+    'luxury',
   ];
 
   final ChecklistRepository repository;
@@ -223,7 +222,7 @@ class JourneyWizardController extends ChangeNotifier {
   }
 
   void setAccommodationPreference(String value) {
-    _accommodationPreference = value;
+    _accommodationPreference = _normalizeAccommodationPreference(value);
     _fieldErrorKeys.remove('accommodationPreference');
     notifyListeners();
   }
@@ -339,7 +338,9 @@ class JourneyWizardController extends ChangeNotifier {
       currency: _currency.trim(),
       preferences: _preferences.toList(growable: false),
       pace: _pace.trim(),
-      accommodationPreference: _accommodationPreference.trim(),
+      accommodationPreference: _normalizeAccommodationPreference(
+        _accommodationPreference,
+      ),
       basicInfoCompleted: true,
     );
   }
@@ -451,8 +452,22 @@ class JourneyWizardController extends ChangeNotifier {
         : 'balanced';
     _accommodationPreference =
         (item.accommodationPreference?.trim().isNotEmpty ?? false)
-        ? item.accommodationPreference!.trim()
+        ? _normalizeAccommodationPreference(item.accommodationPreference!)
         : 'comfortable';
     _fieldErrorKeys.clear();
+  }
+
+  String _normalizeAccommodationPreference(String value) {
+    switch (value.trim().toLowerCase()) {
+      case 'budget':
+        return 'budget';
+      case 'luxury':
+      case 'premium':
+        return 'luxury';
+      case 'comfortable':
+      case 'convenient':
+      default:
+        return 'comfortable';
+    }
   }
 }

@@ -180,6 +180,15 @@ class AppLocalizationsZh extends AppLocalizations {
   String get languageEnglish => 'English';
 
   @override
+  String get navCommunity => '帖子';
+
+  @override
+  String get navActivity => '活动';
+
+  @override
+  String get navMe => '我的';
+
+  @override
   String get profileEditTitle => '编辑资料';
 
   @override
@@ -737,6 +746,104 @@ class AppLocalizationsZh extends AppLocalizations {
   String get checklistGenerateFailed => '生成计划失败。';
 
   @override
+  String checklistPlanProgressPercent(Object percent) {
+    return '$percent%';
+  }
+
+  @override
+  String get checklistPlanProgressStillGeneratingTitle => '你的计划仍在生成中';
+
+  @override
+  String get checklistPlanProgressStillGeneratingMessage => '请保持在当前页面，我们仍在为你生成计划。';
+
+  @override
+  String get checklistPlanProgressPreparingTitle => '正在准备行程信息';
+
+  @override
+  String get checklistPlanProgressPreparingMessage => '正在检查日期、人数、目的地和必填信息。';
+
+  @override
+  String get checklistPlanProgressAnalyzingBudgetTitle => '正在分析预算';
+
+  @override
+  String get checklistPlanProgressAnalyzingBudgetMessage => '正在评估总预算、住宿预算和分配比例。';
+
+  @override
+  String get checklistPlanProgressGeneratingAiTitle => '正在生成 AI 旅行计划';
+
+  @override
+  String get checklistPlanProgressGeneratingAiMessage => '正在生成结构化行程建议。';
+
+  @override
+  String get checklistPlanProgressFindingFlightsTitle => '正在查找航班建议';
+
+  @override
+  String get checklistPlanProgressFindingFlightsMessage => '正在准备符合线路的航班建议。';
+
+  @override
+  String get checklistPlanProgressFindingHotelsTitle => '正在查找酒店';
+
+  @override
+  String get checklistPlanProgressFindingHotelsMessage => '正在按你的预算和住宿偏好匹配酒店。';
+
+  @override
+  String checklistPlanProgressFindingHotelsCount(Object current, Object total) {
+    return '正在查找酒店 $current/$total';
+  }
+
+  @override
+  String get checklistPlanProgressFindingRestaurantsTitle => '正在查找餐厅';
+
+  @override
+  String get checklistPlanProgressFindingRestaurantsMessage => '正在目的地周边查找餐饮选项。';
+
+  @override
+  String checklistPlanProgressFindingRestaurantsCount(Object current, Object total) {
+    return '正在查找餐厅 $current/$total';
+  }
+
+  @override
+  String get checklistPlanProgressFindingActivitiesTitle => '正在查找活动';
+
+  @override
+  String get checklistPlanProgressFindingActivitiesMessage => '正在根据行程节奏匹配活动建议。';
+
+  @override
+  String checklistPlanProgressFindingActivitiesCount(Object current, Object total) {
+    return '正在查找活动 $current/$total';
+  }
+
+  @override
+  String get checklistPlanProgressSavingTitle => '正在保存清单';
+
+  @override
+  String get checklistPlanProgressSavingMessage => '正在将生成结果保存到你的清单。';
+
+  @override
+  String get checklistPlanProgressPreparingCardsTitle => '正在准备卡片';
+
+  @override
+  String get checklistPlanProgressPreparingCardsMessage => '正在准备卡片展示内容。';
+
+  @override
+  String get checklistPlanProgressFinalizingTitle => '正在完成最后处理';
+
+  @override
+  String get checklistPlanProgressFinalizingMessage => '正在收尾并整理最终结果。';
+
+  @override
+  String get checklistPlanProgressCompletedTitle => '计划已就绪';
+
+  @override
+  String get checklistPlanProgressCompletedMessage => '你的清单已成功生成。';
+
+  @override
+  String get checklistPlanProgressFailedTitle => '计划生成失败';
+
+  @override
+  String get checklistPlanProgressPartialEnrichMessage => '部分地点信息补全失败，正在继续...';
+
+  @override
   String get checklistEstimateShort => 'EST.';
 
   @override
@@ -905,16 +1012,19 @@ class AppLocalizationsZh extends AppLocalizations {
   String get journeyWizardPaceIntensive => '紧凑';
 
   @override
-  String get journeyWizardAccommodationBudget => '经济';
+  String get journeyWizardAccommodationBudget => '经济型';
 
   @override
   String get journeyWizardAccommodationConvenient => '便捷';
 
   @override
-  String get journeyWizardAccommodationComfortable => '舒适';
+  String get journeyWizardAccommodationComfortable => '舒适型';
 
   @override
   String get journeyWizardAccommodationPremium => '高端';
+
+  @override
+  String get journeyWizardAccommodationLuxury => '豪华型';
 
   @override
   String get journeyWizardErrorDepartureCityRequired => '请输入出发城市。';

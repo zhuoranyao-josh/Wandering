@@ -437,6 +437,24 @@ abstract class AppLocalizations {
   /// **'English'**
   String get languageEnglish;
 
+  /// No description provided for @navCommunity.
+  ///
+  /// In en, this message translates to:
+  /// **'Posts'**
+  String get navCommunity;
+
+  /// No description provided for @navActivity.
+  ///
+  /// In en, this message translates to:
+  /// **'Events'**
+  String get navActivity;
+
+  /// No description provided for @navMe.
+  ///
+  /// In en, this message translates to:
+  /// **'Me'**
+  String get navMe;
+
   /// No description provided for @profileEditTitle.
   ///
   /// In en, this message translates to:
@@ -1535,6 +1553,186 @@ abstract class AppLocalizations {
   /// **'Failed to generate plan.'**
   String get checklistGenerateFailed;
 
+  /// No description provided for @checklistPlanProgressPercent.
+  ///
+  /// In en, this message translates to:
+  /// **'{percent}%'**
+  String checklistPlanProgressPercent(Object percent);
+
+  /// No description provided for @checklistPlanProgressStillGeneratingTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Your plan is still being generated'**
+  String get checklistPlanProgressStillGeneratingTitle;
+
+  /// No description provided for @checklistPlanProgressStillGeneratingMessage.
+  ///
+  /// In en, this message translates to:
+  /// **'Please stay on this page. We are still working on your plan.'**
+  String get checklistPlanProgressStillGeneratingMessage;
+
+  /// No description provided for @checklistPlanProgressPreparingTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Preparing your trip information'**
+  String get checklistPlanProgressPreparingTitle;
+
+  /// No description provided for @checklistPlanProgressPreparingMessage.
+  ///
+  /// In en, this message translates to:
+  /// **'Checking dates, travelers, destination, and required details.'**
+  String get checklistPlanProgressPreparingMessage;
+
+  /// No description provided for @checklistPlanProgressAnalyzingBudgetTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Analyzing your budget'**
+  String get checklistPlanProgressAnalyzingBudgetTitle;
+
+  /// No description provided for @checklistPlanProgressAnalyzingBudgetMessage.
+  ///
+  /// In en, this message translates to:
+  /// **'Reviewing total budget, stay budget, and spending split.'**
+  String get checklistPlanProgressAnalyzingBudgetMessage;
+
+  /// No description provided for @checklistPlanProgressGeneratingAiTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Generating your AI travel plan'**
+  String get checklistPlanProgressGeneratingAiTitle;
+
+  /// No description provided for @checklistPlanProgressGeneratingAiMessage.
+  ///
+  /// In en, this message translates to:
+  /// **'Building structured suggestions for your trip.'**
+  String get checklistPlanProgressGeneratingAiMessage;
+
+  /// No description provided for @checklistPlanProgressFindingFlightsTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Finding flight suggestions'**
+  String get checklistPlanProgressFindingFlightsTitle;
+
+  /// No description provided for @checklistPlanProgressFindingFlightsMessage.
+  ///
+  /// In en, this message translates to:
+  /// **'Preparing route-aware flight suggestions.'**
+  String get checklistPlanProgressFindingFlightsMessage;
+
+  /// No description provided for @checklistPlanProgressFindingHotelsTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Finding hotels'**
+  String get checklistPlanProgressFindingHotelsTitle;
+
+  /// No description provided for @checklistPlanProgressFindingHotelsMessage.
+  ///
+  /// In en, this message translates to:
+  /// **'Matching hotels with your budget and stay preference.'**
+  String get checklistPlanProgressFindingHotelsMessage;
+
+  /// No description provided for @checklistPlanProgressFindingHotelsCount.
+  ///
+  /// In en, this message translates to:
+  /// **'Finding hotels {current}/{total}'**
+  String checklistPlanProgressFindingHotelsCount(Object current, Object total);
+
+  /// No description provided for @checklistPlanProgressFindingRestaurantsTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Finding restaurants'**
+  String get checklistPlanProgressFindingRestaurantsTitle;
+
+  /// No description provided for @checklistPlanProgressFindingRestaurantsMessage.
+  ///
+  /// In en, this message translates to:
+  /// **'Looking for food options around your destination.'**
+  String get checklistPlanProgressFindingRestaurantsMessage;
+
+  /// No description provided for @checklistPlanProgressFindingRestaurantsCount.
+  ///
+  /// In en, this message translates to:
+  /// **'Finding restaurants {current}/{total}'**
+  String checklistPlanProgressFindingRestaurantsCount(Object current, Object total);
+
+  /// No description provided for @checklistPlanProgressFindingActivitiesTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Finding activities'**
+  String get checklistPlanProgressFindingActivitiesTitle;
+
+  /// No description provided for @checklistPlanProgressFindingActivitiesMessage.
+  ///
+  /// In en, this message translates to:
+  /// **'Searching activities based on your trip pace.'**
+  String get checklistPlanProgressFindingActivitiesMessage;
+
+  /// No description provided for @checklistPlanProgressFindingActivitiesCount.
+  ///
+  /// In en, this message translates to:
+  /// **'Finding activities {current}/{total}'**
+  String checklistPlanProgressFindingActivitiesCount(Object current, Object total);
+
+  /// No description provided for @checklistPlanProgressSavingTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Saving your checklist'**
+  String get checklistPlanProgressSavingTitle;
+
+  /// No description provided for @checklistPlanProgressSavingMessage.
+  ///
+  /// In en, this message translates to:
+  /// **'Saving generated plan data to your checklist.'**
+  String get checklistPlanProgressSavingMessage;
+
+  /// No description provided for @checklistPlanProgressPreparingCardsTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Preparing your cards'**
+  String get checklistPlanProgressPreparingCardsTitle;
+
+  /// No description provided for @checklistPlanProgressPreparingCardsMessage.
+  ///
+  /// In en, this message translates to:
+  /// **'Preparing your cards for display.'**
+  String get checklistPlanProgressPreparingCardsMessage;
+
+  /// No description provided for @checklistPlanProgressFinalizingTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Finalizing your plan'**
+  String get checklistPlanProgressFinalizingTitle;
+
+  /// No description provided for @checklistPlanProgressFinalizingMessage.
+  ///
+  /// In en, this message translates to:
+  /// **'Wrapping up the final details.'**
+  String get checklistPlanProgressFinalizingMessage;
+
+  /// No description provided for @checklistPlanProgressCompletedTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Plan ready'**
+  String get checklistPlanProgressCompletedTitle;
+
+  /// No description provided for @checklistPlanProgressCompletedMessage.
+  ///
+  /// In en, this message translates to:
+  /// **'Your checklist has been generated successfully.'**
+  String get checklistPlanProgressCompletedMessage;
+
+  /// No description provided for @checklistPlanProgressFailedTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Plan generation failed'**
+  String get checklistPlanProgressFailedTitle;
+
+  /// No description provided for @checklistPlanProgressPartialEnrichMessage.
+  ///
+  /// In en, this message translates to:
+  /// **'Some places could not be enriched, continuing...'**
+  String get checklistPlanProgressPartialEnrichMessage;
+
   /// No description provided for @checklistEstimateShort.
   ///
   /// In en, this message translates to:
@@ -1850,7 +2048,7 @@ abstract class AppLocalizations {
   /// No description provided for @journeyWizardAccommodationBudget.
   ///
   /// In en, this message translates to:
-  /// **'Budget'**
+  /// **'Budget-friendly'**
   String get journeyWizardAccommodationBudget;
 
   /// No description provided for @journeyWizardAccommodationConvenient.
@@ -1870,6 +2068,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Premium'**
   String get journeyWizardAccommodationPremium;
+
+  /// No description provided for @journeyWizardAccommodationLuxury.
+  ///
+  /// In en, this message translates to:
+  /// **'Luxury'**
+  String get journeyWizardAccommodationLuxury;
 
   /// No description provided for @journeyWizardErrorDepartureCityRequired.
   ///

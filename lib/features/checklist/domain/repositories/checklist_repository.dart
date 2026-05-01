@@ -1,6 +1,7 @@
 import '../entities/checklist_detail.dart';
 import '../entities/checklist_destination_snapshot.dart';
 import '../entities/checklist_item.dart';
+import '../entities/checklist_plan_progress.dart';
 import '../entities/journey_basic_info_input.dart';
 
 abstract class ChecklistRepository {
@@ -28,7 +29,11 @@ abstract class ChecklistRepository {
     required JourneyBasicInfoInput input,
   });
 
-  Future<void> generateChecklistPlan(String checklistId);
+  Future<ChecklistDetail> generateChecklistPlan(
+    String checklistId, {
+    ChecklistPlanProgressCallback? onProgress,
+    ChecklistPlanCancelChecker? shouldCancel,
+  });
 
   Future<void> updateBudget({
     required String checklistId,
@@ -48,7 +53,11 @@ abstract class ChecklistRepository {
     required String itemId,
   });
 
-  Future<void> updatePlan(String checklistId);
+  Future<void> updatePlan(
+    String checklistId, {
+    ChecklistPlanProgressCallback? onProgress,
+    ChecklistPlanCancelChecker? shouldCancel,
+  });
 
   Future<void> deleteChecklist(String checklistId);
 }

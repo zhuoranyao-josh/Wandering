@@ -170,33 +170,34 @@ class GeminiPlanningRemoteDataSource {
           'currency': 'string',
           'budgetWarning': 'string|null',
         },
-        'flight': <String, dynamic>{
-          'title': 'string',
-          'subtitle': 'string',
-          'flightNumber': 'string|null',
-          'airline': 'string|null',
-          'departureAirport': 'string|null',
-          'arrivalAirport': 'string|null',
-          'departureTime': 'string|null',
-          'arrivalTime': 'string|null',
-          'departureDate': 'string|null',
-          'arrivalDate': 'string|null',
-          'estimatedCostMin': 'number',
-          'estimatedCostMax': 'number',
-          'currency': 'string',
-          'routeText': 'string',
-          'suggestedAirports': <String>[],
-          'providerName': 'Google Flights',
-          'externalUrl': 'string',
-          'accuracyNote': 'string|null',
-          'budgetWarning': 'string|null',
-        },
+        'flights': <Map<String, dynamic>>[
+          <String, dynamic>{
+            'tripDirection': 'outbound|return',
+            'airlineName': 'string',
+            'airlineCode': 'string',
+            'flightNumber': 'string',
+            'departureDate': 'YYYY-MM-DD',
+            'departureTime': 'HH:mm',
+            'arrivalTime': 'HH:mm',
+            'departureCity': 'string',
+            'arrivalCity': 'string',
+            'departureAirportName': 'string',
+            'departureAirportCode': 'string',
+            'departureTerminal': 'string',
+            'arrivalAirportName': 'string',
+            'arrivalAirportCode': 'string',
+            'arrivalTerminal': 'string',
+            'estimatedPrice': 'number',
+            'currency': 'string',
+            'googleFlightsUrl': 'string',
+          },
+        ],
         'hotelCandidates': <Map<String, dynamic>>[
           <String, dynamic>{
             'name': 'string',
             'expectedCostMin': 'number',
             'expectedCostMax': 'number',
-            'costUnit': 'per_night|total',
+            'costUnit': 'per_night',
             'reason': 'string|null',
             'matchPreference': 'string|null',
             'budgetWarning': 'string|null',
@@ -208,7 +209,7 @@ class GeminiPlanningRemoteDataSource {
             'dayIndex': 'number|null',
             'estimatedCostMin': 'number',
             'estimatedCostMax': 'number',
-            'costUnit': 'per_person|per_meal|total',
+            'costUnit': 'per_person',
           },
         ],
         'activityQueries': <Map<String, dynamic>>[
@@ -222,6 +223,7 @@ class GeminiPlanningRemoteDataSource {
         ],
         'essentials': <Map<String, dynamic>>[
           <String, dynamic>{
+            'type': 'trade_off|strategy|tips',
             'iconType': 'string',
             'title': 'string',
             'mainText': 'string',
@@ -251,6 +253,12 @@ MVP priority:
 Rules:
 - Keep strings concise and practical.
 - Do not generate WEATHER content in essentials.
+- essentials must only include: trade_off, strategy, tips.
+- essentials count must be exactly 3, one entry per type.
+- For essentials.type, only use: trade_off, strategy, tips.
+- essentials.title must be short and aligned to essentials.type.
+- essentials.mainText should be a compact phrase (around 3-6 English words).
+- essentials.subText should be one short sentence.
 - Do not generate estimatedPriceText.
 - Use the provided currency code exactly.
 - totalBudget is the total budget for the entire trip, not a daily budget.
@@ -259,11 +267,17 @@ Rules:
 - maxHotelNightlyBudget = hotelBudget / nightCount.
 - Every hotel candidate must satisfy expectedCostMax * nightCount <= hotelBudget.
 - If travelerCount > 1 and hotel pricing is per room, still treat the hotel budget as per-night per-room budget. Do not reinterpret totalBudget as per-person per-day budget.
-- If accommodationPreference is comfortable, prefer mid-range, comfortable, well-located hotels.
-- Do not recommend clearly luxury hotels such as luxury, five-star, Park Hyatt, Aman, Four Seasons, Ritz-Carlton, Mandarin Oriental, Bulgari, or Peninsula unless hotelBudget can realistically cover the full stay.
-- If the budget is insufficient, do not invent cheap luxury hotels. Choose realistic options such as business hotel, mid-range hotel, budget hotel, capsule hotel, or apartment hotel based on the actual budget.
-- All prices must use the user's currency exactly. If currency is CNY, all estimatedCostMin and estimatedCostMax values must be RMB estimates, not JPY, USD, or any other currency, and not converted from a mistaken daily budget.
-- Hotel candidates must respect accommodationPreference.
+- accommodationPreference affects hotel tier preference, not a hard blacklist.
+- budget: prefer budget-friendly, business, and strong value hotels.
+- comfortable: prefer mid-range, comfortable, convenient, well-rated hotels; if a five-star hotel is truly within budget, it is allowed.
+- luxury: prefer luxury, five-star, design-forward, and higher-service hotels, but still keep the full stay within hotelBudget.
+- Recommend the best realistic hotel options within budget rather than filtering by brand alone.
+- Do not invent unrealistically cheap luxury hotels.
+- If a famous luxury hotel would exceed the stay budget, do not recommend it.
+- All estimated prices must be in the user's selected currency.
+- If currency is CNY, all estimatedCostMin and estimatedCostMax values must be Chinese Yuan.
+- Do not output JPY, USD, AED, or local-currency amounts unless they are already converted into the selected currency.
+- Hotel candidates must respect accommodationPreference while staying budget-realistic.
 - restaurantQueries count must equal ${input.restaurantTargetCount}.
 - activityQueries count must equal ${input.activityTargetCount}.
 - hotelCandidates count must be between 1 and 3.
@@ -271,19 +285,23 @@ Rules:
 - Distribute dayIndex as evenly as possible across tripDays, using 1-based dayIndex.
 - For relaxed pace, avoid putting too many activities on the same day.
 - For packed pace, multiple activities per day are allowed.
-- flight.providerName must be "Google Flights".
-- All price fields must be numbers, using min/max only.
-- Prefer short titles, short subtitles, short reasons, and short tips.
-- If uncertain, still return valid compact JSON rather than prose.
-- Flight output must be structured and UI-safe.
-- Do not put travel advice, booking advice, or marketing copy in flight.title, flight.subtitle, flight.routeText, or flight.accuracyNote.
-- Do not output strings like "Book in advance", "Best value", "Recommended", or any similar suggestion text in the flight object.
-- flight.title should be airline + flightNumber when both are known. If not known, use a short neutral title like "Flight option".
-- flight.subtitle should only describe the route, not advice.
-- flight.departureAirport and flight.arrivalAirport should prefer IATA code plus airport name when known.
-- flight.departureTime, flight.arrivalTime, flight.departureDate, flight.arrivalDate, flight.flightNumber, flight.airline, and any terminal-specific detail must be null when not confidently known from the provided trip input.
-- Never invent terminal information, gate information, airline names, flight numbers, or exact departure/arrival times.
-- When exact flight details are unavailable, keep the flight object valid by returning null for unknown structured fields and keep route text minimal.
+ - flights must contain exactly 2 items: outbound first, return second.
+ - flights[0].tripDirection must be "outbound"; flights[1].tripDirection must be "return".
+ - For both flight items, all fields in the schema are mandatory and must be non-empty.
+ - You may generate a realistic display-only flight plan (non-live), but fields must stay complete and coherent.
+ - Do not output "Flight option" or generic city-to-city placeholders.
+ - Each flight.googleFlightsUrl must be a route+date Google Flights search URL.
+- outbound url: departureCity -> destination on startDate.
+- return url: destination -> departureCity on endDate.
+- All price fields must be numbers.
+- For flights use estimatedPrice as a single numeric estimate.
+- For hotel/restaurant/activity continue using estimatedCostMin and estimatedCostMax.
+- Use costUnit = per_night for hotel candidates.
+- Use costUnit = per_person for restaurant queries.
+- Use costUnit = per_person or per_ticket for activity queries.
+ - Prefer short titles, short subtitles, short reasons, and short tips.
+ - If uncertain, still return valid compact JSON rather than prose.
+ - Do not output booking advice, marketing copy, or recommendation slogans in any flight field.
 
 Input JSON:
 $inputJson
@@ -393,7 +411,7 @@ class GeminiPlanningInput {
 class GeminiGeneratedPlan {
   GeminiGeneratedPlan({
     required this.budgetSplit,
-    required this.flight,
+    required this.flights,
     required this.hotelCandidates,
     required this.restaurantQueries,
     required this.activityQueries,
@@ -402,7 +420,7 @@ class GeminiGeneratedPlan {
   });
 
   final ChecklistBudgetSplit budgetSplit;
-  final GeminiFlightPlan? flight;
+  final List<GeminiFlightPlan> flights;
   final List<GeminiHotelCandidate> hotelCandidates;
   final List<GeminiPlaceQuery> restaurantQueries;
   final List<GeminiPlaceQuery> activityQueries;
@@ -420,7 +438,11 @@ class GeminiGeneratedPlan {
         json['budgetSplit'],
         defaultCurrency: defaultCurrency,
       ),
-      flight: _readFlight(json['flight'], defaultCurrency: defaultCurrency),
+      flights: _readFlights(
+        json['flights'],
+        fallbackFlight: json['flight'],
+        defaultCurrency: defaultCurrency,
+      ),
       hotelCandidates: _readHotelCandidates(json['hotelCandidates']),
       restaurantQueries: _readQueries(
         json['restaurantQueries'],
@@ -456,6 +478,35 @@ class GeminiGeneratedPlan {
     );
   }
 
+  static List<GeminiFlightPlan> _readFlights(
+    Object? value, {
+    required Object? fallbackFlight,
+    required String defaultCurrency,
+  }) {
+    final result = <GeminiFlightPlan>[];
+    if (value is List) {
+      for (final item in value.whereType<Map>()) {
+        final flight = _readFlight(item, defaultCurrency: defaultCurrency);
+        if (flight != null) {
+          result.add(flight);
+        }
+      }
+    }
+
+    if (result.isNotEmpty) {
+      return result;
+    }
+
+    final legacy = _readFlight(
+      fallbackFlight,
+      defaultCurrency: defaultCurrency,
+    );
+    if (legacy == null) {
+      return const <GeminiFlightPlan>[];
+    }
+    return <GeminiFlightPlan>[legacy];
+  }
+
   static GeminiFlightPlan? _readFlight(
     Object? value, {
     required String defaultCurrency,
@@ -464,26 +515,44 @@ class GeminiGeneratedPlan {
       return null;
     }
     final map = value.cast<Object?, Object?>();
+    final direction = (_nullableText(map['tripDirection']) ?? '').toLowerCase();
+    final airlineName = _nullableText(map['airlineName']);
+    final airline = airlineName ?? _nullableText(map['airline']);
+    final googleFlightsUrl =
+        _nullableText(map['googleFlightsUrl']) ??
+        _nullableText(map['externalUrl']);
+    final estimatedPrice = _readDouble(map['estimatedPrice']);
+    final estimatedCostMin =
+        _readDouble(map['estimatedCostMin']) ??
+        (estimatedPrice == null ? null : estimatedPrice * 0.95);
+    final estimatedCostMax =
+        _readDouble(map['estimatedCostMax']) ??
+        (estimatedPrice == null ? null : estimatedPrice * 1.05);
     return GeminiFlightPlan(
-      title: _nullableText(map['title']) ?? '',
-      subtitle: _nullableText(map['subtitle']) ?? '',
+      tripDirection: direction == 'return' ? 'return' : 'outbound',
+      airlineName: airline,
+      airlineCode: _nullableText(map['airlineCode']),
       flightNumber: _nullableText(map['flightNumber']),
-      airline: _nullableText(map['airline']),
-      departureAirport: _nullableText(map['departureAirport']),
-      arrivalAirport: _nullableText(map['arrivalAirport']),
+      departureCity: _nullableText(map['departureCity']),
+      arrivalCity: _nullableText(map['arrivalCity']),
+      departureAirportName:
+          _nullableText(map['departureAirportName']) ??
+          _nullableText(map['departureAirport']),
+      departureAirportCode: _nullableText(map['departureAirportCode']),
+      departureTerminal: _nullableText(map['departureTerminal']),
+      arrivalAirportName:
+          _nullableText(map['arrivalAirportName']) ??
+          _nullableText(map['arrivalAirport']),
+      arrivalAirportCode: _nullableText(map['arrivalAirportCode']),
+      arrivalTerminal: _nullableText(map['arrivalTerminal']),
       departureTime: _nullableText(map['departureTime']),
       arrivalTime: _nullableText(map['arrivalTime']),
       departureDate: _nullableText(map['departureDate']),
-      arrivalDate: _nullableText(map['arrivalDate']),
-      estimatedCostMin: _readDouble(map['estimatedCostMin']),
-      estimatedCostMax: _readDouble(map['estimatedCostMax']),
+      estimatedPrice: estimatedPrice,
+      estimatedCostMin: estimatedCostMin,
+      estimatedCostMax: estimatedCostMax,
       currency: _nullableText(map['currency']) ?? defaultCurrency,
-      routeText: _nullableText(map['routeText']) ?? '',
-      suggestedAirports: _readStringList(map['suggestedAirports']),
-      providerName: _nullableText(map['providerName']) ?? 'Google Flights',
-      externalUrl: _nullableText(map['externalUrl']),
-      accuracyNote: _nullableText(map['accuracyNote']),
-      budgetWarning: _nullableText(map['budgetWarning']),
+      googleFlightsUrl: googleFlightsUrl,
     );
   }
 
@@ -540,18 +609,22 @@ class GeminiGeneratedPlan {
     return value
         .whereType<Map>()
         .map((item) => item.cast<Object?, Object?>())
-        .map(
-          (map) => ChecklistEssential(
-            iconType: _nullableText(map['iconType']) ?? '',
-            title: _nullableText(map['title']) ?? '',
+        .map((map) {
+          // 优先读取 type，确保 UI 能稳定匹配 TRADE OFF / STRATEGY / TIPS。
+          final type = _nullableText(map['type']) ?? '';
+          final iconType = _nullableText(map['iconType']) ?? '';
+          final title = _nullableText(map['title']) ?? '';
+          return ChecklistEssential(
+            iconType: type.isNotEmpty ? type : iconType,
+            title: title,
             mainText: _nullableText(map['mainText']) ?? '',
             subText: _nullableText(map['subText']),
-          ),
-        )
+          );
+        })
         .where((item) {
           final title = item.title.trim().toLowerCase();
           final iconType = item.iconType.trim().toLowerCase();
-          if (item.title.trim().isEmpty || item.mainText.trim().isEmpty) {
+          if (item.mainText.trim().isEmpty) {
             return false;
           }
           return title != 'weather' && iconType != 'weather';
@@ -598,61 +671,52 @@ class GeminiGeneratedPlan {
     }
     return null;
   }
-
-  static List<String> _readStringList(Object? value) {
-    if (value is! List) {
-      return const <String>[];
-    }
-    return value
-        .whereType<String>()
-        .map((item) => item.trim())
-        .where((item) => item.isNotEmpty)
-        .toList(growable: false);
-  }
 }
 
 class GeminiFlightPlan {
   const GeminiFlightPlan({
-    required this.title,
-    required this.subtitle,
+    required this.tripDirection,
+    required this.airlineName,
+    required this.airlineCode,
     required this.flightNumber,
-    required this.airline,
-    required this.departureAirport,
-    required this.arrivalAirport,
+    required this.departureCity,
+    required this.arrivalCity,
+    required this.departureAirportName,
+    required this.departureAirportCode,
+    required this.departureTerminal,
+    required this.arrivalAirportName,
+    required this.arrivalAirportCode,
+    required this.arrivalTerminal,
     required this.departureTime,
     required this.arrivalTime,
     required this.departureDate,
-    required this.arrivalDate,
+    required this.estimatedPrice,
     required this.estimatedCostMin,
     required this.estimatedCostMax,
     required this.currency,
-    required this.routeText,
-    required this.suggestedAirports,
-    required this.providerName,
-    required this.externalUrl,
-    required this.accuracyNote,
-    required this.budgetWarning,
+    required this.googleFlightsUrl,
   });
 
-  final String title;
-  final String subtitle;
+  final String tripDirection;
+  final String? airlineName;
+  final String? airlineCode;
   final String? flightNumber;
-  final String? airline;
-  final String? departureAirport;
-  final String? arrivalAirport;
+  final String? departureCity;
+  final String? arrivalCity;
+  final String? departureAirportName;
+  final String? departureAirportCode;
+  final String? departureTerminal;
+  final String? arrivalAirportName;
+  final String? arrivalAirportCode;
+  final String? arrivalTerminal;
   final String? departureTime;
   final String? arrivalTime;
   final String? departureDate;
-  final String? arrivalDate;
+  final double? estimatedPrice;
   final double? estimatedCostMin;
   final double? estimatedCostMax;
   final String currency;
-  final String routeText;
-  final List<String> suggestedAirports;
-  final String providerName;
-  final String? externalUrl;
-  final String? accuracyNote;
-  final String? budgetWarning;
+  final String? googleFlightsUrl;
 }
 
 class GeminiHotelCandidate {

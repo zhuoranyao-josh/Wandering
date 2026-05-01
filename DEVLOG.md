@@ -138,7 +138,7 @@
 
 ---
 
-## 2026-04-23~ 2026-04-2
+## 2026-04-23~ 2026-05-01
 ### 🚀 Features
 - Added a new PlaceDetailsPage shell with hero, chips, section scaffolding, and a fixed bottom action bar.
 - Wired map preview card navigation to the new details page.
@@ -160,6 +160,11 @@
 - Added snapshot-based checklist destination flow (destinationSnapshot, destinationNames, destinationSourceType).
 - Added city search in map home and temporary city “start journey” flow.
 - Added Mapbox city search integration in data/repository/DI layers.
+- Added end-to-end AI checklist plan generation using Gemini and Google Places.
+- Added a dedicated checklist plan progress model and progress-driven generation UX with retry/cancel support.
+- Added detailed flight item generation and richer hotel/restaurant/activity checklist cards.
+- Added a new "luxury" accommodation preference in the checklist wizard with i18n support.
+- Added app branding updates, including regenerated app icons and the "wandering" app name.
 
 ### 🐛 Bug Fixes
 - Normalized Firestore language-map keys so zh/en variants resolve more reliably.
@@ -174,6 +179,11 @@
   Fix: added upload-side compression in the admin Firebase data source, targeting roughly 600 KB - 800 KB while preserving aspect ratio before upload.
 - Bug: Community like counts/state could become inconsistent after page reload because UI relied on partial/stale post fields.
   Fix: Re-hydrated each post’s like state from the likes subcollection snapshot, then derived both likeCount and isLikedByCurrentUser from that snapshot. Added safe fallback behavior if a single likes read fails.
+
+- Fixed a long-standing checklist generation UX issue where users saw no visible progress and assumed the app was stuck. Added step-based progress updates, a generation dialog, and local state finalization so results appear immediately after save instead of waiting for a slow full reload.
+- Fixed plan generation failures caused by intermittent Google Places handshake errors. Places enrichment is now treated as non-fatal, with retry handling and fallback behavior so a single failed place lookup does not fail the entire checklist.
+- Fixed flight cards falling back to generic "Flight option" content when Gemini returned incomplete flight data. Tightened the flight output structure and added fallback field completion so cards consistently render detailed flight information.
+- Fixed inconsistent price semantics where some checklist cards displayed a CNY symbol with values that looked like JPY, USD, or local currency amounts. Added currency normalization, cost-unit normalization, and validation/fallback logic before saving generated items.
 
 ### ⚡ Improvements
 - Added a pure UI model to prepare the future Firestore -> Repository -> Controller data flow.
@@ -198,7 +208,9 @@
 - Reused a shared icon action button for map controls to keep the map toolbar consistent.
 - Added backward compatibility path for legacy checklist docs when destinationSnapshot/destinationNames are missing.
 - Improved map home/place details/checklist display to use resolved destination name and resolved coordinates consistently.
-
+- Improved checklist item presentation with compact cards, cleaner essentials layout, and a hotel carousel within the timeline.
+- Improved weather essentials by adding humidity-aware summaries and multi-line weather messaging.
+- Improved bottom navigation clarity by adding localized labels under the icons.
 
 ### 📚 Learnings
 - Only user-facing text should use language maps; structural fields should stay scalar.
@@ -209,3 +221,5 @@
 - Upload-side compression is a practical way to improve downstream image performance without changing Firebase data structures.
 - A snapshot-based destination schema reduces coupling to official place IDs and makes external city sources easier to support.
 - Deriving engagement state from source-of-truth subcollections is more reliable than trusting denormalized counters alone.
+- Firestore save time was not the main bottleneck; the blocking post-save detail reload had a much larger impact on perceived performance.
+- AI-generated prices need strict normalization and validation before reaching the UI, even when the prompt already specifies the target currency.

@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../../../l10n/app_localizations.dart';
+
 class MainContainerPage extends StatelessWidget {
   final StatefulNavigationShell navigationShell;
   final double navBarHeight;
@@ -51,12 +53,18 @@ class MainContainerPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final t = AppLocalizations.of(context);
+    if (t == null) {
+      return const Scaffold(body: Center(child: CircularProgressIndicator()));
+    }
+
     final selectedColor = Theme.of(context).colorScheme.primary;
     const unselectedColor = Colors.black45;
 
     Widget buildVisualIcon({
       required int tabSlot,
       required IconData icon,
+      String? label,
       bool isCenter = false,
     }) {
       final isSelected = _isTabSlotSelected(tabSlot);
@@ -89,7 +97,27 @@ class MainContainerPage extends StatelessWidget {
       }
 
       return Center(
-        child: Icon(icon, color: color, size: iconVisualSize),
+        child: Stack(
+          clipBehavior: Clip.none,
+          alignment: Alignment.center,
+          children: [
+            Icon(icon, color: color, size: iconVisualSize),
+            if (label != null && label.trim().isNotEmpty)
+              Positioned(
+                top: (iconVisualSize / 2) + 16,
+                child: Text(
+                  label,
+                  // 文字作为附加展示层悬挂在 icon 下方，不改变 icon 当前几何位置。
+                  style: TextStyle(
+                    fontSize: 9.5,
+                    height: 1.0,
+                    fontWeight: FontWeight.w500,
+                    color: color,
+                  ),
+                ),
+              ),
+          ],
+        ),
       );
     }
 
@@ -130,11 +158,16 @@ class MainContainerPage extends StatelessWidget {
               child: Row(
                 children: [
                   const Spacer(flex: 2),
-                  buildVisualIcon(tabSlot: 0, icon: Icons.home_outlined),
+                  buildVisualIcon(
+                    tabSlot: 0,
+                    icon: Icons.home_outlined,
+                    label: t.navCommunity,
+                  ),
                   const Spacer(flex: 3),
                   buildVisualIcon(
                     tabSlot: 1,
                     icon: Icons.local_activity_outlined,
+                    label: t.navActivity,
                   ),
                   const Spacer(flex: 3),
                 ],
@@ -152,9 +185,14 @@ class MainContainerPage extends StatelessWidget {
                   buildVisualIcon(
                     tabSlot: 3,
                     icon: Icons.flight_takeoff_outlined,
+                    label: t.myTrips,
                   ),
                   const Spacer(flex: 3),
-                  buildVisualIcon(tabSlot: 4, icon: Icons.person_outline),
+                  buildVisualIcon(
+                    tabSlot: 4,
+                    icon: Icons.person_outline,
+                    label: t.navMe,
+                  ),
                   const Spacer(flex: 2),
                 ],
               ),

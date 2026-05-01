@@ -2,9 +2,11 @@ import 'package:flutter/widgets.dart';
 
 import '../../../../core/config/gemini_config.dart';
 import '../../../../core/config/google_places_config.dart';
+import '../../../../core/error/app_exception.dart';
 import '../../../../l10n/app_localizations.dart';
 import '../../data/datasources/weather_remote_data_source.dart';
 import '../../domain/entities/checklist_detail.dart';
+import '../../domain/entities/checklist_plan_progress.dart';
 import '../../domain/entities/trip_weather_summary.dart';
 import '../../domain/repositories/checklist_repository.dart';
 
@@ -21,16 +23,66 @@ class ChecklistDetailController extends ChangeNotifier {
   bool _isGeneratingPlan = false;
   String? _errorMessage;
   ChecklistDetail? _checklistDetail;
+  ChecklistPlanProgressStep? _progressStep;
+  double _progressPercent = 0;
+  int? _progressCurrentItemIndex;
+  int? _progressTotalItemCount;
+  bool _progressHasPartialFailures = false;
+  String? _progressErrorCode;
+  String? _progressMessageCode;
   String _currentChecklistId = '';
   Locale _currentLocale = WidgetsBinding.instance.platformDispatcher.locale;
+  bool _planCancellationRequested = false;
 
   bool get isLoading => _isLoading;
   bool get isGeneratingPlan => _isGeneratingPlan;
   String? get errorMessage => _errorMessage;
   ChecklistDetail? get checklistDetail => _checklistDetail;
+  ChecklistPlanProgressStep? get progressStep => _progressStep;
+  double get progressPercent => _progressPercent;
+  int? get progressCurrentItemIndex => _progressCurrentItemIndex;
+  int? get progressTotalItemCount => _progressTotalItemCount;
+  bool get progressHasPartialFailures => _progressHasPartialFailures;
+  String? get progressErrorCode => _progressErrorCode;
+  String? get progressMessageCode => _progressMessageCode;
 
   void _log(String message) {
     debugPrint('[ChecklistPlan] $message');
+  }
+
+  void _setProgressState({
+    required ChecklistPlanProgressStep step,
+    required double progressPercent,
+    int? currentItemIndex,
+    int? totalItemCount,
+    bool hasPartialFailures = false,
+    String? errorCode,
+    String? messageCode,
+  }) {
+    _progressStep = step;
+    _progressPercent = progressPercent.clamp(0, 1);
+    _progressCurrentItemIndex = currentItemIndex;
+    _progressTotalItemCount = totalItemCount;
+    _progressHasPartialFailures =
+        hasPartialFailures || _progressHasPartialFailures;
+    _progressErrorCode = errorCode;
+    _progressMessageCode = messageCode;
+    debugPrint(
+      '[ChecklistPlanProgress] step=$step '
+      'progress=${(_progressPercent * 100).toStringAsFixed(0)} '
+      'current=$currentItemIndex total=$totalItemCount',
+    );
+    notifyListeners();
+  }
+
+  void _resetProgressState() {
+    _progressStep = null;
+    _progressPercent = 0;
+    _progressCurrentItemIndex = null;
+    _progressTotalItemCount = null;
+    _progressHasPartialFailures = false;
+    _progressErrorCode = null;
+    _progressMessageCode = null;
   }
 
   Future<void> updateLocale(Locale locale) async {
@@ -79,8 +131,24 @@ class ChecklistDetailController extends ChangeNotifier {
       final detail = await repository.getChecklistDetail(trimmedChecklistId);
       if (detail == null) {
         _checklistDetail = null;
+        _resetProgressState();
       } else {
         _checklistDetail = await _withWeatherEssential(detail);
+        final planningStatus = (_checklistDetail?.planningStatus ?? '')
+            .trim()
+            .toLowerCase();
+        if (!_isGeneratingPlan && planningStatus == 'generating') {
+          _setProgressState(
+            step: ChecklistPlanProgressStep.generatingAiTravelPlan,
+            progressPercent: 0.35,
+          );
+        } else if (planningStatus == 'completed') {
+          _resetProgressState();
+        } else if (planningStatus == 'failed' && !_isGeneratingPlan) {
+          _progressStep = ChecklistPlanProgressStep.failed;
+          _progressPercent = 1;
+          _progressErrorCode = 'checklistGenerateFailed';
+        }
       }
       debugPrint(
         '[ChecklistDetail] refresh completed '
@@ -226,7 +294,12 @@ class ChecklistDetailController extends ChangeNotifier {
 
     final detail = _checklistDetail;
     if (detail == null) {
-      _errorMessage = 'Checklist detail is not loaded yet.';
+      _errorMessage = 'checklistGenerateFailed';
+      _setProgressState(
+        step: ChecklistPlanProgressStep.failed,
+        progressPercent: 1,
+        errorCode: 'detail_not_loaded',
+      );
       _log('generate failed detail not loaded');
       notifyListeners();
       return false;
@@ -237,6 +310,14 @@ class ChecklistDetailController extends ChangeNotifier {
       for (final field in missingFields) {
         _log('missing required field=$field');
       }
+      _errorMessage = 'checklistGenerateFailed';
+      _setProgressState(
+        step: ChecklistPlanProgressStep.failed,
+        progressPercent: 1,
+        errorCode: 'missing_required_fields',
+      );
+      notifyListeners();
+      return false;
     }
 
     final trimmedGeminiKey = geminiApiKey.trim();
@@ -253,22 +334,45 @@ class ChecklistDetailController extends ChangeNotifier {
     }
 
     _isGeneratingPlan = true;
+    _planCancellationRequested = false;
     _errorMessage = null;
+    _resetProgressState();
+    _setProgressState(
+      step: ChecklistPlanProgressStep.preparingTripInformation,
+      progressPercent: 0.05,
+    );
     _log('planningStatus current=${detail.planningStatus ?? 'null'}');
     notifyListeners();
     try {
-      await repository.generateChecklistPlan(_currentChecklistId);
-      _log('repository.generateChecklistPlan finished');
-      final refreshedDetail = await repository.getChecklistDetail(
+      final generatedDetail = await repository.generateChecklistPlan(
         _currentChecklistId,
+        onProgress: (progress) {
+          if (_planCancellationRequested) {
+            return;
+          }
+          _setProgressState(
+            step: progress.step,
+            progressPercent: progress.progressPercent,
+            currentItemIndex: progress.currentItemIndex,
+            totalItemCount: progress.totalItemCount,
+            hasPartialFailures: progress.hasPartialFailures,
+            errorCode: progress.errorCode,
+            messageCode: progress.messageCode,
+          );
+        },
+        shouldCancel: () => _planCancellationRequested,
       );
-      if (refreshedDetail == null) {
-        _errorMessage = 'Failed to refresh checklist detail after generation.';
-        _log('generate failed refreshed detail is null');
+      if (_planCancellationRequested) {
+        _log('generate cancelled before local state update');
         return false;
       }
-
-      _checklistDetail = await _withWeatherEssential(refreshedDetail);
+      _log('repository.generateChecklistPlan finished');
+      final stateUpdateStopwatch = Stopwatch()..start();
+      _setProgressState(
+        step: ChecklistPlanProgressStep.preparingCards,
+        progressPercent: 0.99,
+      );
+      _checklistDetail = await _withWeatherEssential(generatedDetail);
       _log(
         'planningStatus changed -> ${_checklistDetail?.planningStatus ?? 'null'}',
       );
@@ -283,16 +387,42 @@ class ChecklistDetailController extends ChangeNotifier {
           'failed') {
         _errorMessage =
             'Plan generation failed. Check required fields and API logs.';
+        _setProgressState(
+          step: ChecklistPlanProgressStep.failed,
+          progressPercent: 1,
+          errorCode: 'checklistGenerateFailed',
+        );
         _log('generate finished with failed planningStatus');
         return false;
       }
 
+      _log(
+        'state update completed elapsed='
+        '${stateUpdateStopwatch.elapsedMilliseconds}ms',
+      );
+      _setProgressState(
+        step: ChecklistPlanProgressStep.finalizingPlan,
+        progressPercent: 0.995,
+      );
+      _setProgressState(
+        step: ChecklistPlanProgressStep.completed,
+        progressPercent: 1,
+      );
+      debugPrint('[ChecklistPlanProgress] completed');
+      _refreshDetailInBackground(_currentChecklistId);
       return true;
     } catch (error) {
-      _errorMessage = error.toString().replaceFirst('Exception: ', '').trim();
-      if (_errorMessage == null || _errorMessage!.isEmpty) {
-        _errorMessage = 'checklistGenerateFailed';
+      if (error is AppException &&
+          error.code == 'checklist_generate_cancelled') {
+        _log('generate cancelled by user');
+        return false;
       }
+      _errorMessage = 'checklistGenerateFailed';
+      _setProgressState(
+        step: ChecklistPlanProgressStep.failed,
+        progressPercent: 1,
+        errorCode: 'checklistGenerateFailed',
+      );
       _log('generate exception=$_errorMessage');
       try {
         final refreshedDetail = await repository.getChecklistDetail(
@@ -314,6 +444,7 @@ class ChecklistDetailController extends ChangeNotifier {
       return false;
     } finally {
       _isGeneratingPlan = false;
+      _planCancellationRequested = false;
       notifyListeners();
     }
   }
@@ -321,6 +452,41 @@ class ChecklistDetailController extends ChangeNotifier {
   Future<void> updatePlan() async {
     _log('updatePlan called');
     await generateChecklistPlan();
+  }
+
+  void cancelPlanGeneration() {
+    if (!_isGeneratingPlan) {
+      return;
+    }
+    _planCancellationRequested = true;
+    _log('cancel generation requested');
+  }
+
+  void _refreshDetailInBackground(String checklistId) {
+    Future<void>(() async {
+      try {
+        final reloadStopwatch = Stopwatch()..start();
+        _log('reload detail started');
+        final refreshedDetail = await repository.getChecklistDetail(
+          checklistId,
+        );
+        _log(
+          'reload detail completed elapsed='
+          '${reloadStopwatch.elapsedMilliseconds}ms',
+        );
+        if (refreshedDetail == null) {
+          return;
+        }
+        final weatherMerged = await _withWeatherEssential(refreshedDetail);
+        if (_currentChecklistId.trim() != checklistId.trim()) {
+          return;
+        }
+        _checklistDetail = weatherMerged;
+        notifyListeners();
+      } catch (error) {
+        _log('background reload failed error=$error');
+      }
+    });
   }
 
   List<String> _collectMissingPlanningFields(ChecklistDetail detail) {
@@ -404,35 +570,43 @@ class ChecklistDetailController extends ChangeNotifier {
         summary.maxTemp != null) {
       final minTemp = summary.minTemp!.round();
       final maxTemp = summary.maxTemp!.round();
+      final humidityLine = summary.humidityPercent == null
+          ? null
+          : '💧${summary.humidityPercent!}%';
       if (summary.hasSnow) {
         return ChecklistEssential(
           iconType: 'snow',
           title: t.checklistEssentialWeatherTitle,
-          mainText: t.checklistWeatherTempRangeWithCondition(
-            minTemp,
-            maxTemp,
+          mainText: t.checklistWeatherTempRange(minTemp, maxTemp),
+          // 天气卡按多行展示：状态 -> 湿度 -> 预警提示。
+          subText: _joinWeatherLines(<String>[
             t.checklistWeatherConditionSnow,
-          ),
-          subText: t.checklistWeatherSnowExpected,
+            if (humidityLine != null) humidityLine,
+            t.checklistWeatherSnowExpected,
+          ]),
         );
       }
       if (summary.hasRain) {
         return ChecklistEssential(
           iconType: 'rain',
           title: t.checklistEssentialWeatherTitle,
-          mainText: t.checklistWeatherTempRangeWithCondition(
-            minTemp,
-            maxTemp,
+          mainText: t.checklistWeatherTempRange(minTemp, maxTemp),
+          // 天气卡按多行展示：状态 -> 湿度 -> 预警提示。
+          subText: _joinWeatherLines(<String>[
             t.checklistWeatherConditionRainy,
-          ),
-          subText: t.checklistWeatherRainExpected,
+            if (humidityLine != null) humidityLine,
+            t.checklistWeatherRainExpected,
+          ]),
         );
       }
       return ChecklistEssential(
         iconType: 'clear',
         title: t.checklistEssentialWeatherTitle,
         mainText: t.checklistWeatherTempRange(minTemp, maxTemp),
-        subText: t.checklistWeatherMostlyClear,
+        subText: _joinWeatherLines(<String>[
+          t.checklistWeatherMostlyClear,
+          if (humidityLine != null) humidityLine,
+        ]),
       );
     }
 
@@ -450,6 +624,13 @@ class ChecklistDetailController extends ChangeNotifier {
       mainText: t.checklistWeatherUnavailableMain,
       subText: unavailableSubText,
     );
+  }
+
+  String _joinWeatherLines(List<String> lines) {
+    return lines
+        .map((line) => line.trim())
+        .where((line) => line.isNotEmpty)
+        .join('\n');
   }
 
   List<ChecklistEssential> _mergeWeatherEssential({
