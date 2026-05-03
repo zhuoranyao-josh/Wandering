@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:intl/intl.dart';
 
 import '../../../../app/app.dart';
 import '../../../../app/app_router.dart';
 import '../../../../app/language_controller.dart';
+import '../../../../core/cache/app_cache_service.dart';
 import '../../../../core/di/service_locator.dart';
 import '../../../../core/widgets/app_network_image.dart';
 import '../../../../l10n/app_localizations.dart';
@@ -20,16 +22,40 @@ class MePage extends StatefulWidget {
 class _MePageState extends State<MePage> {
   UserProfile? _profile;
   bool _isRefreshing = false;
+  bool _isClearingCache = false;
+  int? _cacheSizeBytes;
+  bool _isLoadingCacheSize = false;
 
   @override
   void initState() {
     super.initState();
+    _loadCacheSize();
     final user = ServiceLocator.authController.getCurrentUser();
     if (user != null) {
       _profile = ServiceLocator.profileSetupController.getCachedProfile(
         user.uid,
       );
       _refreshProfile();
+    }
+  }
+
+  Future<void> _loadCacheSize() async {
+    setState(() {
+      _isLoadingCacheSize = true;
+    });
+
+    try {
+      final sizeBytes = await AppCacheService.getImageCacheSizeBytes();
+      if (!mounted) return;
+      setState(() {
+        _cacheSizeBytes = sizeBytes;
+      });
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isLoadingCacheSize = false;
+        });
+      }
     }
   }
 
@@ -66,6 +92,92 @@ class _MePageState extends State<MePage> {
       return t.languageChinese;
     }
     return t.languageEnglish;
+  }
+
+  Future<void> _confirmAndClearCache(AppLocalizations t) async {
+    if (_isClearingCache) {
+      return;
+    }
+
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) {
+        return AlertDialog(
+          title: Text(t.clearCache),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(t.clearCacheConfirmTitle),
+              const SizedBox(height: 8),
+              Text(t.clearCacheConfirmMessage),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => dialogContext.pop(false),
+              child: Text(t.cancel),
+            ),
+            FilledButton(
+              onPressed: () => dialogContext.pop(true),
+              child: Text(t.clear),
+            ),
+          ],
+        );
+      },
+    );
+
+    if (confirmed != true || !mounted) {
+      return;
+    }
+
+    setState(() {
+      _isClearingCache = true;
+    });
+
+    try {
+      await AppCacheService.clearImageCache();
+      await _loadCacheSize();
+      if (!mounted) return;
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(t.cacheCleared)));
+    } catch (_) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(t.clearCacheFailed)));
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isClearingCache = false;
+        });
+      }
+    }
+  }
+
+  String _cacheSizeLabel(AppLocalizations t) {
+    if (_isLoadingCacheSize && _cacheSizeBytes == null) {
+      return t.cacheSizeLoading;
+    }
+    return t.cacheSizeLabel(_formatBytes(_cacheSizeBytes ?? 0));
+  }
+
+  String _formatBytes(int bytes) {
+    if (bytes <= 0) {
+      return '0 B';
+    }
+
+    const units = <String>['B', 'KB', 'MB', 'GB'];
+    var value = bytes.toDouble();
+    var unitIndex = 0;
+    while (value >= 1024 && unitIndex < units.length - 1) {
+      value /= 1024;
+      unitIndex++;
+    }
+
+    final format = NumberFormat(unitIndex == 0 ? '0' : '0.0');
+    return '${format.format(value)} ${units[unitIndex]}';
   }
 
   // 语言选择弹窗：展示当前支持语言，并对当前项做高亮标记。
@@ -134,7 +246,7 @@ class _MePageState extends State<MePage> {
           await controller.setLocaleAndSave(locale);
         }
         if (!dialogContext.mounted) return;
-        Navigator.of(dialogContext).pop();
+        dialogContext.pop();
       },
     );
   }
@@ -225,6 +337,28 @@ class _MePageState extends State<MePage> {
                     ],
                   ),
                   onTap: () => _showLanguageDialog(t),
+                ),
+              ),
+              const SizedBox(height: 16),
+              // 缓存管理入口：只负责触发服务层清理，不在页面中写底层实现。
+              Container(
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(16),
+                ),
+                child: ListTile(
+                  leading: const Icon(Icons.cleaning_services_outlined),
+                  title: Text(t.clearCache),
+                  subtitle: Text(_cacheSizeLabel(t)),
+                  trailing: _isClearingCache
+                      ? const SizedBox(
+                          width: 18,
+                          height: 18,
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        )
+                      : const Icon(Icons.chevron_right),
+                  enabled: !_isClearingCache,
+                  onTap: () => _confirmAndClearCache(t),
                 ),
               ),
               if ((_profile?.role ?? 'user') == 'admin') ...[

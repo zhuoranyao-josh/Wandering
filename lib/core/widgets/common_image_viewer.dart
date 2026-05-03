@@ -4,6 +4,7 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
+import '../cache/app_image_cache_manager.dart';
 import 'app_network_image.dart';
 import '../../l10n/app_localizations.dart';
 
@@ -38,7 +39,10 @@ class CommonImageViewerItem {
 
     switch (sourceType) {
       case CommonImageViewerSourceType.network:
-        return CachedNetworkImageProvider(cleanValue);
+        return CachedNetworkImageProvider(
+          cleanValue,
+          cacheManager: AppImageCacheManager.instance,
+        );
       case CommonImageViewerSourceType.local:
         return FileImage(File(cleanValue));
       case CommonImageViewerSourceType.asset:

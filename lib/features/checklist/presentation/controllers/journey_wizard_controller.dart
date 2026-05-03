@@ -159,6 +159,20 @@ class JourneyWizardController extends ChangeNotifier {
     notifyListeners();
   }
 
+  void setDateRange({required DateTime startDate, required DateTime endDate}) {
+    _startDate = startDate;
+    _endDate = endDate;
+    _fieldErrorKeys.remove('startDate');
+    _fieldErrorKeys.remove('endDate');
+    debugPrint(
+      '[ChecklistWizard] date range selected '
+      'start=${startDate.toIso8601String()} '
+      'end=${endDate.toIso8601String()} '
+      'tripDays=${tripDays ?? 0} nightCount=${nightCount ?? 0}',
+    );
+    notifyListeners();
+  }
+
   void increaseTravelerCount() {
     if (_travelerCount >= maxTravelerCount) {
       return;

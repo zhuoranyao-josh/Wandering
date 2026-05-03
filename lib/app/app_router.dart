@@ -126,8 +126,13 @@ class AppRouter {
     return '$checklists/${checklistDetailPath.replaceFirst(':checklistId', checklistId)}';
   }
 
-  static String checklistWizard(String checklistId) {
-    return '$checklists/${checklistWizardPath.replaceFirst(':checklistId', checklistId)}';
+  static String checklistWizard(String checklistId, {bool isEditMode = false}) {
+    final basePath =
+        '$checklists/${checklistWizardPath.replaceFirst(':checklistId', checklistId)}';
+    if (!isEditMode) {
+      return basePath;
+    }
+    return '$basePath?mode=edit';
   }
 
   static String placeDetails(String placeId) {
@@ -344,7 +349,13 @@ class AppRouter {
             path: checklistWizardPath,
             builder: (context, state) {
               final checklistId = state.pathParameters['checklistId'] ?? '';
-              return JourneyWizardPage(checklistId: checklistId);
+              final isEditMode =
+                  state.uri.queryParameters['mode']?.trim().toLowerCase() ==
+                  'edit';
+              return JourneyWizardPage(
+                checklistId: checklistId,
+                isEditMode: isEditMode,
+              );
             },
           ),
         ],

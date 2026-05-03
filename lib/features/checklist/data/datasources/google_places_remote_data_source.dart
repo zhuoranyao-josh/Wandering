@@ -3,12 +3,15 @@ import 'dart:convert';
 import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 
+import '../../../../core/config/checklist_debug_config.dart';
 import '../../../../core/config/google_places_config.dart';
 
 class GooglePlacesRemoteDataSource {
   GooglePlacesRemoteDataSource({required this.client});
 
   static const Duration _requestTimeout = Duration(seconds: 12);
+  static const bool _enablePlacesSummaryLogs = kChecklistSummaryLogs;
+  static const bool _enablePlacesDebugLogs = kChecklistVerboseLogs;
   static const List<Duration> _retryDelays = <Duration>[
     Duration(milliseconds: 500),
     Duration(milliseconds: 1000),
@@ -19,13 +22,27 @@ class GooglePlacesRemoteDataSource {
 
   final http.Client client;
 
+  void _debug(String message) {
+    if (!_enablePlacesDebugLogs) {
+      return;
+    }
+    debugPrint('[PlacesDebug] $message');
+  }
+
+  void _summary(String message) {
+    if (!_enablePlacesSummaryLogs) {
+      return;
+    }
+    debugPrint('[PlacesSummary] $message');
+  }
+
   Future<GooglePlaceSearchResult?> searchHotelByName({
     required String hotelName,
     required String destination,
     required double latitude,
     required double longitude,
   }) async {
-    debugPrint('[ChecklistPlan] hotel search started hotelName=$hotelName');
+    _debug('search started type=hotel query=$hotelName');
     final results = await searchPlacesByText(
       query: '$hotelName $destination hotel',
       type: 'hotel',
@@ -33,12 +50,19 @@ class GooglePlacesRemoteDataSource {
       longitude: longitude,
       limit: 1,
     );
-    debugPrint(
-      '[ChecklistPlan] hotel search final kept count=${results.length}',
+    _summary(
+      'hotels total=1 success=${results.isNotEmpty ? 1 : 0} failed=${results.isEmpty ? 1 : 0}',
     );
     if (results.isEmpty) {
       return null;
     }
+    final selected = results.first;
+    _debug(
+      'selected place title=${selected.name} '
+      'address=${selected.address ?? ''} '
+      'rating=${selected.rating} '
+      'photoUrlHash=${_hashText(selected.photoUrl)}',
+    );
     return results.first;
   }
 
@@ -51,21 +75,8 @@ class GooglePlacesRemoteDataSource {
   }) async {
     final apiKey = googlePlacesApiKey.trim();
     if (apiKey.isEmpty) {
-      debugPrint('[ChecklistPlan] Google Places key missing');
+      _summary('type=$type total=1 elapsed=0ms success=0 failed=1');
       return const <GooglePlaceSearchResult>[];
-    }
-    debugPrint(
-      '[ChecklistPlan] Google Places key exists length=${apiKey.length}',
-    );
-
-    if (type.trim().toLowerCase() == 'restaurant') {
-      debugPrint('[ChecklistPlan] restaurant search started query=$query');
-    } else if (type.trim().toLowerCase() == 'activity') {
-      debugPrint('[ChecklistPlan] activity search started query=$query');
-    } else {
-      debugPrint(
-        '[ChecklistPlan] places search started type=$type query=$query',
-      );
     }
 
     final pageSize = limit.clamp(1, 20);
@@ -89,7 +100,9 @@ class GooglePlacesRemoteDataSource {
     }
 
     for (var attempt = 1; attempt <= 3; attempt++) {
+      final attemptStopwatch = Stopwatch()..start();
       try {
+        _debug('search started type=$type query=$query attempt=$attempt');
         final response = await client
             .post(
               uri,
@@ -102,13 +115,16 @@ class GooglePlacesRemoteDataSource {
             )
             .timeout(_requestTimeout);
         final payload = utf8.decode(response.bodyBytes);
-        debugPrint(
-          '[ChecklistPlan] Google Places response statusCode='
-          '${response.statusCode} type=$type query=$query attempt=$attempt',
+        _debug(
+          'response statusCode=${response.statusCode} '
+          'type=$type query=$query attempt=$attempt',
         );
 
         if (response.statusCode < 200 || response.statusCode >= 300) {
-          debugPrint('[ChecklistPlan] Google Places error response=$payload');
+          _debug(
+            'error response type=$type query=$query attempt=$attempt '
+            'payloadPreview=${_truncate(payload, 500)}',
+          );
           throw Exception(
             'Google Places request failed with statusCode=${response.statusCode}',
           );
@@ -123,8 +139,9 @@ class GooglePlacesRemoteDataSource {
 
         final rawPlaces = decoded['places'];
         if (rawPlaces is! List) {
-          debugPrint('[ChecklistPlan] Google Places raw result count=0');
-          debugPrint('[ChecklistPlan] Google Places final kept count=0');
+          _summary(
+            '$type total=1 elapsed=${attemptStopwatch.elapsedMilliseconds}ms success=0 failed=1 deduped=0',
+          );
           return const <GooglePlaceSearchResult>[];
         }
 
@@ -134,23 +151,27 @@ class GooglePlacesRemoteDataSource {
             .map(_mapPlace)
             .where((item) => item.name.isNotEmpty)
             .toList(growable: false);
-        debugPrint(
-          '[ChecklistPlan] Google Places raw result count=${rawPlaces.length}',
+        _debug(
+          'result count raw=${rawPlaces.length} kept=${results.length} '
+          'type=$type query=$query',
         );
-        debugPrint(
-          '[ChecklistPlan] Google Places final kept count=${results.length}',
+        if (results.isNotEmpty) {
+          final selected = results.first;
+          _debug(
+            'selected place title=${selected.name} '
+            'address=${selected.address ?? ''} '
+            'rating=${selected.rating} '
+            'photoUrlHash=${_hashText(selected.photoUrl)}',
+          );
+        }
+        _summary(
+          '$type total=1 elapsed=${attemptStopwatch.elapsedMilliseconds}ms success=${results.isNotEmpty ? 1 : 0} failed=${results.isEmpty ? 1 : 0} deduped=0',
         );
         return results;
       } on FormatException catch (error) {
-        debugPrint(
-          '[ChecklistPlan] Google Places attempt=$attempt '
-          'query=$query type=$type error=$error',
-        );
+        _debug('attempt=$attempt query=$query type=$type error=$error');
       } catch (error) {
-        debugPrint(
-          '[ChecklistPlan] Google Places attempt=$attempt '
-          'query=$query type=$type error=$error',
-        );
+        _debug('attempt=$attempt query=$query type=$type error=$error');
       }
 
       if (attempt < 3) {
@@ -158,10 +179,10 @@ class GooglePlacesRemoteDataSource {
       }
     }
 
-    debugPrint(
-      '[ChecklistPlan] Google Places final kept count=0 '
-      'type=$type query=$query after retries',
+    _summary(
+      '$type total=1 elapsed=${_requestTimeout.inMilliseconds}ms success=0 failed=1 deduped=0',
     );
+    _debug('result count raw=0 kept=0 type=$type query=$query');
     return const <GooglePlaceSearchResult>[];
   }
 
@@ -250,6 +271,23 @@ class GooglePlacesRemoteDataSource {
       return double.tryParse(value.trim());
     }
     return null;
+  }
+
+  String _truncate(String value, int maxLength) {
+    final trimmed = value.trim();
+    if (trimmed.length <= maxLength) {
+      return trimmed;
+    }
+    return '${trimmed.substring(0, maxLength)}...';
+  }
+
+  String _hashText(String? value) {
+    final text = (value ?? '').trim();
+    if (text.isEmpty) {
+      return 'none';
+    }
+    final hash = Object.hashAll(text.codeUnits);
+    return hash.toUnsigned(32).toRadixString(16);
   }
 }
 

@@ -8,6 +8,7 @@ import '../../data/datasources/weather_remote_data_source.dart';
 import '../../domain/entities/checklist_detail.dart';
 import '../../domain/entities/checklist_plan_progress.dart';
 import '../../domain/entities/trip_weather_summary.dart';
+import '../../domain/entities/journey_basic_info_input.dart';
 import '../../domain/repositories/checklist_repository.dart';
 
 class ChecklistDetailController extends ChangeNotifier {
@@ -32,7 +33,12 @@ class ChecklistDetailController extends ChangeNotifier {
   String? _progressMessageCode;
   String _currentChecklistId = '';
   Locale _currentLocale = WidgetsBinding.instance.platformDispatcher.locale;
-  bool _planCancellationRequested = false;
+  int _sessionSeed = 0;
+  int? _activeSessionId;
+  final Set<int> _cancelledSessionIds = <int>{};
+  _ChecklistEditableInput? _baselineInput;
+  _ChecklistEditableInput? _editableInput;
+  bool _hasInputChanges = false;
 
   bool get isLoading => _isLoading;
   bool get isGeneratingPlan => _isGeneratingPlan;
@@ -45,6 +51,23 @@ class ChecklistDetailController extends ChangeNotifier {
   bool get progressHasPartialFailures => _progressHasPartialFailures;
   String? get progressErrorCode => _progressErrorCode;
   String? get progressMessageCode => _progressMessageCode;
+  bool get hasInputChanges => _hasInputChanges;
+  bool get hasGeneratedPlan {
+    final detail = _checklistDetail;
+    if (detail == null) {
+      return false;
+    }
+    final planningStatus = (detail.planningStatus ?? '').trim().toLowerCase();
+    return planningStatus == 'completed' || detail.items.isNotEmpty;
+  }
+
+  bool get isReadyToPlan {
+    final detail = _checklistDetail;
+    if (detail == null) {
+      return false;
+    }
+    return detail.basicInfoCompleted || detail.isBasicInfoComplete;
+  }
 
   void _log(String message) {
     debugPrint('[ChecklistPlan] $message');
@@ -131,9 +154,13 @@ class ChecklistDetailController extends ChangeNotifier {
       final detail = await repository.getChecklistDetail(trimmedChecklistId);
       if (detail == null) {
         _checklistDetail = null;
+        _baselineInput = null;
+        _editableInput = null;
+        _hasInputChanges = false;
         _resetProgressState();
       } else {
         _checklistDetail = await _withWeatherEssential(detail);
+        _initializeEditableInput(_checklistDetail!, resetBaseline: true);
         final planningStatus = (_checklistDetail?.planningStatus ?? '')
             .trim()
             .toLowerCase();
@@ -184,6 +211,104 @@ class ChecklistDetailController extends ChangeNotifier {
       return;
     }
     await loadChecklistDetail(target, forceRefresh: forceRefresh);
+  }
+
+  void updateEditableBudget({required double? totalBudget, String? currency}) {
+    final detail = _checklistDetail;
+    if (detail == null) {
+      return;
+    }
+    final currentEditable =
+        _editableInput ?? _ChecklistEditableInput.fromDetail(detail);
+    _editableInput = currentEditable.copyWith(
+      totalBudget: totalBudget,
+      currency: currency ?? currentEditable.currency,
+    );
+    _checklistDetail = detail.copyWith(
+      totalBudget: totalBudget,
+      currency: (currency ?? detail.currency)?.trim(),
+      currencySymbol: (currency ?? detail.currencySymbol)?.trim(),
+    );
+    _recomputeInputChanges();
+    debugPrint(
+      '[ChecklistEdit] input changed hasInputChanges=$_hasInputChanges',
+    );
+    notifyListeners();
+  }
+
+  Future<bool> savePlan() async {
+    final detail = _checklistDetail;
+    if (_currentChecklistId.isEmpty || detail == null) {
+      return false;
+    }
+
+    debugPrint('[ChecklistEdit] save plan started');
+    if (hasGeneratedPlan && !_hasInputChanges) {
+      debugPrint('[ChecklistEdit] save plan completed');
+      return true;
+    }
+
+    final input = _buildJourneyBasicInfoInput();
+    if (input == null) {
+      _errorMessage = 'checklistSaveFailed';
+      notifyListeners();
+      return false;
+    }
+
+    try {
+      await repository.saveJourneyBasicInfo(
+        checklistId: _currentChecklistId,
+        input: input,
+      );
+      await loadChecklistDetail(_currentChecklistId, forceRefresh: true);
+      debugPrint('[ChecklistEdit] save plan completed');
+      return true;
+    } catch (_) {
+      _errorMessage = 'checklistSaveFailed';
+      notifyListeners();
+      return false;
+    }
+  }
+
+  Future<bool> updatePlanWithEditableInput() async {
+    final detail = _checklistDetail;
+    if (_currentChecklistId.isEmpty || detail == null) {
+      return false;
+    }
+    final input = _buildJourneyBasicInfoInput();
+    if (input == null) {
+      _errorMessage = 'checklistSaveFailed';
+      notifyListeners();
+      return false;
+    }
+
+    debugPrint('[ChecklistEdit] update plan started');
+    try {
+      await repository.saveJourneyBasicInfo(
+        checklistId: _currentChecklistId,
+        input: input,
+      );
+    } catch (error) {
+      debugPrint('[ChecklistEdit] update plan failed error=$error');
+      _errorMessage = 'checklistSaveFailed';
+      notifyListeners();
+      return false;
+    }
+
+    final success = await generateChecklistPlan();
+    if (success) {
+      final latest = _checklistDetail;
+      if (latest != null) {
+        _initializeEditableInput(latest, resetBaseline: true);
+      }
+      debugPrint('[ChecklistEdit] update plan completed');
+      return true;
+    }
+
+    debugPrint(
+      '[ChecklistEdit] update plan failed error=${_errorMessage ?? 'unknown'}',
+    );
+    return false;
   }
 
   Future<void> updateBudget({
@@ -281,9 +406,6 @@ class ChecklistDetailController extends ChangeNotifier {
   }
 
   Future<bool> generateChecklistPlan() async {
-    _log('generate started');
-    _log('checklistId=$_currentChecklistId');
-    _log('detail loaded=${_checklistDetail != null}');
     if (_currentChecklistId.isEmpty || _isGeneratingPlan) {
       _log(
         'generate aborted emptyChecklistId=${_currentChecklistId.isEmpty} '
@@ -333,8 +455,13 @@ class ChecklistDetailController extends ChangeNotifier {
       _log('Google Places key exists length=${trimmedPlacesKey.length}');
     }
 
-    _isGeneratingPlan = true;
-    _planCancellationRequested = false;
+    final sessionId = ++_sessionSeed;
+    _activeSessionId = sessionId;
+    _cancelledSessionIds.remove(sessionId);
+    _setButtonGeneratingState(true);
+    _log('generate started sessionId=$sessionId');
+    _log('checklistId=$_currentChecklistId');
+    _log('detail loaded=${_checklistDetail != null}');
     _errorMessage = null;
     _resetProgressState();
     _setProgressState(
@@ -347,7 +474,7 @@ class ChecklistDetailController extends ChangeNotifier {
       final generatedDetail = await repository.generateChecklistPlan(
         _currentChecklistId,
         onProgress: (progress) {
-          if (_planCancellationRequested) {
+          if (_isSessionCancelled(sessionId)) {
             return;
           }
           _setProgressState(
@@ -360,10 +487,10 @@ class ChecklistDetailController extends ChangeNotifier {
             messageCode: progress.messageCode,
           );
         },
-        shouldCancel: () => _planCancellationRequested,
+        shouldCancel: () => _isSessionCancelled(sessionId),
       );
-      if (_planCancellationRequested) {
-        _log('generate cancelled before local state update');
+      if (_isSessionCancelled(sessionId)) {
+        _log('ignored result because cancelled sessionId=$sessionId');
         return false;
       }
       _log('repository.generateChecklistPlan finished');
@@ -373,6 +500,7 @@ class ChecklistDetailController extends ChangeNotifier {
         progressPercent: 0.99,
       );
       _checklistDetail = await _withWeatherEssential(generatedDetail);
+      _initializeEditableInput(_checklistDetail!, resetBaseline: true);
       _log(
         'planningStatus changed -> ${_checklistDetail?.planningStatus ?? 'null'}',
       );
@@ -409,12 +537,14 @@ class ChecklistDetailController extends ChangeNotifier {
         progressPercent: 1,
       );
       debugPrint('[ChecklistPlanProgress] completed');
+      _log('generate finished sessionId=$sessionId');
       _refreshDetailInBackground(_currentChecklistId);
       return true;
     } catch (error) {
-      if (error is AppException &&
-          error.code == 'checklist_generate_cancelled') {
-        _log('generate cancelled by user');
+      if (_isSessionCancelled(sessionId) ||
+          (error is AppException &&
+              error.code == 'checklist_generate_cancelled')) {
+        _log('generate cancelled sessionId=$sessionId');
         return false;
       }
       _errorMessage = 'checklistGenerateFailed';
@@ -441,11 +571,18 @@ class ChecklistDetailController extends ChangeNotifier {
       } catch (refreshError) {
         _log('refresh after failure error=$refreshError');
       }
+      _log('generate failed sessionId=$sessionId');
       return false;
     } finally {
-      _isGeneratingPlan = false;
-      _planCancellationRequested = false;
-      notifyListeners();
+      final isActiveSession = _activeSessionId == sessionId;
+      if (isActiveSession) {
+        _setButtonGeneratingState(false);
+        _activeSessionId = null;
+        notifyListeners();
+      } else {
+        _log('ignored result because cancelled sessionId=$sessionId');
+      }
+      _cancelledSessionIds.remove(sessionId);
     }
   }
 
@@ -455,11 +592,41 @@ class ChecklistDetailController extends ChangeNotifier {
   }
 
   void cancelPlanGeneration() {
-    if (!_isGeneratingPlan) {
+    final sessionId = _activeSessionId;
+    if (!_isGeneratingPlan || sessionId == null) {
       return;
     }
-    _planCancellationRequested = true;
-    _log('cancel generation requested');
+    _cancelledSessionIds.add(sessionId);
+    _log('cancel requested sessionId=$sessionId');
+    _activeSessionId = null;
+    _setButtonGeneratingState(false);
+    _resetProgressState();
+    final detail = _checklistDetail;
+    if (detail != null) {
+      final currentStatus = (detail.planningStatus ?? '').trim().toLowerCase();
+      if (currentStatus == 'generating') {
+        _checklistDetail = detail.copyWith(planningStatus: 'readyToPlan');
+      }
+      _log(
+        'cancel applied planningStatus=${_checklistDetail?.planningStatus ?? 'readyToPlan'}',
+      );
+    } else {
+      _log('cancel applied planningStatus=readyToPlan');
+    }
+    notifyListeners();
+  }
+
+  bool _isSessionCancelled(int sessionId) {
+    return _cancelledSessionIds.contains(sessionId) ||
+        _activeSessionId != sessionId;
+  }
+
+  void _setButtonGeneratingState(bool value) {
+    if (_isGeneratingPlan == value) {
+      return;
+    }
+    _isGeneratingPlan = value;
+    _log('button loading state changed isGenerating=$_isGeneratingPlan');
   }
 
   void _refreshDetailInBackground(String checklistId) {
@@ -482,11 +649,88 @@ class ChecklistDetailController extends ChangeNotifier {
           return;
         }
         _checklistDetail = weatherMerged;
+        _initializeEditableInput(weatherMerged, resetBaseline: true);
         notifyListeners();
       } catch (error) {
         _log('background reload failed error=$error');
       }
     });
+  }
+
+  void _initializeEditableInput(
+    ChecklistDetail detail, {
+    required bool resetBaseline,
+  }) {
+    final snapshot = _ChecklistEditableInput.fromDetail(detail);
+    _editableInput = snapshot;
+    if (resetBaseline) {
+      _baselineInput = snapshot;
+    }
+    _recomputeInputChanges();
+  }
+
+  void _recomputeInputChanges() {
+    final baseline = _baselineInput;
+    final editable = _editableInput;
+    if (baseline == null || editable == null) {
+      _hasInputChanges = false;
+      return;
+    }
+    final inputChanged = !editable.equalsForPlanning(baseline);
+    final detail = _checklistDetail;
+    if (detail == null) {
+      _hasInputChanges = inputChanged;
+      return;
+    }
+    final planningStatus = (detail.planningStatus ?? '').trim().toLowerCase();
+    final hasStaleGeneratedPlan =
+        planningStatus == 'readytoplan' && detail.items.isNotEmpty;
+    _hasInputChanges = inputChanged || hasStaleGeneratedPlan;
+  }
+
+  JourneyBasicInfoInput? _buildJourneyBasicInfoInput() {
+    final editable = _editableInput;
+    if (editable == null) {
+      return null;
+    }
+    final departureCity = editable.departureCity.trim();
+    final currency = editable.currency.trim();
+    final startDate = editable.startDate;
+    final endDate = editable.endDate;
+    final totalBudget = editable.totalBudget;
+    if (departureCity.isEmpty ||
+        startDate == null ||
+        endDate == null ||
+        endDate.isBefore(startDate) ||
+        editable.travelerCount <= 0 ||
+        (totalBudget ?? 0) <= 0 ||
+        currency.isEmpty ||
+        editable.preferences.isEmpty ||
+        editable.pace.trim().isEmpty ||
+        editable.accommodationPreference.trim().isEmpty) {
+      return null;
+    }
+
+    final tripDays = endDate.difference(startDate).inDays + 1;
+    final nightCount = endDate.difference(startDate).inDays;
+    return JourneyBasicInfoInput(
+      departureCity: departureCity,
+      departureCountry: editable.departureCountry,
+      departureLatitude: editable.departureLatitude,
+      departureLongitude: editable.departureLongitude,
+      departureSource: editable.departureSource,
+      startDate: startDate,
+      endDate: endDate,
+      tripDays: tripDays,
+      nightCount: nightCount,
+      travelerCount: editable.travelerCount,
+      totalBudget: totalBudget!,
+      currency: currency,
+      preferences: editable.preferences.toList(growable: false),
+      pace: editable.pace,
+      accommodationPreference: editable.accommodationPreference,
+      basicInfoCompleted: true,
+    );
   }
 
   List<String> _collectMissingPlanningFields(ChecklistDetail detail) {
@@ -661,5 +905,132 @@ class ChecklistDetailController extends ChangeNotifier {
       return 'zh_cn';
     }
     return 'en';
+  }
+}
+
+class _ChecklistEditableInput {
+  const _ChecklistEditableInput({
+    required this.departureCity,
+    required this.departureCountry,
+    required this.departureLatitude,
+    required this.departureLongitude,
+    required this.departureSource,
+    required this.startDate,
+    required this.endDate,
+    required this.travelerCount,
+    required this.totalBudget,
+    required this.currency,
+    required this.preferences,
+    required this.pace,
+    required this.accommodationPreference,
+  });
+
+  factory _ChecklistEditableInput.fromDetail(ChecklistDetail detail) {
+    return _ChecklistEditableInput(
+      departureCity: detail.departureCity?.trim() ?? '',
+      departureCountry: null,
+      departureLatitude: null,
+      departureLongitude: null,
+      departureSource: 'manual',
+      startDate: detail.startDate,
+      endDate: detail.endDate,
+      travelerCount: detail.travelerCount ?? 0,
+      totalBudget: detail.totalBudget,
+      currency: (detail.currency ?? detail.currencySymbol ?? '').trim(),
+      preferences: detail.preferences
+          .map((item) => item.trim())
+          .where((item) => item.isNotEmpty)
+          .toSet(),
+      pace: detail.pace?.trim() ?? '',
+      accommodationPreference: detail.accommodationPreference?.trim() ?? '',
+    );
+  }
+
+  final String departureCity;
+  final String? departureCountry;
+  final double? departureLatitude;
+  final double? departureLongitude;
+  final String? departureSource;
+  final DateTime? startDate;
+  final DateTime? endDate;
+  final int travelerCount;
+  final double? totalBudget;
+  final String currency;
+  final Set<String> preferences;
+  final String pace;
+  final String accommodationPreference;
+
+  _ChecklistEditableInput copyWith({
+    String? departureCity,
+    String? departureCountry,
+    double? departureLatitude,
+    double? departureLongitude,
+    String? departureSource,
+    DateTime? startDate,
+    DateTime? endDate,
+    int? travelerCount,
+    double? totalBudget,
+    String? currency,
+    Set<String>? preferences,
+    String? pace,
+    String? accommodationPreference,
+  }) {
+    return _ChecklistEditableInput(
+      departureCity: departureCity ?? this.departureCity,
+      departureCountry: departureCountry ?? this.departureCountry,
+      departureLatitude: departureLatitude ?? this.departureLatitude,
+      departureLongitude: departureLongitude ?? this.departureLongitude,
+      departureSource: departureSource ?? this.departureSource,
+      startDate: startDate ?? this.startDate,
+      endDate: endDate ?? this.endDate,
+      travelerCount: travelerCount ?? this.travelerCount,
+      totalBudget: totalBudget ?? this.totalBudget,
+      currency: currency ?? this.currency,
+      preferences: preferences ?? this.preferences,
+      pace: pace ?? this.pace,
+      accommodationPreference:
+          accommodationPreference ?? this.accommodationPreference,
+    );
+  }
+
+  bool equalsForPlanning(_ChecklistEditableInput other) {
+    return departureCity.trim() == other.departureCity.trim() &&
+        _sameDate(startDate, other.startDate) &&
+        _sameDate(endDate, other.endDate) &&
+        travelerCount == other.travelerCount &&
+        _sameDouble(totalBudget, other.totalBudget) &&
+        currency.trim().toUpperCase() == other.currency.trim().toUpperCase() &&
+        _samePreferenceSet(preferences, other.preferences) &&
+        pace.trim().toLowerCase() == other.pace.trim().toLowerCase() &&
+        accommodationPreference.trim().toLowerCase() ==
+            other.accommodationPreference.trim().toLowerCase();
+  }
+
+  bool _sameDate(DateTime? left, DateTime? right) {
+    if (left == null || right == null) {
+      return left == right;
+    }
+    return left.year == right.year &&
+        left.month == right.month &&
+        left.day == right.day;
+  }
+
+  bool _sameDouble(double? left, double? right) {
+    if (left == null || right == null) {
+      return left == right;
+    }
+    return (left - right).abs() < 0.0001;
+  }
+
+  bool _samePreferenceSet(Set<String> left, Set<String> right) {
+    if (left.length != right.length) {
+      return false;
+    }
+    for (final item in left) {
+      if (!right.contains(item)) {
+        return false;
+      }
+    }
+    return true;
   }
 }

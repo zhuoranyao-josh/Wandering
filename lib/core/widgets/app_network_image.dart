@@ -1,6 +1,8 @@
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 
+import '../cache/app_image_cache_manager.dart';
+
 /// 统一网络图入口：集中处理缓存、比例、日志和占位体验。
 class AppNetworkImage extends StatefulWidget {
   const AppNetworkImage({
@@ -11,6 +13,9 @@ class AppNetworkImage extends StatefulWidget {
     this.height,
     this.fit = BoxFit.cover,
     this.alignment = Alignment.center,
+    this.borderRadius,
+    this.cacheWidth,
+    this.cacheHeight,
     this.placeholderBuilder,
     this.errorBuilder,
   });
@@ -21,6 +26,9 @@ class AppNetworkImage extends StatefulWidget {
   final double? height;
   final BoxFit fit;
   final Alignment alignment;
+  final BorderRadius? borderRadius;
+  final int? cacheWidth;
+  final int? cacheHeight;
   final WidgetBuilder? placeholderBuilder;
   final Widget Function(BuildContext context, Object error)? errorBuilder;
 
@@ -73,39 +81,85 @@ class _AppNetworkImageState extends State<AppNetworkImage> {
           context: context,
           constraints: constraints,
         );
-
-        return CachedNetworkImage(
-          imageUrl: cleanUrl,
-          width: widget.width,
-          height: widget.height,
-          memCacheWidth: cacheWidth,
-          memCacheHeight: cacheHeight,
-          maxWidthDiskCache: cacheWidth,
-          maxHeightDiskCache: cacheHeight,
-          fadeInDuration: const Duration(milliseconds: 120),
-          fadeOutDuration: Duration.zero,
-          useOldImageOnUrlChange: true,
-          imageBuilder: (context, imageProvider) {
-            _logLoaded();
-            return Image(
-              image: imageProvider,
-              width: widget.width,
-              height: widget.height,
-              fit: effectiveFit,
-              alignment: widget.alignment,
-              filterQuality: FilterQuality.low,
-            );
-          },
-          placeholder: (context, url) => _buildPlaceholder(context),
-          errorWidget: (context, url, error) {
-            _logError(error);
-            final customError = widget.errorBuilder;
-            if (customError != null) {
-              return customError(context, error);
-            }
-            return _buildPlaceholder(context);
-          },
+        final effectiveMemCacheWidth = _normalizeCacheDimension(
+          widget.cacheWidth ?? cacheWidth,
         );
+        final effectiveMemCacheHeight = _normalizeCacheDimension(
+          widget.cacheHeight ?? cacheHeight,
+        );
+
+        try {
+          return CachedNetworkImage(
+            imageUrl: cleanUrl,
+            cacheManager: AppImageCacheManager.instance,
+            width: widget.width,
+            height: widget.height,
+            memCacheWidth: effectiveMemCacheWidth,
+            memCacheHeight: effectiveMemCacheHeight,
+            maxWidthDiskCache: effectiveMemCacheWidth,
+            maxHeightDiskCache: effectiveMemCacheHeight,
+            fadeInDuration: const Duration(milliseconds: 120),
+            fadeOutDuration: Duration.zero,
+            useOldImageOnUrlChange: true,
+            imageBuilder: (context, imageProvider) {
+              _logLoaded();
+              return _wrapWithClip(
+                Image(
+                  image: imageProvider,
+                  width: widget.width,
+                  height: widget.height,
+                  fit: effectiveFit,
+                  alignment: widget.alignment,
+                  filterQuality: FilterQuality.low,
+                ),
+              );
+            },
+            placeholder: (context, url) => _buildPlaceholder(context),
+            errorWidget: (context, url, error) {
+              _logError(
+                error,
+                details:
+                    'url=$cleanUrl '
+                    'memCacheWidth=$effectiveMemCacheWidth '
+                    'memCacheHeight=$effectiveMemCacheHeight '
+                    'widgetWidth=${widget.width} '
+                    'widgetHeight=${widget.height}',
+              );
+              final customError = widget.errorBuilder;
+              if (customError != null) {
+                return customError(context, error);
+              }
+              return _buildPlaceholder(context);
+            },
+            errorListener: (error) {
+              _logError(
+                error,
+                details:
+                    'url=$cleanUrl '
+                    'memCacheWidth=$effectiveMemCacheWidth '
+                    'memCacheHeight=$effectiveMemCacheHeight '
+                    'widgetWidth=${widget.width} '
+                    'widgetHeight=${widget.height}',
+              );
+            },
+          );
+        } on Object catch (error, stackTrace) {
+          _logError(
+            error,
+            stackTrace: stackTrace,
+            details:
+                'url=$cleanUrl '
+                'memCacheWidth=$effectiveMemCacheWidth '
+                'memCacheHeight=$effectiveMemCacheHeight '
+                'widgetWidth=${widget.width} '
+                'widgetHeight=${widget.height}',
+          );
+          final customError = widget.errorBuilder;
+          if (customError != null) {
+            return customError(context, error);
+          }
+          return _buildPlaceholder(context);
+        }
       },
     );
   }
@@ -113,9 +167,36 @@ class _AppNetworkImageState extends State<AppNetworkImage> {
   Widget _buildPlaceholder(BuildContext context) {
     final builder = widget.placeholderBuilder;
     if (builder != null) {
-      return builder(context);
+      return _wrapWithClip(builder(context));
     }
-    return const SizedBox.shrink();
+    return _wrapWithClip(
+      Container(
+        width: widget.width,
+        height: widget.height,
+        color: const Color(0xFFF3F4F6),
+        alignment: Alignment.center,
+        child: const SizedBox(
+          width: 18,
+          height: 18,
+          child: CircularProgressIndicator(strokeWidth: 2),
+        ),
+      ),
+    );
+  }
+
+  Widget _wrapWithClip(Widget child) {
+    final borderRadius = widget.borderRadius;
+    if (borderRadius == null) {
+      return child;
+    }
+    return ClipRRect(borderRadius: borderRadius, child: child);
+  }
+
+  int? _normalizeCacheDimension(int? value) {
+    if (value == null || value <= 0) {
+      return null;
+    }
+    return value;
   }
 
   BoxFit _resolveFit(BoxFit fit) {
@@ -169,17 +250,22 @@ class _AppNetworkImageState extends State<AppNetworkImage> {
     );
   }
 
-  void _logError(Object error) {
+  void _logError(Object error, {StackTrace? stackTrace, String? details}) {
     if (_hasLoggedResult) {
       return;
     }
     _hasLoggedResult = true;
     debugPrint(
       '[ImageLoad] error=${error.runtimeType} '
+      'message=$error '
       'page=${widget.pageName} '
       'urlHash=$_currentUrlHash '
+      '${details == null ? '' : '$details '}'
       'elapsed=${_stopwatch.elapsedMilliseconds}ms',
     );
+    if (stackTrace != null) {
+      debugPrint('[ImageLoad] stackTrace=$stackTrace');
+    }
   }
 
   String _hashUrl(String value) {

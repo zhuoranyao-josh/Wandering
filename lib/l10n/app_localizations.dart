@@ -275,6 +275,54 @@ abstract class AppLocalizations {
   /// **'Cancel'**
   String get cancel;
 
+  /// No description provided for @clear.
+  ///
+  /// In en, this message translates to:
+  /// **'Clear'**
+  String get clear;
+
+  /// No description provided for @clearCache.
+  ///
+  /// In en, this message translates to:
+  /// **'Clear Cache'**
+  String get clearCache;
+
+  /// No description provided for @clearCacheConfirmTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Clear local image cache?'**
+  String get clearCacheConfirmTitle;
+
+  /// No description provided for @clearCacheConfirmMessage.
+  ///
+  /// In en, this message translates to:
+  /// **'Some images may need to be loaded again after clearing.'**
+  String get clearCacheConfirmMessage;
+
+  /// No description provided for @cacheSizeLoading.
+  ///
+  /// In en, this message translates to:
+  /// **'Calculating cache size...'**
+  String get cacheSizeLoading;
+
+  /// No description provided for @cacheSizeLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Cache size: {size}'**
+  String cacheSizeLabel(Object size);
+
+  /// No description provided for @cacheCleared.
+  ///
+  /// In en, this message translates to:
+  /// **'Cache cleared'**
+  String get cacheCleared;
+
+  /// No description provided for @clearCacheFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Failed to clear cache. Please try again later.'**
+  String get clearCacheFailed;
+
   /// No description provided for @errorMissingEmail.
   ///
   /// In en, this message translates to:
@@ -1463,6 +1511,12 @@ abstract class AppLocalizations {
   /// **'Price unavailable'**
   String get checklistPriceUnavailable;
 
+  /// No description provided for @checklistPriceCheckLatest.
+  ///
+  /// In en, this message translates to:
+  /// **'Check latest price'**
+  String get checklistPriceCheckLatest;
+
   /// No description provided for @checklistPriceFree.
   ///
   /// In en, this message translates to:
@@ -1505,6 +1559,12 @@ abstract class AppLocalizations {
   /// **'Transportation'**
   String get checklistTransportation;
 
+  /// No description provided for @checklistSavePlan.
+  ///
+  /// In en, this message translates to:
+  /// **'Save Plan'**
+  String get checklistSavePlan;
+
   /// No description provided for @checklistUpdatePlan.
   ///
   /// In en, this message translates to:
@@ -1522,6 +1582,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Set your budget and update the plan to generate suggestions.'**
   String get checklistGenerateSuggestionsHint;
+
+  /// No description provided for @checklistTripSettingsChangedHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Your trip settings changed. Update the plan to refresh recommendations.'**
+  String get checklistTripSettingsChangedHint;
 
   /// No description provided for @checklistPlanningPromptTitle.
   ///

@@ -26,17 +26,22 @@ class ChecklistPriceFormatter {
         ? _selectLegacyRange(item)
         : null;
     final range = structuredRange ?? legacyRange;
+    final shouldCheckLatest = _shouldShowCheckLatestPrice(item);
 
     if (range == null) {
       return ChecklistPriceDisplay(
-        primaryText: t?.checklistPriceUnavailable ?? 'Price unavailable',
+        primaryText: shouldCheckLatest
+            ? (t?.checklistPriceCheckLatest ?? 'Check latest price')
+            : (t?.checklistPriceUnavailable ?? 'Price unavailable'),
       );
     }
 
     final primaryAmount = range.average;
     if (primaryAmount == null) {
       return ChecklistPriceDisplay(
-        primaryText: t?.checklistPriceUnavailable ?? 'Price unavailable',
+        primaryText: shouldCheckLatest
+            ? (t?.checklistPriceCheckLatest ?? 'Check latest price')
+            : (t?.checklistPriceUnavailable ?? 'Price unavailable'),
       );
     }
 
@@ -79,7 +84,9 @@ class ChecklistPriceFormatter {
       return t?.checklistPriceFree ?? 'Free';
     }
     if (amount == null) {
-      return t?.checklistPriceUnavailable ?? 'Price unavailable';
+      return _shouldShowCheckLatestPrice(item)
+          ? (t?.checklistPriceCheckLatest ?? 'Check latest price')
+          : (t?.checklistPriceUnavailable ?? 'Price unavailable');
     }
 
     final unitText = isHotel
@@ -99,7 +106,9 @@ class ChecklistPriceFormatter {
   }) {
     final amount = item.estimatedPrice ?? _resolvePrimaryAmount(item);
     if (amount == null) {
-      return null;
+      return _shouldShowCheckLatestPrice(item)
+          ? (t?.checklistPriceCheckLatest ?? 'Check latest price')
+          : null;
     }
     final prefix = t?.checklistEstimateShort ?? 'EST.';
     final currencySymbol = _resolveCurrencySymbol(item.currency);
@@ -188,6 +197,25 @@ class ChecklistPriceFormatter {
 
   static String _formatAmount(double value) {
     return NumberFormat.decimalPattern().format(value);
+  }
+
+  static bool _shouldShowCheckLatestPrice(ChecklistDetailItem item) {
+    final normalizedPriceStatus = (item.priceStatus ?? '').trim().toLowerCase();
+    if (normalizedPriceStatus == 'price_unverified') {
+      return true;
+    }
+    final warningTokens = (item.budgetWarning ?? '')
+        .split('|')
+        .map((token) => token.trim().toLowerCase())
+        .where((token) => token.isNotEmpty)
+        .toSet();
+    if (warningTokens.contains('price_unverified')) {
+      return true;
+    }
+    if (warningTokens.contains('grounding_failed')) {
+      return true;
+    }
+    return (item.externalUrl ?? '').trim().isNotEmpty;
   }
 }
 

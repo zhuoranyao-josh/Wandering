@@ -99,6 +99,32 @@ class AppLocalizationsEn extends AppLocalizations {
   String get cancel => 'Cancel';
 
   @override
+  String get clear => 'Clear';
+
+  @override
+  String get clearCache => 'Clear Cache';
+
+  @override
+  String get clearCacheConfirmTitle => 'Clear local image cache?';
+
+  @override
+  String get clearCacheConfirmMessage => 'Some images may need to be loaded again after clearing.';
+
+  @override
+  String get cacheSizeLoading => 'Calculating cache size...';
+
+  @override
+  String cacheSizeLabel(Object size) {
+    return 'Cache size: $size';
+  }
+
+  @override
+  String get cacheCleared => 'Cache cleared';
+
+  @override
+  String get clearCacheFailed => 'Failed to clear cache. Please try again later.';
+
+  @override
   String get errorMissingEmail => 'Please enter your email address.';
 
   @override
@@ -701,6 +727,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get checklistPriceUnavailable => 'Price unavailable';
 
   @override
+  String get checklistPriceCheckLatest => 'Check latest price';
+
+  @override
   String get checklistPriceFree => 'Free';
 
   @override
@@ -722,6 +751,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get checklistTransportation => 'Transportation';
 
   @override
+  String get checklistSavePlan => 'Save Plan';
+
+  @override
   String get checklistUpdatePlan => 'Update Plan';
 
   @override
@@ -729,6 +761,9 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get checklistGenerateSuggestionsHint => 'Set your budget and update the plan to generate suggestions.';
+
+  @override
+  String get checklistTripSettingsChangedHint => 'Your trip settings changed. Update the plan to refresh recommendations.';
 
   @override
   String get checklistPlanningPromptTitle => 'Ready to plan this trip?';

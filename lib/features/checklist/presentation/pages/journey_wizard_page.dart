@@ -8,9 +8,14 @@ import '../../../../l10n/app_localizations.dart';
 import '../controllers/journey_wizard_controller.dart';
 
 class JourneyWizardPage extends StatefulWidget {
-  const JourneyWizardPage({super.key, required this.checklistId});
+  const JourneyWizardPage({
+    super.key,
+    required this.checklistId,
+    this.isEditMode = false,
+  });
 
   final String checklistId;
+  final bool isEditMode;
 
   @override
   State<JourneyWizardPage> createState() => _JourneyWizardPageState();
@@ -247,20 +252,12 @@ class _JourneyWizardPageState extends State<JourneyWizardPage> {
         ),
         const SizedBox(height: 12),
         _DateField(
-          label: t.journeyWizardStartDate,
-          valueText: _formatDate(context, startDate),
-          onTap: () => _pickStartDate(context),
-          errorText: _resolveErrorText(
-            t,
-            _controller.fieldErrorKey('startDate'),
-          ),
-        ),
-        const SizedBox(height: 12),
-        _DateField(
-          label: t.journeyWizardEndDate,
-          valueText: _formatDate(context, endDate),
-          onTap: () => _pickEndDate(context),
-          errorText: _resolveErrorText(t, _controller.fieldErrorKey('endDate')),
+          label: t.journeyWizardDateRange,
+          valueText: _buildDateRangeText(context, startDate, endDate),
+          onTap: () => _pickDateRange(context),
+          errorText:
+              _resolveErrorText(t, _controller.fieldErrorKey('startDate')) ??
+              _resolveErrorText(t, _controller.fieldErrorKey('endDate')),
         ),
         if (tripDays != null) ...<Widget>[
           const SizedBox(height: 10),
@@ -568,6 +565,16 @@ class _JourneyWizardPageState extends State<JourneyWizardPage> {
                         '[ChecklistWizard] navigating to detail '
                         'checklistId=${widget.checklistId}',
                       );
+                      if (widget.isEditMode) {
+                        if (context.canPop()) {
+                          context.pop();
+                        } else {
+                          context.go(
+                            AppRouter.checklistDetail(widget.checklistId),
+                          );
+                        }
+                        return;
+                      }
                       context.go(AppRouter.checklistDetail(widget.checklistId));
                     },
               style: ElevatedButton.styleFrom(
@@ -645,41 +652,23 @@ class _JourneyWizardPageState extends State<JourneyWizardPage> {
     );
   }
 
-  Future<void> _pickStartDate(BuildContext context) async {
-    final initialDate = _controller.startDate ?? DateTime.now();
-    final picked = await showDatePicker(
+  Future<void> _pickDateRange(BuildContext context) async {
+    final now = DateTime.now();
+    final initialStart = _controller.startDate ?? now;
+    final rawInitialEnd = _controller.endDate ?? initialStart;
+    final initialEnd = rawInitialEnd.isBefore(initialStart)
+        ? initialStart
+        : rawInitialEnd;
+    final picked = await showDateRangePicker(
       context: context,
-      initialDate: initialDate,
-      firstDate: DateTime.now().subtract(const Duration(days: 3650)),
-      lastDate: DateTime.now().add(const Duration(days: 3650)),
+      firstDate: now.subtract(const Duration(days: 3650)),
+      lastDate: now.add(const Duration(days: 3650)),
+      initialDateRange: DateTimeRange(start: initialStart, end: initialEnd),
     );
     if (picked == null) {
       return;
     }
-    _controller.setStartDate(picked);
-  }
-
-  Future<void> _pickEndDate(BuildContext context) async {
-    final initialDate =
-        _controller.endDate ?? _controller.startDate ?? DateTime.now();
-    final picked = await showDatePicker(
-      context: context,
-      initialDate: initialDate,
-      firstDate: DateTime.now().subtract(const Duration(days: 3650)),
-      lastDate: DateTime.now().add(const Duration(days: 3650)),
-    );
-    if (picked == null) {
-      return;
-    }
-    _controller.setEndDate(picked);
-  }
-
-  String _formatDate(BuildContext context, DateTime? value) {
-    if (value == null) {
-      return '--';
-    }
-    final locale = Localizations.localeOf(context).toLanguageTag();
-    return DateFormat.yMMMd(locale).format(value);
+    _controller.setDateRange(startDate: picked.start, endDate: picked.end);
   }
 
   String _buildDateRangeText(

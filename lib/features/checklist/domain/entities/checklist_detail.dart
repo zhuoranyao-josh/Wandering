@@ -277,6 +277,7 @@ class ChecklistDetailItem {
     this.dataSource,
     this.accuracyNote,
     this.status,
+    this.priceStatus,
     this.displayOrder,
     this.dayIndex,
     this.budgetWarning,
@@ -332,6 +333,7 @@ class ChecklistDetailItem {
   final String? dataSource;
   final String? accuracyNote;
   final String? status;
+  final String? priceStatus;
   final int? displayOrder;
   final int? dayIndex;
   final String? budgetWarning;
@@ -387,6 +389,7 @@ class ChecklistDetailItem {
     String? dataSource,
     String? accuracyNote,
     String? status,
+    String? priceStatus,
     int? displayOrder,
     int? dayIndex,
     String? budgetWarning,
@@ -442,6 +445,7 @@ class ChecklistDetailItem {
       dataSource: dataSource ?? this.dataSource,
       accuracyNote: accuracyNote ?? this.accuracyNote,
       status: status ?? this.status,
+      priceStatus: priceStatus ?? this.priceStatus,
       displayOrder: displayOrder ?? this.displayOrder,
       dayIndex: dayIndex ?? this.dayIndex,
       budgetWarning: budgetWarning ?? this.budgetWarning,

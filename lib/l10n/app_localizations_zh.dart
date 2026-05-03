@@ -99,6 +99,32 @@ class AppLocalizationsZh extends AppLocalizations {
   String get cancel => '取消';
 
   @override
+  String get clear => '确认清理';
+
+  @override
+  String get clearCache => '清理缓存';
+
+  @override
+  String get clearCacheConfirmTitle => '确定要清理本地图片缓存吗？';
+
+  @override
+  String get clearCacheConfirmMessage => '清理后部分图片可能需要重新加载。';
+
+  @override
+  String get cacheSizeLoading => '正在计算缓存大小...';
+
+  @override
+  String cacheSizeLabel(Object size) {
+    return '缓存大小：$size';
+  }
+
+  @override
+  String get cacheCleared => '缓存已清理';
+
+  @override
+  String get clearCacheFailed => '清理缓存失败，请稍后再试。';
+
+  @override
   String get errorMissingEmail => '请输入邮箱地址。';
 
   @override
@@ -701,6 +727,9 @@ class AppLocalizationsZh extends AppLocalizations {
   String get checklistPriceUnavailable => '价格暂无';
 
   @override
+  String get checklistPriceCheckLatest => '查看最新价格';
+
+  @override
   String get checklistPriceFree => '免费';
 
   @override
@@ -722,6 +751,9 @@ class AppLocalizationsZh extends AppLocalizations {
   String get checklistTransportation => '交通安排';
 
   @override
+  String get checklistSavePlan => '保存计划';
+
+  @override
   String get checklistUpdatePlan => '更新计划';
 
   @override
@@ -729,6 +761,9 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get checklistGenerateSuggestionsHint => '先设置预算，再更新计划以生成建议。';
+
+  @override
+  String get checklistTripSettingsChangedHint => '你的行程设置已变更，请更新计划以刷新推荐内容。';
 
   @override
   String get checklistPlanningPromptTitle => '准备开始规划这次旅行了吗？';

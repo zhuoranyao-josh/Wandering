@@ -70,6 +70,9 @@ class ChecklistItemsSection extends StatelessWidget {
     return Column(
       children: List<Widget>.generate(daySections.length, (index) {
         final daySection = daySections[index];
+        final showHotelForDay =
+            hotelItems.isNotEmpty &&
+            (daySections.length == 1 || index < daySections.length - 1);
         final resolvedDate = _resolveTimelineDate(daySection.dayKey);
 
         final dateText = resolvedDate == null
@@ -143,7 +146,8 @@ class ChecklistItemsSection extends StatelessWidget {
                           ),
                         );
                       }),
-                      if (hotelItems.isNotEmpty) ...<Widget>[
+                      // 酒店候选不放在最后一天，避免返程日仍显示住宿推荐。
+                      if (showHotelForDay) ...<Widget>[
                         if (daySection.items.isNotEmpty)
                           const SizedBox(height: 12),
                         _HotelOptionsCarousel(

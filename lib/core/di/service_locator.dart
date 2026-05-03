@@ -20,6 +20,7 @@ import '../../features/auth/domain/repositories/auth_repository.dart';
 import '../../features/auth/presentation/controllers/auth_controller.dart';
 import '../../features/checklist/data/datasources/checklist_remote_data_source.dart';
 import '../../features/checklist/data/datasources/firebase_checklist_remote_data_source.dart';
+import '../../features/checklist/data/datasources/gemini_grounding_remote_data_source.dart';
 import '../../features/checklist/data/datasources/gemini_planning_remote_data_source.dart';
 import '../../features/checklist/data/datasources/google_places_remote_data_source.dart';
 import '../../features/checklist/data/datasources/open_weather_remote_data_source.dart';
@@ -116,6 +117,7 @@ class ServiceLocator {
 
     // Checklist 模块
     final geminiPlanningRemoteDataSource = GeminiPlanningRemoteDataSource();
+    final geminiGroundingRemoteDataSource = GeminiGroundingRemoteDataSource();
     final googlePlacesRemoteDataSource = GooglePlacesRemoteDataSource(
       client: sharedHttpClient,
     );
@@ -124,6 +126,7 @@ class ServiceLocator {
           firestore: firestore,
           firebaseAuth: firebaseAuth,
           geminiPlanningRemoteDataSource: geminiPlanningRemoteDataSource,
+          geminiGroundingRemoteDataSource: geminiGroundingRemoteDataSource,
           googlePlacesRemoteDataSource: googlePlacesRemoteDataSource,
         );
     checklistRepository = ChecklistRepositoryImpl(checklistRemoteDataSource);

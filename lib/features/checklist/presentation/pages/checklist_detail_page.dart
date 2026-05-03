@@ -153,7 +153,16 @@ class _ChecklistDetailPageState extends State<ChecklistDetailPage>
         ),
         actions: <Widget>[
           TextButton(
-            onPressed: () {},
+            onPressed: () async {
+              debugPrint('[ChecklistEdit] wizard edit opened');
+              await context.push(
+                AppRouter.checklistWizard(widget.checklistId, isEditMode: true),
+              );
+              if (!mounted) {
+                return;
+              }
+              await _controller.refreshChecklistDetail(forceRefresh: true);
+            },
             style: TextButton.styleFrom(
               padding: const EdgeInsets.symmetric(horizontal: 16),
             ),
@@ -194,8 +203,8 @@ class _ChecklistDetailPageState extends State<ChecklistDetailPage>
           );
           final showProTip = !displayProTip.isEmpty;
           final hasEssentials = displayEssentials.isNotEmpty;
-          final isReadyToPlan =
-              detail.basicInfoCompleted || detail.isBasicInfoComplete;
+          final isReadyToPlan = _controller.isReadyToPlan;
+          final hasInputChanges = _controller.hasInputChanges;
 
           return SingleChildScrollView(
             padding: const EdgeInsets.fromLTRB(
@@ -239,6 +248,12 @@ class _ChecklistDetailPageState extends State<ChecklistDetailPage>
                       );
                     },
                   ),
+                if (hasInputChanges) ...<Widget>[
+                  const SizedBox(height: 12),
+                  _InputChangedHintBanner(
+                    message: t.checklistTripSettingsChangedHint,
+                  ),
+                ],
                 if (_hasTravelStyleInfo(detail))
                   _TravelStyleSummaryCard(
                     t: t,
@@ -261,7 +276,7 @@ class _ChecklistDetailPageState extends State<ChecklistDetailPage>
                   currencySymbol: detail.currencySymbol,
                   budgetSplit: detail.budgetSplit,
                   // 预算编辑与分配调整后续再接弹窗，这次先保留点击位。
-                  onEditTap: () {},
+                  onEditTap: () => _openBudgetEditDialog(detail, t),
                   onAdjustTap: () {},
                 ),
                 if (hasEssentials) ...<Widget>[
@@ -303,58 +318,118 @@ class _ChecklistDetailPageState extends State<ChecklistDetailPage>
             child: AnimatedBuilder(
               animation: _controller,
               builder: (context, _) {
-                final detail = _controller.checklistDetail;
-                final isReadyToPlan =
-                    detail?.basicInfoCompleted == true ||
-                    detail?.isBasicInfoComplete == true;
-                final buttonLabel = isReadyToPlan
-                    ? t.checklistGeneratePlan
-                    : t.checklistStartPlanning;
+                final hasGeneratedPlan = _controller.hasGeneratedPlan;
+                final hasInputChanges = _controller.hasInputChanges;
+                final isReadyToPlan = _controller.isReadyToPlan;
+                final saveEnabled =
+                    !_controller.isGeneratingPlan &&
+                    (!hasGeneratedPlan || !hasInputChanges);
+                final updateEnabled =
+                    !_controller.isGeneratingPlan &&
+                    (hasGeneratedPlan ? hasInputChanges : true);
+                final updateLabel = hasGeneratedPlan
+                    ? t.checklistUpdatePlan
+                    : t.checklistGeneratePlan;
 
-                return ElevatedButton(
-                  onPressed: _controller.isGeneratingPlan
-                      ? null
-                      : () async {
-                          debugPrint(
-                            '[ChecklistPlan] button clicked '
-                            'checklistId=${widget.checklistId}',
-                          );
-                          if (!isReadyToPlan) {
-                            await context.push(
-                              AppRouter.checklistWizard(widget.checklistId),
-                            );
-                            if (!mounted) return;
-                            await _controller.refreshChecklistDetail(
-                              forceRefresh: true,
-                            );
-                            return;
-                          }
-                          await _openPlanProgressDialogAndGenerate();
-                        },
-                  style: ElevatedButton.styleFrom(
-                    elevation: 0,
-                    backgroundColor: const Color(0xFF10131E),
-                    foregroundColor: Colors.white,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(20),
-                    ),
-                  ),
-                  child: _controller.isGeneratingPlan
-                      ? const SizedBox(
-                          width: 20,
-                          height: 20,
-                          child: CircularProgressIndicator(
-                            strokeWidth: 2.4,
-                            color: Colors.white,
+                return Row(
+                  children: <Widget>[
+                    Expanded(
+                      child: ElevatedButton(
+                        onPressed: saveEnabled
+                            ? () async {
+                                if (!isReadyToPlan) {
+                                  await context.push(
+                                    AppRouter.checklistWizard(
+                                      widget.checklistId,
+                                      isEditMode: true,
+                                    ),
+                                  );
+                                  if (!mounted) {
+                                    return;
+                                  }
+                                  await _controller.refreshChecklistDetail(
+                                    forceRefresh: true,
+                                  );
+                                  return;
+                                }
+                                final success = await _controller.savePlan();
+                                if (!mounted || !success) {
+                                  return;
+                                }
+                              }
+                            : null,
+                        style: ElevatedButton.styleFrom(
+                          elevation: 0,
+                          backgroundColor: const Color(0xFF10131E),
+                          disabledBackgroundColor: const Color(0xFF9CA3AF),
+                          foregroundColor: Colors.white,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(16),
                           ),
-                        )
-                      : Text(
-                          buttonLabel,
+                        ),
+                        child: Text(
+                          t.checklistSavePlan,
                           style: const TextStyle(
-                            fontSize: 19.5,
+                            fontSize: 16,
                             fontWeight: FontWeight.w700,
                           ),
                         ),
+                      ),
+                    ),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: ElevatedButton(
+                        onPressed: updateEnabled
+                            ? () async {
+                                if (!isReadyToPlan) {
+                                  await context.push(
+                                    AppRouter.checklistWizard(
+                                      widget.checklistId,
+                                    ),
+                                  );
+                                  if (!mounted) {
+                                    return;
+                                  }
+                                  await _controller.refreshChecklistDetail(
+                                    forceRefresh: true,
+                                  );
+                                  return;
+                                }
+                                if (!hasGeneratedPlan) {
+                                  await _openPlanProgressDialogAndGenerate();
+                                  return;
+                                }
+                                await _openPlanProgressDialogAndUpdate();
+                              }
+                            : null,
+                        style: ElevatedButton.styleFrom(
+                          elevation: 0,
+                          backgroundColor: const Color(0xFF10131E),
+                          disabledBackgroundColor: const Color(0xFF9CA3AF),
+                          foregroundColor: Colors.white,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(16),
+                          ),
+                        ),
+                        child: _controller.isGeneratingPlan
+                            ? const SizedBox(
+                                width: 20,
+                                height: 20,
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2.4,
+                                  color: Colors.white,
+                                ),
+                              )
+                            : Text(
+                                updateLabel,
+                                style: const TextStyle(
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.w700,
+                                ),
+                              ),
+                      ),
+                    ),
+                  ],
                 );
               },
             ),
@@ -400,6 +475,9 @@ class _ChecklistDetailPageState extends State<ChecklistDetailPage>
     if (key == 'checklistGenerateFailed') {
       return t.checklistGenerateFailed;
     }
+    if (key == 'checklistSaveFailed') {
+      return t.journeyWizardSaveFailed;
+    }
     if (key.trim().isEmpty) {
       return t.errorUnknown;
     }
@@ -407,6 +485,23 @@ class _ChecklistDetailPageState extends State<ChecklistDetailPage>
   }
 
   Future<void> _openPlanProgressDialogAndGenerate() async {
+    await _openPlanProgressDialog(
+      execute: _controller.generateChecklistPlan,
+      markCompleted: true,
+    );
+  }
+
+  Future<void> _openPlanProgressDialogAndUpdate() async {
+    await _openPlanProgressDialog(
+      execute: _controller.updatePlanWithEditableInput,
+      markCompleted: false,
+    );
+  }
+
+  Future<void> _openPlanProgressDialog({
+    required Future<bool> Function() execute,
+    required bool markCompleted,
+  }) async {
     if (!mounted || _isPlanProgressDialogVisible) {
       return;
     }
@@ -465,12 +560,13 @@ class _ChecklistDetailPageState extends State<ChecklistDetailPage>
                     onRetry: isFailed && !_controller.isGeneratingPlan
                         ? () async {
                             _markGenerationStartForUiRender();
-                            final success = await _controller
-                                .generateChecklistPlan();
+                            final success = await execute();
                             if (!mounted || !success) {
                               return;
                             }
-                            _markGenerationCompletedAwaitingRender();
+                            if (markCompleted) {
+                              _markGenerationCompletedAwaitingRender();
+                            }
                             if (dialogContext.mounted) {
                               Navigator.of(dialogContext).pop();
                             }
@@ -484,14 +580,86 @@ class _ChecklistDetailPageState extends State<ChecklistDetailPage>
         );
       },
     );
+    dialogFuture.whenComplete(() {
+      _isPlanProgressDialogVisible = false;
+    });
 
-    final success = await _controller.generateChecklistPlan();
+    final success = await execute();
     if (success && mounted) {
-      _markGenerationCompletedAwaitingRender();
+      if (markCompleted) {
+        _markGenerationCompletedAwaitingRender();
+      }
       Navigator.of(context, rootNavigator: true).pop();
     }
     await dialogFuture;
-    _isPlanProgressDialogVisible = false;
+  }
+
+  Future<void> _openBudgetEditDialog(
+    ChecklistDetail detail,
+    AppLocalizations t,
+  ) async {
+    debugPrint('[ChecklistEdit] budget edit opened');
+    final textController = TextEditingController(
+      text: detail.totalBudget == null
+          ? ''
+          : detail.totalBudget!.toStringAsFixed(
+              detail.totalBudget! % 1 == 0 ? 0 : 2,
+            ),
+    );
+    final formKey = GlobalKey<FormState>();
+
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) {
+        return AlertDialog(
+          title: Text(t.checklistTotalBudget),
+          content: Form(
+            key: formKey,
+            child: TextFormField(
+              controller: textController,
+              keyboardType: const TextInputType.numberWithOptions(
+                decimal: true,
+              ),
+              autofocus: true,
+              decoration: InputDecoration(
+                hintText: t.journeyWizardTotalBudgetHint,
+              ),
+              validator: (value) {
+                final parsed = double.tryParse((value ?? '').trim());
+                if (parsed == null || parsed <= 0) {
+                  return t.journeyWizardErrorBudgetRequired;
+                }
+                return null;
+              },
+            ),
+          ),
+          actions: <Widget>[
+            TextButton(
+              onPressed: () => Navigator.of(dialogContext).pop(false),
+              child: Text(t.cancel),
+            ),
+            TextButton(
+              onPressed: () {
+                if (!(formKey.currentState?.validate() ?? false)) {
+                  return;
+                }
+                Navigator.of(dialogContext).pop(true);
+              },
+              child: Text(t.save),
+            ),
+          ],
+        );
+      },
+    );
+
+    if (!mounted || confirmed != true) {
+      return;
+    }
+    final parsed = double.tryParse(textController.text.trim());
+    if (parsed == null || parsed <= 0) {
+      return;
+    }
+    _controller.updateEditableBudget(totalBudget: parsed);
   }
 
   void _markGenerationStartForUiRender() {
@@ -862,6 +1030,34 @@ class _InlineErrorBanner extends StatelessWidget {
           fontSize: 13,
           height: 1.4,
           color: Color(0xFFB91C1C),
+          fontWeight: FontWeight.w600,
+        ),
+      ),
+    );
+  }
+}
+
+class _InputChangedHintBanner extends StatelessWidget {
+  const _InputChangedHintBanner({required this.message});
+
+  final String message;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: const Color(0xFFEFF6FF),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: const Color(0xFFBFDBFE)),
+      ),
+      child: Text(
+        message,
+        style: const TextStyle(
+          fontSize: 13,
+          height: 1.4,
+          color: Color(0xFF1D4ED8),
           fontWeight: FontWeight.w600,
         ),
       ),

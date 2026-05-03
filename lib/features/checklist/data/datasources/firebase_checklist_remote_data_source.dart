@@ -2,6 +2,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/foundation.dart';
 
+import '../../../../core/config/checklist_debug_config.dart';
 import '../../../../core/error/app_exception.dart';
 import '../../domain/entities/checklist_detail.dart';
 import '../../domain/entities/checklist_destination_snapshot.dart';
@@ -9,6 +10,7 @@ import '../../domain/entities/checklist_item.dart';
 import '../../domain/entities/checklist_plan_progress.dart';
 import '../../domain/entities/journey_basic_info_input.dart';
 import 'checklist_remote_data_source.dart';
+import 'gemini_grounding_remote_data_source.dart';
 import 'gemini_planning_remote_data_source.dart';
 import 'google_places_remote_data_source.dart';
 
@@ -17,16 +19,61 @@ class FirebaseChecklistRemoteDataSource implements ChecklistRemoteDataSource {
     required this.firestore,
     required this.firebaseAuth,
     required this.geminiPlanningRemoteDataSource,
+    required this.geminiGroundingRemoteDataSource,
     required this.googlePlacesRemoteDataSource,
   });
 
   final FirebaseFirestore firestore;
   final FirebaseAuth firebaseAuth;
   final GeminiPlanningRemoteDataSource geminiPlanningRemoteDataSource;
+  final GeminiGroundingRemoteDataSource geminiGroundingRemoteDataSource;
   final GooglePlacesRemoteDataSource googlePlacesRemoteDataSource;
+  static const bool _enableSummaryLogs = kChecklistSummaryLogs;
+  static const bool _enableDetailedDebugLogs = kChecklistVerboseLogs;
+  static const int _maxConcurrentHotelEnrichment = 3;
+  static const int _maxConcurrentRestaurantPlaces = 3;
+  static const int _maxConcurrentActivityPlaces = 3;
 
   void _log(String message) {
+    if (!_enableSummaryLogs) {
+      return;
+    }
     debugPrint('[ChecklistPlan] $message');
+  }
+
+  void _geminiDebug(String message) {
+    if (!_enableDetailedDebugLogs) {
+      return;
+    }
+    debugPrint('[GeminiDebug] $message');
+  }
+
+  void _placesDebug(String message) {
+    if (!_enableDetailedDebugLogs) {
+      return;
+    }
+    debugPrint('[PlacesDebug] $message');
+  }
+
+  void _groundingLog(String message) {
+    if (!_enableDetailedDebugLogs) {
+      return;
+    }
+    debugPrint('[Grounding] $message');
+  }
+
+  void _groundingSummary(String message) {
+    if (!_enableSummaryLogs) {
+      return;
+    }
+    debugPrint('[GroundingSummary] $message');
+  }
+
+  void _placesSummary(String message) {
+    if (!_enableSummaryLogs) {
+      return;
+    }
+    debugPrint('[PlacesSummary] $message');
   }
 
   void _logProgress({
@@ -36,6 +83,9 @@ class FirebaseChecklistRemoteDataSource implements ChecklistRemoteDataSource {
     int? currentItemIndex,
     int? totalItemCount,
   }) {
+    if (!_enableDetailedDebugLogs) {
+      return;
+    }
     final buffer = StringBuffer(
       '[ChecklistPlanProgress] step=$step message=${message ?? ''} '
       'progress=${(progressPercent * 100).toStringAsFixed(0)}%',
@@ -294,6 +344,11 @@ class FirebaseChecklistRemoteDataSource implements ChecklistRemoteDataSource {
     ChecklistPlanCancelChecker? shouldCancel,
   }) async {
     final trimmedId = checklistId.trim();
+    final sessionId = DateTime.now().millisecondsSinceEpoch;
+    final totalStopwatch = Stopwatch()..start();
+    _log('generate started sessionId=$sessionId checklistId=$trimmedId');
+    DocumentReference<Map<String, dynamic>>? checklistRef;
+    var generatingStatusApplied = false;
     void throwIfCancelled() {
       if (shouldCancel?.call() ?? false) {
         throw AppException('checklist_generate_cancelled');
@@ -339,7 +394,7 @@ class FirebaseChecklistRemoteDataSource implements ChecklistRemoteDataSource {
     try {
       throwIfCancelled();
       _log('repository generateChecklistPlan started checklistId=$trimmedId');
-      final checklistRef = _resolveChecklistCollection().doc(trimmedId);
+      checklistRef = _resolveChecklistCollection().doc(trimmedId);
       final checklistDoc = await checklistRef.get();
       throwIfCancelled();
       final checklistData = checklistDoc.data();
@@ -371,6 +426,7 @@ class FirebaseChecklistRemoteDataSource implements ChecklistRemoteDataSource {
       }
 
       await _updatePlanningStatus(checklistRef, 'generating');
+      generatingStatusApplied = true;
       throwIfCancelled();
 
       emitProgress(
@@ -385,12 +441,20 @@ class FirebaseChecklistRemoteDataSource implements ChecklistRemoteDataSource {
           input: input,
         );
         throwIfCancelled();
+        _debugLogGeneratedPlanSummary(
+          input: input,
+          generatedPlan: generatedPlan,
+        );
         emitProgress(
           ChecklistPlanProgressStep.generatingAiTravelPlan,
           0.42,
           debugMessage: 'gemini_response_parsed',
         );
       } catch (error) {
+        if (error is AppException &&
+            error.code == 'checklist_generate_cancelled') {
+          rethrow;
+        }
         _log('Gemini generation failed error=$error');
         emitProgress(
           ChecklistPlanProgressStep.failed,
@@ -416,6 +480,10 @@ class FirebaseChecklistRemoteDataSource implements ChecklistRemoteDataSource {
         input: input,
         budgetSplit: generatedPlan.budgetSplit,
         items: generatedItems,
+      );
+      _debugLogFinalItemsSummary(
+        generatedPlan: generatedPlan,
+        items: validatedItems,
       );
       throwIfCancelled();
       _log(
@@ -463,15 +531,28 @@ class FirebaseChecklistRemoteDataSource implements ChecklistRemoteDataSource {
         '${saveStopwatch.elapsedMilliseconds}ms',
       );
       _log('save success checklistId=$trimmedId');
+      _log(
+        'generate completed elapsed=${totalStopwatch.elapsedMilliseconds}ms '
+        'sessionId=$sessionId',
+      );
       return nextDetail;
     } catch (error) {
       if (error is AppException &&
           error.code == 'checklist_generate_cancelled') {
-        _log('generate cancelled checklistId=$trimmedId');
+        _log('cancel requested sessionId=$sessionId checklistId=$trimmedId');
+        if (checklistRef != null && generatingStatusApplied) {
+          await _updatePlanningStatus(checklistRef, 'readyToPlan');
+        }
         rethrow;
       }
       _log('save failed checklistId=$trimmedId error=$error');
-      debugPrint('[ChecklistPlanProgress] failed reason=$error');
+      if (_enableDetailedDebugLogs) {
+        debugPrint('[ChecklistPlanProgress] failed reason=$error');
+      }
+      _log(
+        'generate failed elapsed=${totalStopwatch.elapsedMilliseconds}ms '
+        'reason=${error.runtimeType} sessionId=$sessionId',
+      );
       onProgress?.call(
         ChecklistPlanProgress(
           step: ChecklistPlanProgressStep.failed,
@@ -704,6 +785,11 @@ class FirebaseChecklistRemoteDataSource implements ChecklistRemoteDataSource {
       preferences: detail.preferences,
       pace: pace,
       accommodationPreference: accommodationPreference,
+      debugHotelBudget: detail.budgetSplit?.hotelBudget,
+      debugMaxHotelNightlyBudget:
+          detail.budgetSplit?.hotelBudget != null && nightCount > 0
+          ? detail.budgetSplit!.hotelBudget! / nightCount
+          : null,
     );
   }
 
@@ -732,13 +818,17 @@ class FirebaseChecklistRemoteDataSource implements ChecklistRemoteDataSource {
 
     final items = <ChecklistDetailItem>[];
     var flightItemCount = 0;
+    final hotelBudget = generatedPlan.budgetSplit.hotelBudget;
+    final maxHotelNightlyBudget = hotelBudget != null && input.nightCount > 0
+        ? hotelBudget / input.nightCount
+        : null;
     throwIfCancelled();
     onProgress(
       ChecklistPlanProgressStep.findingFlightSuggestions,
       0.46,
       debugMessage: 'finding_flight_suggestions',
     );
-    final flightItems = _buildFlightItems(
+    final flightItems = await _buildFlightItems(
       input: input,
       flights: generatedPlan.flights,
     );
@@ -747,9 +837,12 @@ class FirebaseChecklistRemoteDataSource implements ChecklistRemoteDataSource {
       flightItemCount += 1;
     }
     throwIfCancelled();
+    _log('places enrichment started after main plan returned');
 
     final hotelItems = await _buildHotelItems(
       input: input,
+      hotelBudget: hotelBudget,
+      maxHotelNightlyBudget: maxHotelNightlyBudget,
       candidates: generatedPlan.hotelCandidates,
       startingOrder: items.length,
       shouldCancel: shouldCancel,
@@ -806,10 +899,113 @@ class FirebaseChecklistRemoteDataSource implements ChecklistRemoteDataSource {
     return items;
   }
 
-  (ChecklistDetailItem?, ChecklistDetailItem?) _buildFlightItems({
+  void _debugLogGeneratedPlanSummary({
+    required GeminiPlanningInput input,
+    required GeminiGeneratedPlan generatedPlan,
+  }) {
+    if (!_enableDetailedDebugLogs) {
+      return;
+    }
+    final hotelBudget = generatedPlan.budgetSplit.hotelBudget;
+    final maxHotelNightlyBudget = hotelBudget != null && input.nightCount > 0
+        ? hotelBudget / input.nightCount
+        : null;
+    _geminiDebug(
+      'budgetSplit transportRatio=${generatedPlan.budgetSplit.transportRatio} '
+      'stayRatio=${generatedPlan.budgetSplit.stayRatio} '
+      'foodActivityRatio=${generatedPlan.budgetSplit.foodActivityRatio} '
+      'flightBudgetMax=${generatedPlan.budgetSplit.flightBudgetMax} '
+      'remainingBudget=${generatedPlan.budgetSplit.remainingBudget} '
+      'hotelBudget=$hotelBudget '
+      'foodBudget=${generatedPlan.budgetSplit.foodBudget} '
+      'activityBudget=${generatedPlan.budgetSplit.activityBudget} '
+      'localTransportBudget=${generatedPlan.budgetSplit.localTransportBudget} '
+      'bufferBudget=${generatedPlan.budgetSplit.bufferBudget} '
+      'currency=${generatedPlan.budgetSplit.currency} '
+      'budgetWarning=${generatedPlan.budgetSplit.budgetWarning ?? ''}',
+    );
+
+    for (final flight in generatedPlan.flights) {
+      _geminiDebug(
+        'flight tripDirection=${flight.tripDirection} '
+        'airlineName=${flight.airlineName ?? ''} '
+        'flightNumber=${flight.flightNumber ?? ''} '
+        'departureAirportCode=${flight.departureAirportCode ?? ''} '
+        'arrivalAirportCode=${flight.arrivalAirportCode ?? ''} '
+        'departureTime=${flight.departureTime ?? ''} '
+        'arrivalTime=${flight.arrivalTime ?? ''} '
+        'estimatedPrice=${flight.estimatedPrice} '
+        'hasGoogleFlightsUrl=${(flight.googleFlightsUrl ?? '').trim().isNotEmpty}',
+      );
+    }
+
+    for (final hotel in generatedPlan.hotelCandidates) {
+      final suspiciousReason = _detectGeminiHotelSuspiciousReason(
+        input: input,
+        hotelBudget: hotelBudget,
+        maxHotelNightlyBudget: maxHotelNightlyBudget,
+        candidate: hotel,
+      );
+      final totalMax = hotel.expectedCostMax == null
+          ? null
+          : hotel.expectedCostMax! * input.nightCount;
+      final isWithinBudget =
+          hotelBudget == null || totalMax == null || totalMax <= hotelBudget;
+      _geminiDebug(
+        'hotel title=${hotel.name} '
+        'estimatedCostMin=${hotel.expectedCostMin} '
+        'estimatedCostMax=${hotel.expectedCostMax} '
+        'costUnit=${hotel.costUnit} '
+        'currency=${input.currency} '
+        'estimatedCostMaxXNightCount=$totalMax '
+        'hotelBudget=$hotelBudget '
+        'isWithinBudget=$isWithinBudget '
+        'suspiciousPrice=${suspiciousReason != null} '
+        'suspiciousReason=${suspiciousReason ?? ''}',
+      );
+    }
+
+    for (final restaurant in generatedPlan.restaurantQueries) {
+      final suspiciousReason = _detectGeminiQuerySuspiciousReason(
+        currency: input.currency,
+        type: 'restaurant',
+        query: restaurant,
+      );
+      _geminiDebug(
+        'restaurant title=${restaurant.query} '
+        'estimatedCostMin=${restaurant.estimatedCostMin} '
+        'estimatedCostMax=${restaurant.estimatedCostMax} '
+        'costUnit=${restaurant.costUnit} '
+        'currency=${input.currency} '
+        'suspiciousPrice=${suspiciousReason != null} '
+        'suspiciousReason=${suspiciousReason ?? ''}',
+      );
+    }
+
+    for (final activity in generatedPlan.activityQueries) {
+      final suspiciousReason = _detectGeminiQuerySuspiciousReason(
+        currency: input.currency,
+        type: 'activity',
+        query: activity,
+      );
+      _geminiDebug(
+        'activity title=${activity.query} '
+        'estimatedCostMin=${activity.estimatedCostMin} '
+        'estimatedCostMax=${activity.estimatedCostMax} '
+        'costUnit=${activity.costUnit} '
+        'currency=${input.currency} '
+        'suspiciousPrice=${suspiciousReason != null} '
+        'suspiciousReason=${suspiciousReason ?? ''}',
+      );
+    }
+  }
+
+  Future<(ChecklistDetailItem?, ChecklistDetailItem?)> _buildFlightItems({
     required GeminiPlanningInput input,
     required List<GeminiFlightPlan> flights,
-  }) {
+  }) async {
+    final groundingStopwatch = Stopwatch()..start();
+    var flightGroundingSuccess = true;
     // 固定双航段：第一张出发航班，最后一张返程航班。
     GeminiFlightPlan? outboundPlan;
     GeminiFlightPlan? returnPlan;
@@ -828,15 +1024,62 @@ class FirebaseChecklistRemoteDataSource implements ChecklistRemoteDataSource {
       returnPlan = flights.last;
     }
 
+    List<GroundedFlightResult> groundedFlights = const <GroundedFlightResult>[];
+    try {
+      groundedFlights = await geminiGroundingRemoteDataSource.groundFlights(
+        input: input,
+        skeletonFlights: flights,
+      );
+    } catch (error) {
+      flightGroundingSuccess = false;
+      _groundingLog(
+        'price unverified reason=grounding_failed type=flight query=${input.departureCity}_${input.destination} error=$error',
+      );
+      groundedFlights = _buildUnverifiedGroundedFlights(
+        input: input,
+        flights: flights,
+      );
+    }
+    if (groundedFlights.isEmpty) {
+      groundedFlights = _buildUnverifiedGroundedFlights(
+        input: input,
+        flights: flights,
+      );
+    }
+    final verifiedFlightCount = groundedFlights
+        .where((item) => item.priceVerified)
+        .length;
+    _groundingSummary(
+      'flight elapsed=${groundingStopwatch.elapsedMilliseconds}ms '
+      'status=${flightGroundingSuccess ? 'success' : 'failed'} '
+      'priceVerified=$verifiedFlightCount',
+    );
+    final groundedOutbound = _findGroundedFlightByDirection(
+      groundedFlights: groundedFlights,
+      tripDirection: 'outbound',
+    );
+    final groundedReturn = _findGroundedFlightByDirection(
+      groundedFlights: groundedFlights,
+      tripDirection: 'return',
+    );
+
     final resolvedOutbound = _fillFlightPlanFallback(
       input: input,
       tripDirection: 'outbound',
-      flight: outboundPlan,
+      flight: _mergeGroundedFlight(
+        skeleton: outboundPlan,
+        grounded: groundedOutbound,
+        fallbackCurrency: input.currency,
+      ),
     );
     final resolvedReturn = _fillFlightPlanFallback(
       input: input,
       tripDirection: 'return',
-      flight: returnPlan,
+      flight: _mergeGroundedFlight(
+        skeleton: returnPlan,
+        grounded: groundedReturn,
+        fallbackCurrency: input.currency,
+      ),
     );
 
     final outboundItem = _buildFlightItemFromPlan(
@@ -851,12 +1094,32 @@ class FirebaseChecklistRemoteDataSource implements ChecklistRemoteDataSource {
       displayOrder: 9999,
       dayIndex: input.tripDays,
     );
+    if (_enableDetailedDebugLogs) {
+      for (final flight in <GeminiFlightPlan>[
+        resolvedOutbound,
+        resolvedReturn,
+      ]) {
+        _geminiDebug(
+          'flight tripDirection=${flight.tripDirection} '
+          'airlineName=${flight.airlineName ?? ''} '
+          'flightNumber=${flight.flightNumber ?? ''} '
+          'departureAirportCode=${flight.departureAirportCode ?? ''} '
+          'arrivalAirportCode=${flight.arrivalAirportCode ?? ''} '
+          'departureTime=${flight.departureTime ?? ''} '
+          'arrivalTime=${flight.arrivalTime ?? ''} '
+          'estimatedPrice=${flight.estimatedPrice} '
+          'hasGoogleFlightsUrl=${(flight.googleFlightsUrl ?? '').trim().isNotEmpty}',
+        );
+      }
+    }
 
     return (outboundItem, returnItem);
   }
 
   Future<List<ChecklistDetailItem>> _buildHotelItems({
     required GeminiPlanningInput input,
+    required double? hotelBudget,
+    required double? maxHotelNightlyBudget,
     required List<GeminiHotelCandidate> candidates,
     required int startingOrder,
     required ChecklistPlanCancelChecker? shouldCancel,
@@ -890,81 +1153,230 @@ class FirebaseChecklistRemoteDataSource implements ChecklistRemoteDataSource {
         debugMessage: 'finding_hotels_started',
       );
     }
-    for (var index = 0; index < scopedCandidates.length; index++) {
-      throwIfCancelled();
-      final candidate = scopedCandidates[index];
-      final current = index + 1;
-      final stageProgress = 0.55 + (0.12 * current / total);
+    if (total == 0) {
+      return items;
+    }
+    if (_enableSummaryLogs) {
       debugPrint(
-        '[ChecklistPlanProgress] enrich type=hotel index=$current total=$total',
+        '[HotelParallel] started total=$total maxConcurrent=$_maxConcurrentHotelEnrichment',
       );
-      onProgress(
-        ChecklistPlanProgressStep.findingHotels,
-        stageProgress,
-        currentItemIndex: current,
-        totalItemCount: total,
-        debugMessage: 'finding_hotels_progress',
-      );
-      final order = startingOrder + items.length;
-      final fallbackItem = _buildFallbackHotelItem(
-        input: input,
-        candidate: candidate,
-        order: order,
-      );
-      try {
+    }
+    final totalStopwatch = Stopwatch()..start();
+    var completedCount = 0;
+    final tasks = await _mapWithConcurrency<GeminiHotelCandidate, _HotelEnrichTaskResult>(
+      inputs: scopedCandidates,
+      maxConcurrency: _maxConcurrentHotelEnrichment,
+      shouldCancel: () => shouldCancel?.call() ?? false,
+      mapper: (candidate, index) async {
         throwIfCancelled();
-        final place = await googlePlacesRemoteDataSource.searchHotelByName(
-          hotelName: candidate.name,
-          destination: input.destination,
-          latitude: input.latitude,
-          longitude: input.longitude,
-        );
-        throwIfCancelled();
-        if (place == null || place.placeId.trim().isEmpty) {
-          _log('hotel enrich skipped name=${candidate.name}');
-          items.add(fallbackItem);
-          onProgress(
-            ChecklistPlanProgressStep.findingHotels,
-            stageProgress,
-            currentItemIndex: current,
-            totalItemCount: total,
-            hasPartialFailures: true,
-            errorCode: 'partial_enrich',
-            debugMessage: 'hotel_partial_enrich_continue',
+        final current = index + 1;
+        final order = startingOrder + index;
+        final taskStopwatch = Stopwatch()..start();
+        if (_enableSummaryLogs) {
+          debugPrint(
+            '[HotelParallel] task started index=$current/$total title=${candidate.name}',
           );
-          continue;
+        }
+        final fallbackItem = _buildFallbackHotelItem(
+          input: input,
+          candidate: candidate,
+          order: order,
+        );
+
+        GroundedPriceSearchResult? groundedHotel;
+        try {
+          groundedHotel = await geminiGroundingRemoteDataSource
+              .groundHotelCandidate(input: input, candidate: candidate);
+          throwIfCancelled();
+        } catch (error) {
+          _groundingLog(
+            'price unverified reason=grounding_failed type=hotel query=${candidate.name} error=$error',
+          );
+          if (_enableSummaryLogs) {
+            debugPrint(
+              '[HotelParallel] task failed index=$current/$total '
+              'elapsed=${taskStopwatch.elapsedMilliseconds}ms '
+              'reason=grounding_failed',
+            );
+          }
         }
 
-        items.add(
-          fallbackItem.copyWith(
-            title: place.name,
-            subtitle: place.address,
-            providerName: 'Google Places',
-            externalUrl: place.googleMapsUrl,
-            dataSource: 'gemini_google_places',
-            googlePlaceId: place.placeId,
-            address: place.address,
-            photoUrl: place.photoUrl,
-            latitude: place.latitude,
-            longitude: place.longitude,
-            rating: place.rating,
-            googleMapsUrl: place.googleMapsUrl,
-          ),
+        final hasGroundedVerifiedPrice =
+            groundedHotel != null &&
+            groundedHotel.priceVerified &&
+            groundedHotel.estimatedCostMin != null &&
+            groundedHotel.estimatedCostMax != null;
+        ChecklistDetailItem baseHotelItem;
+        if (hasGroundedVerifiedPrice) {
+          baseHotelItem = _applyGroundedPriceResultToItem(
+            item: fallbackItem,
+            grounded: groundedHotel,
+            fallbackTitle: candidate.name,
+            fallbackUrl: _buildGoogleHotelsSearchUrl(
+              destination: input.destination,
+              hotelName: candidate.name,
+            ),
+          );
+        } else {
+          // Grounding 不可信时保留 AI 原始价格，仅标记为未校验。
+          baseHotelItem = fallbackItem.copyWith(
+            priceStatus: 'price_unverified',
+            budgetWarning: _mergeWarning(
+              fallbackItem.budgetWarning,
+              groundedHotel?.unverifiedReason ?? 'price_unverified',
+            ),
+            externalUrl: _buildGoogleHotelsSearchUrl(
+              destination: input.destination,
+              hotelName: candidate.name,
+            ),
+            dataSource: 'grounded_gemini_unverified',
+          );
+        }
+        final suspiciousReason = _detectGeminiHotelSuspiciousReason(
+          input: input,
+          hotelBudget: hotelBudget,
+          maxHotelNightlyBudget: maxHotelNightlyBudget,
+          candidate: candidate,
         );
-      } catch (error) {
-        _log('hotel enrich failed name=${candidate.name} error=$error');
-        items.add(fallbackItem);
+        _geminiDebug(
+          'hotel title=${candidate.name} '
+          'estimatedCostMin=${candidate.expectedCostMin} '
+          'estimatedCostMax=${candidate.expectedCostMax} '
+          'costUnit=${candidate.costUnit} '
+          'currency=${input.currency} '
+          'estimatedCostMaxXNightCount='
+          '${candidate.expectedCostMax == null ? null : candidate.expectedCostMax! * input.nightCount} '
+          'hotelBudget=$hotelBudget '
+          'isWithinBudget='
+          '${_isGeminiHotelWithinBudget(input: input, hotelBudget: hotelBudget, candidate: candidate)} '
+          'suspiciousPrice=${suspiciousReason != null} '
+          'suspiciousReason=${suspiciousReason ?? ''}',
+        );
+
+        GooglePlaceSearchResult? place;
+        try {
+          throwIfCancelled();
+          place = await googlePlacesRemoteDataSource.searchHotelByName(
+            hotelName: (groundedHotel?.title ?? '').trim().isNotEmpty
+                ? groundedHotel!.title!.trim()
+                : candidate.name,
+            destination: input.destination,
+            latitude: input.latitude,
+            longitude: input.longitude,
+          );
+          throwIfCancelled();
+        } catch (error) {
+          _log('hotel enrich failed name=${candidate.name} error=$error');
+          if (_enableSummaryLogs) {
+            debugPrint(
+              '[HotelParallel] task failed index=$current/$total '
+              'elapsed=${taskStopwatch.elapsedMilliseconds}ms '
+              'reason=places_failed',
+            );
+          }
+        }
+
+        completedCount += 1;
+        final stageProgress = 0.55 + (0.12 * completedCount / total);
         onProgress(
           ChecklistPlanProgressStep.findingHotels,
           stageProgress,
-          currentItemIndex: current,
+          currentItemIndex: completedCount,
           totalItemCount: total,
-          hasPartialFailures: true,
-          errorCode: 'partial_enrich',
-          debugMessage: 'hotel_partial_enrich_continue',
+          hasPartialFailures: place == null || (place.placeId.trim().isEmpty),
+          errorCode: (place == null || (place.placeId.trim().isEmpty))
+              ? 'partial_enrich'
+              : null,
+          debugMessage: (place == null || (place.placeId.trim().isEmpty))
+              ? 'hotel_partial_enrich_continue'
+              : 'finding_hotels_progress',
         );
+        if (_enableSummaryLogs) {
+          final hasPlaceResult =
+              place != null && place.placeId.trim().isNotEmpty;
+          if (hasPlaceResult) {
+            debugPrint(
+              '[HotelParallel] task completed index=$current/$total '
+              'elapsed=${taskStopwatch.elapsedMilliseconds}ms',
+            );
+          } else {
+            debugPrint(
+              '[HotelParallel] task failed index=$current/$total '
+              'elapsed=${taskStopwatch.elapsedMilliseconds}ms '
+              'reason=no_place_result',
+            );
+          }
+        }
+        return _HotelEnrichTaskResult(
+          originalIndex: index,
+          candidateName: candidate.name,
+          baseItem: baseHotelItem,
+          place: place,
+          isGroundingVerifiedPrice: hasGroundedVerifiedPrice,
+          hasError: place == null,
+        );
+      },
+    );
+
+    throwIfCancelled();
+    final sorted = tasks.toList(
+      growable: false,
+    )..sort((left, right) => left.originalIndex.compareTo(right.originalIndex));
+    var verifiedCount = 0;
+    var unverifiedCount = 0;
+    var failedCount = 0;
+    var placesSuccess = 0;
+    var placesFailed = 0;
+    for (final task in sorted) {
+      if (task.isGroundingVerifiedPrice) {
+        verifiedCount += 1;
+      } else {
+        unverifiedCount += 1;
       }
+      if (task.hasError) {
+        failedCount += 1;
+      }
+      final place = task.place;
+      if (place == null || place.placeId.trim().isEmpty) {
+        placesFailed += 1;
+        items.add(task.baseItem);
+        continue;
+      }
+      placesSuccess += 1;
+      items.add(
+        task.baseItem.copyWith(
+          title: place.name,
+          subtitle: place.address,
+          providerName: 'Google Places',
+          externalUrl: (task.baseItem.externalUrl ?? '').trim().isNotEmpty
+              ? task.baseItem.externalUrl
+              : place.googleMapsUrl,
+          dataSource: task.isGroundingVerifiedPrice
+              ? 'grounded_gemini_google_places'
+              : 'gemini_google_places',
+          googlePlaceId: place.placeId,
+          address: place.address,
+          photoUrl: place.photoUrl,
+          latitude: place.latitude,
+          longitude: place.longitude,
+          rating: place.rating,
+          googleMapsUrl: place.googleMapsUrl,
+        ),
+      );
     }
+    if (_enableSummaryLogs) {
+      debugPrint(
+        '[HotelParallel] completed totalElapsed=${totalStopwatch.elapsedMilliseconds}ms',
+      );
+    }
+    _groundingSummary(
+      'hotels total=$total elapsed=${totalStopwatch.elapsedMilliseconds}ms '
+      'verified=$verifiedCount unverified=$unverifiedCount failed=$failedCount',
+    );
+    _placesSummary(
+      'hotels total=$total elapsed=${totalStopwatch.elapsedMilliseconds}ms '
+      'success=$placesSuccess failed=$placesFailed',
+    );
     _log('hotel deduped count=${items.length}');
     _log('hotel final kept count=${items.length}');
     return items;
@@ -1012,6 +1424,9 @@ class FirebaseChecklistRemoteDataSource implements ChecklistRemoteDataSource {
         : ChecklistPlanProgressStep.findingActivities;
     final progressStart = type == 'restaurant' ? 0.68 : 0.82;
     final progressSpan = type == 'restaurant' ? 0.12 : 0.08;
+    final maxConcurrent = type == 'restaurant'
+        ? _maxConcurrentRestaurantPlaces
+        : _maxConcurrentActivityPlaces;
     onProgress(
       progressStep,
       progressStart,
@@ -1019,117 +1434,276 @@ class FirebaseChecklistRemoteDataSource implements ChecklistRemoteDataSource {
       totalItemCount: queries.length,
       debugMessage: 'finding_${type}s_started',
     );
-
-    for (var index = 0; index < queries.length; index++) {
-      throwIfCancelled();
-      final query = queries[index];
-      final current = index + 1;
-      final stageProgress =
-          progressStart + (progressSpan * current / queries.length);
+    if (_enableSummaryLogs) {
       debugPrint(
-        '[ChecklistPlanProgress] enrich type=$type index=$current total=${queries.length}',
+        '[PlacesParallel] started type=$type total=${queries.length} '
+        'maxConcurrent=$maxConcurrent',
       );
-      onProgress(
-        progressStep,
-        stageProgress,
-        currentItemIndex: current,
-        totalItemCount: queries.length,
-        debugMessage: 'finding_${type}s_progress',
-      );
-      final order = startingOrder + items.length;
-      final resolvedDayIndex = _resolveDayIndex(
-        rawDayIndex: query.dayIndex,
-        fallbackDayIndex: dayIndexes[index],
-        tripDays: input.tripDays,
-      );
-      final fallbackItem = _buildFallbackSearchItem(
-        input: input,
-        query: query,
-        type: type,
-        groupType: groupType,
-        order: order,
-        dayIndex: resolvedDayIndex,
-      );
-      try {
-        throwIfCancelled();
-        final places = await googlePlacesRemoteDataSource.searchPlacesByText(
-          query: query.query,
-          type: type,
-          latitude: input.latitude,
-          longitude: input.longitude,
-          limit: 1,
-        );
-        throwIfCancelled();
-        if (places.isEmpty) {
-          _log('$type query returned 0 results query=${query.query}');
-          items.add(fallbackItem);
-          onProgress(
-            progressStep,
-            stageProgress,
-            currentItemIndex: current,
-            totalItemCount: queries.length,
-            hasPartialFailures: true,
-            errorCode: 'partial_enrich',
-            debugMessage: '${type}_partial_enrich_continue',
-          );
-          continue;
-        }
-
-        final place = places.first;
-        final placeId = place.placeId.trim();
-        if (placeId.isEmpty || seenPlaceIds.contains(placeId)) {
-          _log(
-            '$type query skipped duplicateOrEmpty placeId=$placeId query=${query.query}',
-          );
-          items.add(fallbackItem);
-          onProgress(
-            progressStep,
-            stageProgress,
-            currentItemIndex: current,
-            totalItemCount: queries.length,
-            hasPartialFailures: true,
-            errorCode: 'partial_enrich',
-            debugMessage: '${type}_partial_enrich_continue',
-          );
-          continue;
-        }
-        seenPlaceIds.add(placeId);
-
-        items.add(
-          fallbackItem.copyWith(
-            title: place.name,
-            subtitle: place.address,
-            providerName: 'Google Places',
-            externalUrl: place.googleMapsUrl,
-            dataSource: 'google_places',
-            googlePlaceId: placeId,
-            address: place.address,
-            photoUrl: place.photoUrl,
-            latitude: place.latitude,
-            longitude: place.longitude,
-            rating: place.rating,
-            googleMapsUrl: place.googleMapsUrl,
-          ),
-        );
-      } catch (error) {
-        _log('$type enrich failed query=${query.query} error=$error');
-        items.add(fallbackItem);
-        onProgress(
-          progressStep,
-          stageProgress,
-          currentItemIndex: current,
-          totalItemCount: queries.length,
-          hasPartialFailures: true,
-          errorCode: 'partial_enrich',
-          debugMessage: '${type}_partial_enrich_continue',
-        );
-      }
     }
+    final totalStopwatch = Stopwatch()..start();
+    var completedCount = 0;
+    final parallelResults =
+        await _mapWithConcurrency<GeminiPlaceQuery, _PlaceEnrichTaskResult>(
+          inputs: queries,
+          maxConcurrency: maxConcurrent,
+          shouldCancel: () => shouldCancel?.call() ?? false,
+          mapper: (query, index) async {
+            throwIfCancelled();
+            final current = index + 1;
+            final order = startingOrder + index;
+            final resolvedDayIndex = _resolveDayIndex(
+              rawDayIndex: query.dayIndex,
+              fallbackDayIndex: dayIndexes[index],
+              tripDays: input.tripDays,
+            );
+            final fallbackItem = _buildFallbackSearchItem(
+              input: input,
+              query: query,
+              type: type,
+              groupType: groupType,
+              order: order,
+              dayIndex: resolvedDayIndex,
+            );
+            final baseItem = fallbackItem.copyWith(
+              priceStatus: 'ai_estimate',
+              dataSource: 'ai_estimate',
+              externalUrl: _buildGoogleSearchUrlForType(
+                type: type,
+                title: query.query,
+                destination: input.destination,
+              ),
+            );
+            _geminiDebug(
+              'ai_estimate applied item id=${baseItem.id} '
+              'type=$type title=${baseItem.title}',
+            );
+            final suspiciousReason = _detectGeminiQuerySuspiciousReason(
+              currency: input.currency,
+              type: type,
+              query: query,
+            );
+            _geminiDebug(
+              '$type title=${query.query} '
+              'estimatedCostMin=${query.estimatedCostMin} '
+              'estimatedCostMax=${query.estimatedCostMax} '
+              'costUnit=${query.costUnit} '
+              'currency=${input.currency} '
+              'suspiciousPrice=${suspiciousReason != null} '
+              'suspiciousReason=${suspiciousReason ?? ''}',
+            );
+            if (_enableSummaryLogs) {
+              debugPrint(
+                '[PlacesParallel] task started type=$type '
+                'index=$current/${queries.length} query=${query.query}',
+              );
+            }
+            final taskStopwatch = Stopwatch()..start();
+            try {
+              throwIfCancelled();
+              _placesDebug('search started type=$type query=${query.query}');
+              final places = await googlePlacesRemoteDataSource
+                  .searchPlacesByText(
+                    query: query.query,
+                    type: type,
+                    latitude: input.latitude,
+                    longitude: input.longitude,
+                    limit: 1,
+                  );
+              throwIfCancelled();
+              final place = places.isEmpty ? null : places.first;
+              if (_enableSummaryLogs) {
+                debugPrint(
+                  '[PlacesParallel] task completed type=$type '
+                  'index=$current/${queries.length} '
+                  'elapsed=${taskStopwatch.elapsedMilliseconds}ms',
+                );
+              }
+              completedCount += 1;
+              final stageProgress =
+                  progressStart +
+                  (progressSpan * completedCount / queries.length);
+              if (_enableDetailedDebugLogs) {
+                debugPrint(
+                  '[ChecklistPlanProgress] enrich type=$type index=$completedCount total=${queries.length}',
+                );
+              }
+              onProgress(
+                progressStep,
+                stageProgress,
+                currentItemIndex: completedCount,
+                totalItemCount: queries.length,
+                hasPartialFailures: place == null,
+                errorCode: place == null ? 'partial_enrich' : null,
+                debugMessage: place == null
+                    ? '${type}_partial_enrich_continue'
+                    : 'finding_${type}s_progress',
+              );
+              return _PlaceEnrichTaskResult(
+                originalIndex: index,
+                queryText: query.query,
+                baseItem: baseItem,
+                place: place,
+                hasError: false,
+              );
+            } catch (error) {
+              if (error is AppException &&
+                  error.code == 'checklist_generate_cancelled') {
+                rethrow;
+              }
+              if (_enableSummaryLogs) {
+                debugPrint(
+                  '[PlacesParallel] task failed type=$type '
+                  'index=$current/${queries.length} '
+                  'elapsed=${taskStopwatch.elapsedMilliseconds}ms error=$error',
+                );
+              }
+              _log('$type enrich failed query=${query.query} error=$error');
+              _placesDebug(
+                'selected place title=${query.query} address= rating=null '
+                'photoUrlHash=none error=$error',
+              );
+              completedCount += 1;
+              final stageProgress =
+                  progressStart +
+                  (progressSpan * completedCount / queries.length);
+              onProgress(
+                progressStep,
+                stageProgress,
+                currentItemIndex: completedCount,
+                totalItemCount: queries.length,
+                hasPartialFailures: true,
+                errorCode: 'partial_enrich',
+                debugMessage: '${type}_partial_enrich_continue',
+              );
+              return _PlaceEnrichTaskResult(
+                originalIndex: index,
+                queryText: query.query,
+                baseItem: baseItem,
+                place: null,
+                hasError: true,
+              );
+            }
+          },
+        );
+
+    throwIfCancelled();
+    final sortedResults = parallelResults.toList(
+      growable: false,
+    )..sort((left, right) => left.originalIndex.compareTo(right.originalIndex));
+    var placesSuccess = 0;
+    var placesFailed = 0;
+    var dedupedCount = 0;
+    for (final result in sortedResults) {
+      final place = result.place;
+      if (place == null) {
+        placesFailed += 1;
+        _log('$type query returned 0 results query=${result.queryText}');
+        items.add(result.baseItem);
+        continue;
+      }
+      final placeId = place.placeId.trim();
+      if (placeId.isEmpty || seenPlaceIds.contains(placeId)) {
+        placesFailed += 1;
+        if (placeId.isNotEmpty && seenPlaceIds.contains(placeId)) {
+          dedupedCount += 1;
+        }
+        _log(
+          '$type query skipped duplicateOrEmpty placeId=$placeId query=${result.queryText}',
+        );
+        items.add(result.baseItem);
+        continue;
+      }
+      seenPlaceIds.add(placeId);
+      placesSuccess += 1;
+      _placesDebug(
+        'selected place title=${place.name} '
+        'address=${place.address ?? ''} '
+        'rating=${place.rating} '
+        'photoUrlHash=${_hashText(place.photoUrl)}',
+      );
+
+      items.add(
+        result.baseItem.copyWith(
+          title: place.name,
+          subtitle: place.address,
+          providerName: 'Google Places',
+          externalUrl: (result.baseItem.externalUrl ?? '').trim().isNotEmpty
+              ? result.baseItem.externalUrl
+              : place.googleMapsUrl,
+          dataSource: 'ai_estimate_google_places',
+          googlePlaceId: placeId,
+          address: place.address,
+          photoUrl: place.photoUrl,
+          latitude: place.latitude,
+          longitude: place.longitude,
+          rating: place.rating,
+          googleMapsUrl: place.googleMapsUrl,
+        ),
+      );
+    }
+    if (_enableSummaryLogs) {
+      debugPrint(
+        '[PlacesParallel] completed type=$type '
+        'totalElapsed=${totalStopwatch.elapsedMilliseconds}ms',
+      );
+    }
+    _placesSummary(
+      '$type total=${queries.length} elapsed=${totalStopwatch.elapsedMilliseconds}ms '
+      'success=$placesSuccess failed=$placesFailed deduped=$dedupedCount',
+    );
 
     _log('$type deduped count=${seenPlaceIds.length}');
     _log('$type final kept count=${items.length}');
 
     return items;
+  }
+
+  Future<List<R>> _mapWithConcurrency<T, R>({
+    required List<T> inputs,
+    required int maxConcurrency,
+    required bool Function() shouldCancel,
+    required Future<R> Function(T input, int index) mapper,
+  }) async {
+    if (inputs.isEmpty) {
+      return <R>[];
+    }
+    final safeConcurrency = maxConcurrency <= 0 ? 1 : maxConcurrency;
+    final results = List<R?>.filled(inputs.length, null, growable: false);
+    var nextIndex = 0;
+
+    Future<void> worker() async {
+      while (true) {
+        if (shouldCancel()) {
+          throw AppException('checklist_generate_cancelled');
+        }
+        if (nextIndex >= inputs.length) {
+          return;
+        }
+        final currentIndex = nextIndex;
+        nextIndex += 1;
+        final mapped = await mapper(inputs[currentIndex], currentIndex);
+        results[currentIndex] = mapped;
+      }
+    }
+
+    final workers = <Future<void>>[];
+    final workerCount = safeConcurrency > inputs.length
+        ? inputs.length
+        : safeConcurrency;
+    for (var i = 0; i < workerCount; i++) {
+      workers.add(worker());
+    }
+    await Future.wait<void>(workers);
+
+    final output = <R>[];
+    for (var i = 0; i < results.length; i++) {
+      final value = results[i];
+      if (value == null) {
+        throw AppException('parallel_map_result_missing');
+      }
+      output.add(value);
+    }
+    return output;
   }
 
   ChecklistDetailItem _buildFallbackHotelItem({
@@ -1162,6 +1736,7 @@ class FirebaseChecklistRemoteDataSource implements ChecklistRemoteDataSource {
       providerName: 'Google Places',
       dataSource: 'gemini',
       status: 'suggested',
+      priceStatus: 'estimated',
       displayOrder: order,
       dayIndex: 0,
       budgetWarning: candidate.budgetWarning,
@@ -1199,6 +1774,7 @@ class FirebaseChecklistRemoteDataSource implements ChecklistRemoteDataSource {
       providerName: 'Google Places',
       dataSource: 'gemini',
       status: 'suggested',
+      priceStatus: 'estimated',
       displayOrder: order,
       dayIndex: dayIndex,
     );
@@ -1213,24 +1789,62 @@ class FirebaseChecklistRemoteDataSource implements ChecklistRemoteDataSource {
     final maxHotelNightlyBudget = hotelBudget != null && input.nightCount > 0
         ? hotelBudget / input.nightCount
         : null;
-
-    return items
-        .map(
-          (item) => _normalizeAndValidateGeneratedItem(
-            input: input,
-            hotelBudget: hotelBudget,
-            maxHotelNightlyBudget: maxHotelNightlyBudget,
-            item: item,
-          ),
-        )
-        .toList(growable: false);
+    var filteredCount = 0;
+    var suspiciousPriceCount = 0;
+    var fallbackItemCount = 0;
+    final validatedItems = <ChecklistDetailItem>[];
+    var keptHotelCount = 0;
+    for (final item in items) {
+      final validationResult = _normalizeAndValidateGeneratedItem(
+        input: input,
+        hotelBudget: hotelBudget,
+        maxHotelNightlyBudget: maxHotelNightlyBudget,
+        item: item,
+        onSuspiciousPrice: () {
+          suspiciousPriceCount += 1;
+        },
+        onFallbackItem: () {
+          fallbackItemCount += 1;
+        },
+      );
+      if (validationResult.filteredOut) {
+        filteredCount += 1;
+        continue;
+      }
+      final validatedItem = validationResult.item;
+      if (validatedItem == null) {
+        continue;
+      }
+      final normalizedType = (validatedItem.type ?? '').trim().toLowerCase();
+      final normalizedGroup = validatedItem.groupType.trim().toLowerCase();
+      if (normalizedType == 'hotel' || normalizedGroup == 'stay') {
+        keptHotelCount += 1;
+      }
+      validatedItems.add(validatedItem);
+    }
+    if (keptHotelCount == 0) {
+      final fallbackHotelItem = _buildSearchHotelsWithinBudgetItem(
+        input: input,
+        displayOrder: validatedItems.length,
+      );
+      fallbackItemCount += 1;
+      validatedItems.add(fallbackHotelItem);
+    }
+    _geminiDebug(
+      'validation summary filteredCount=$filteredCount '
+      'suspiciousPriceCount=$suspiciousPriceCount '
+      'fallbackItemCount=$fallbackItemCount',
+    );
+    return validatedItems;
   }
 
-  ChecklistDetailItem _normalizeAndValidateGeneratedItem({
+  _ItemValidationResult _normalizeAndValidateGeneratedItem({
     required GeminiPlanningInput input,
     required double? hotelBudget,
     required double? maxHotelNightlyBudget,
     required ChecklistDetailItem item,
+    required VoidCallback onSuspiciousPrice,
+    required VoidCallback onFallbackItem,
   }) {
     final normalizedType = (item.type ?? '').trim().toLowerCase();
     final normalizedGroup = item.groupType.trim().toLowerCase();
@@ -1249,6 +1863,9 @@ class FirebaseChecklistRemoteDataSource implements ChecklistRemoteDataSource {
     var max = nextItem.estimatedCostMax;
     var costUnit = (nextItem.costUnit ?? '').trim().toLowerCase();
     String? budgetWarning = nextItem.budgetWarning;
+    var priceStatus = (nextItem.priceStatus ?? '').trim();
+    final originalMin = min;
+    final originalMax = max;
 
     if (isFlight) {
       costUnit = 'per_ticket';
@@ -1279,38 +1896,90 @@ class FirebaseChecklistRemoteDataSource implements ChecklistRemoteDataSource {
       }
     }
 
-    final isSuspiciousPriceUnit = _isSuspiciousPriceUnit(
+    if ((nextItem.dataSource ?? '').trim().toLowerCase() == 'gemini' ||
+        (isFlight &&
+            ((nextItem.googleFlightsUrl ?? '').trim().isEmpty ||
+                (nextItem.airline ?? '').trim().isEmpty))) {
+      onFallbackItem();
+    }
+
+    final currentAverage = _readAverageAmount(min: min, max: max);
+    if (currentAverage == null || currentAverage <= 0) {
+      priceStatus = 'price_unverified';
+      _geminiDebug(
+        'check latest price title=${nextItem.title} '
+        'reason=missing_or_non_positive_price '
+        'originalPrice=${_formatOriginalPriceRange(originalMin, originalMax)}',
+      );
+    }
+
+    final suspiciousReason = _detectSuspiciousPriceReason(
       currency: input.currency,
       type: normalizedType,
       min: min,
       max: max,
       maxHotelNightlyBudget: maxHotelNightlyBudget,
     );
+    final isSuspiciousPriceUnit = suspiciousReason != null;
 
     if (isSuspiciousPriceUnit) {
-      final fallbackRange = _buildFallbackPriceRange(
-        input: input,
-        item: nextItem,
-        hotelBudget: hotelBudget,
-        maxHotelNightlyBudget: maxHotelNightlyBudget,
-      );
-      min = fallbackRange.$1;
-      max = fallbackRange.$2;
+      onSuspiciousPrice();
       budgetWarning = _mergeWarning(budgetWarning, 'suspicious_price_unit');
+      priceStatus = 'price_unverified';
+      _geminiDebug(
+        'price unverified title=${nextItem.title} '
+        'reason=$suspiciousReason '
+        'originalPrice=${_formatOriginalPriceRange(originalMin, originalMax)}',
+      );
+      min = null;
+      max = null;
     }
 
-    final isWithinBudget =
-        !isHotel ||
-        maxHotelNightlyBudget == null ||
-        max == null ||
-        max <= maxHotelNightlyBudget * 1.15;
-    if (isHotel && !isWithinBudget) {
-      budgetWarning = _mergeWarning(budgetWarning, 'over_budget');
-      if (maxHotelNightlyBudget > 0) {
-        final fallbackMin = maxHotelNightlyBudget * 0.82;
-        final fallbackMax = maxHotelNightlyBudget * 0.98;
-        min = fallbackMin;
-        max = fallbackMax;
+    bool isWithinBudget = true;
+    if (isHotel) {
+      if (hotelBudget == null ||
+          input.nightCount <= 0 ||
+          maxHotelNightlyBudget == null ||
+          maxHotelNightlyBudget <= 0) {
+        budgetWarning = _mergeWarning(budgetWarning, 'validation_error');
+        priceStatus = 'price_unverified';
+        isWithinBudget = false;
+        _geminiDebug(
+          'item filtered title=${nextItem.title} '
+          'type=${nextItem.type ?? ''} '
+          'reason=validation_error '
+          'originalEstimatedCostMax=${originalMax ?? max} '
+          'budgetLimit=$maxHotelNightlyBudget',
+        );
+        return _ItemValidationResult(filteredOut: true, item: null);
+      }
+
+      if (max == null) {
+        budgetWarning = _mergeWarning(budgetWarning, 'price_unverified');
+        priceStatus = 'price_unverified';
+        isWithinBudget = false;
+        _geminiDebug(
+          'item filtered title=${nextItem.title} '
+          'type=${nextItem.type ?? ''} '
+          'reason=price_unverified '
+          'originalEstimatedCostMax=${originalMax ?? max} '
+          'budgetLimit=${maxHotelNightlyBudget * 1.15}',
+        );
+        return _ItemValidationResult(filteredOut: true, item: null);
+      }
+
+      isWithinBudget = max <= maxHotelNightlyBudget * 1.15;
+      if (!isWithinBudget) {
+        budgetWarning = _mergeWarning(budgetWarning, 'over_budget');
+        priceStatus = 'price_unverified';
+        _geminiDebug(
+          'item filtered title=${nextItem.title} '
+          'type=${nextItem.type ?? ''} '
+          'reason=over_budget '
+          'originalEstimatedCostMax=$max '
+          'budgetLimit=${maxHotelNightlyBudget * 1.15}',
+        );
+        return _ItemValidationResult(filteredOut: true, item: null);
       }
     }
 
@@ -1326,22 +1995,44 @@ class FirebaseChecklistRemoteDataSource implements ChecklistRemoteDataSource {
       'maxHotelNightlyBudget=$maxHotelNightlyBudget '
       'isWithinBudget=$isWithinBudget',
     );
+    _geminiDebug(
+      'price validation title=${nextItem.title} '
+      'type=${nextItem.type ?? ''} '
+      'currency=${input.currency} '
+      'costUnit=$costUnit '
+      'estimatedCostMin=$min '
+      'estimatedCostMax=$max '
+      'hotelBudget=$hotelBudget '
+      'nightCount=${input.nightCount} '
+      'maxHotelNightlyBudget=$maxHotelNightlyBudget '
+      'isWithinBudget=$isWithinBudget '
+      'suspiciousPrice=$isSuspiciousPriceUnit '
+      'suspiciousReason=${suspiciousReason ?? ''}',
+    );
 
-    return nextItem.copyWith(
-      currency: input.currency,
-      originalCurrency: nextItem.originalCurrency ?? nextItem.currency,
-      originalPriceMin: nextItem.originalPriceMin ?? nextItem.estimatedCostMin,
-      originalPriceMax: nextItem.originalPriceMax ?? nextItem.estimatedCostMax,
-      estimatedCostMin: min,
-      estimatedCostMax: max,
-      estimatedPriceMin: isFlight ? min : nextItem.estimatedPriceMin,
-      estimatedPriceMax: isFlight ? max : nextItem.estimatedPriceMax,
-      costUnit: costUnit,
-      budgetWarning: budgetWarning,
+    return _ItemValidationResult(
+      filteredOut: false,
+      item: nextItem.copyWith(
+        currency: input.currency,
+        originalCurrency: nextItem.originalCurrency ?? nextItem.currency,
+        originalPriceMin:
+            nextItem.originalPriceMin ?? nextItem.estimatedCostMin,
+        originalPriceMax:
+            nextItem.originalPriceMax ?? nextItem.estimatedCostMax,
+        estimatedCostMin: min,
+        estimatedCostMax: max,
+        estimatedPriceMin: isFlight ? min : nextItem.estimatedPriceMin,
+        estimatedPriceMax: isFlight ? max : nextItem.estimatedPriceMax,
+        costUnit: costUnit,
+        budgetWarning: budgetWarning,
+        priceStatus: priceStatus.isNotEmpty
+            ? priceStatus
+            : (min == null && max == null ? 'price_unverified' : 'verified'),
+      ),
     );
   }
 
-  bool _isSuspiciousPriceUnit({
+  String? _detectSuspiciousPriceReason({
     required String currency,
     required String type,
     required double? min,
@@ -1349,75 +2040,109 @@ class FirebaseChecklistRemoteDataSource implements ChecklistRemoteDataSource {
     required double? maxHotelNightlyBudget,
   }) {
     if (currency.trim().toUpperCase() != 'CNY') {
-      return false;
+      return null;
     }
     final average = _readAverageAmount(min: min, max: max);
     if (average == null) {
-      return false;
+      return 'missing_price';
     }
     switch (type) {
       case 'hotel':
         if (average <= 0) {
-          return false;
+          return 'non_positive_price';
         }
         if (average < 60) {
-          return true;
+          return 'too_low_for_cny_hotel';
         }
         final limit = maxHotelNightlyBudget == null
             ? 8000
             : (maxHotelNightlyBudget * 2.8).clamp(8000, 30000).toDouble();
-        return average > limit;
+        return average > limit ? 'too_high_for_cny_hotel' : null;
       case 'restaurant':
       case 'food':
-        return average > 1500;
+        return average > 1500 ? 'too_high_for_cny_restaurant' : null;
       case 'activity':
-        return average > 5000;
+        return average > 5000 ? 'too_high_for_cny_activity' : null;
       default:
-        return false;
+        return null;
     }
   }
 
-  (double?, double?) _buildFallbackPriceRange({
+  bool _isGeminiHotelWithinBudget({
     required GeminiPlanningInput input,
-    required ChecklistDetailItem item,
+    required double? hotelBudget,
+    required GeminiHotelCandidate candidate,
+  }) {
+    final totalMax = candidate.expectedCostMax == null
+        ? null
+        : candidate.expectedCostMax! * input.nightCount;
+    if (hotelBudget == null || input.nightCount <= 0 || totalMax == null) {
+      return false;
+    }
+    return totalMax <= hotelBudget;
+  }
+
+  String? _detectGeminiHotelSuspiciousReason({
+    required GeminiPlanningInput input,
     required double? hotelBudget,
     required double? maxHotelNightlyBudget,
+    required GeminiHotelCandidate candidate,
   }) {
-    final normalizedType = (item.type ?? '').trim().toLowerCase();
-    final normalizedGroup = item.groupType.trim().toLowerCase();
-    if (normalizedType == 'hotel' || normalizedGroup == 'stay') {
-      final nightlyBudget =
-          maxHotelNightlyBudget ??
-          ((hotelBudget ?? 0) > 0 && input.nightCount > 0
-              ? hotelBudget! / input.nightCount
-              : null);
-      if (nightlyBudget != null && nightlyBudget > 0) {
-        return (nightlyBudget * 0.72, nightlyBudget * 0.92);
-      }
-      return (480, 920);
-    }
-    if (normalizedType == 'restaurant' ||
-        normalizedType == 'food' ||
-        normalizedGroup == 'food') {
-      switch (input.accommodationPreference.trim().toLowerCase()) {
-        case 'luxury':
-          return (220, 480);
-        case 'budget':
-          return (45, 120);
-        default:
-          return (80, 220);
-      }
-    }
-    if (normalizedType == 'activity' || normalizedGroup == 'activity') {
-      return (60, 260);
-    }
-    return (
-      _readAverageAmount(
-        min: item.estimatedCostMin,
-        max: item.estimatedCostMax,
-      ),
-      item.estimatedCostMax,
+    final average = _readAverageAmount(
+      min: candidate.expectedCostMin,
+      max: candidate.expectedCostMax,
     );
+    if (average == null) {
+      return 'missing_price';
+    }
+    if (input.currency.trim().toUpperCase() != 'CNY') {
+      return null;
+    }
+    if (average <= 0) {
+      return 'non_positive_price';
+    }
+    if (average < 60) {
+      return 'too_low_for_cny_hotel';
+    }
+    final totalMax = candidate.expectedCostMax == null
+        ? null
+        : candidate.expectedCostMax! * input.nightCount;
+    if (hotelBudget != null && totalMax != null && totalMax > hotelBudget) {
+      return 'stay_total_exceeds_hotel_budget';
+    }
+    if (maxHotelNightlyBudget != null &&
+        candidate.expectedCostMax != null &&
+        candidate.expectedCostMax! > maxHotelNightlyBudget * 1.15) {
+      return 'nightly_price_exceeds_budget';
+    }
+    final limit = maxHotelNightlyBudget == null
+        ? 8000
+        : (maxHotelNightlyBudget * 2.8).clamp(8000, 30000).toDouble();
+    return average > limit ? 'too_high_for_cny_hotel' : null;
+  }
+
+  String? _detectGeminiQuerySuspiciousReason({
+    required String currency,
+    required String type,
+    required GeminiPlaceQuery query,
+  }) {
+    final average = _readAverageAmount(
+      min: query.estimatedCostMin,
+      max: query.estimatedCostMax,
+    );
+    if (average == null) {
+      return 'missing_price';
+    }
+    if (currency.trim().toUpperCase() != 'CNY') {
+      return null;
+    }
+    if (average < 0) {
+      return 'negative_price';
+    }
+    if (type == 'restaurant') {
+      return average > 1500 ? 'too_high_for_cny_restaurant' : null;
+    }
+    return average > 5000 ? 'too_high_for_cny_activity' : null;
   }
 
   String _mergeWarning(String? current, String next) {
@@ -1436,6 +2161,202 @@ class FirebaseChecklistRemoteDataSource implements ChecklistRemoteDataSource {
       return (min + max) / 2;
     }
     return min ?? max;
+  }
+
+  void _debugLogFinalItemsSummary({
+    required GeminiGeneratedPlan generatedPlan,
+    required List<ChecklistDetailItem> items,
+  }) {
+    if (!_enableDetailedDebugLogs) {
+      return;
+    }
+    final flightCount = items
+        .where((item) => (item.type ?? '').trim().toLowerCase() == 'flight')
+        .length;
+    final hotelCount = items
+        .where((item) => (item.type ?? '').trim().toLowerCase() == 'hotel')
+        .length;
+    final restaurantCount = items
+        .where((item) => (item.type ?? '').trim().toLowerCase() == 'restaurant')
+        .length;
+    final activityCount = items
+        .where((item) => (item.type ?? '').trim().toLowerCase() == 'activity')
+        .length;
+    final suspiciousPriceCount = items
+        .where(
+          (item) => ((item.budgetWarning ?? '')
+              .split('|')
+              .contains('suspicious_price_unit')),
+        )
+        .length;
+    final fallbackItemCount = items
+        .where(
+          (item) => (item.dataSource ?? '').trim().toLowerCase() == 'gemini',
+        )
+        .length;
+    final filteredCount = items
+        .where(
+          (item) =>
+              ((item.budgetWarning ?? '').split('|').contains('over_budget')),
+        )
+        .length;
+    _geminiDebug(
+      'saving summary totalItemsCount=${items.length} '
+      'flightCount=$flightCount '
+      'hotelCount=$hotelCount '
+      'restaurantCount=$restaurantCount '
+      'activityCount=$activityCount '
+      'filteredCount=$filteredCount '
+      'suspiciousPriceCount=$suspiciousPriceCount '
+      'fallbackItemCount=$fallbackItemCount '
+      'sourceFlights=${generatedPlan.flights.length} '
+      'sourceHotels=${generatedPlan.hotelCandidates.length} '
+      'sourceRestaurants=${generatedPlan.restaurantQueries.length} '
+      'sourceActivities=${generatedPlan.activityQueries.length}',
+    );
+  }
+
+  String _formatOriginalPriceRange(double? min, double? max) {
+    if (min != null && max != null) {
+      return '$min-$max';
+    }
+    return '${min ?? max}';
+  }
+
+  String _hashText(String? value) {
+    final text = (value ?? '').trim();
+    if (text.isEmpty) {
+      return 'none';
+    }
+    final hash = Object.hashAll(text.codeUnits);
+    return hash.toUnsigned(32).toRadixString(16);
+  }
+
+  ChecklistDetailItem _applyGroundedPriceResultToItem({
+    required ChecklistDetailItem item,
+    required GroundedPriceSearchResult? grounded,
+    required String fallbackTitle,
+    required String fallbackUrl,
+  }) {
+    if (grounded == null) {
+      return item.copyWith(
+        externalUrl: (item.externalUrl ?? '').trim().isNotEmpty
+            ? item.externalUrl
+            : fallbackUrl,
+        priceStatus: 'price_unverified',
+        budgetWarning: _mergeWarning(item.budgetWarning, 'price_unverified'),
+        estimatedCostMin: null,
+        estimatedCostMax: null,
+        estimatedPriceMin: null,
+        estimatedPriceMax: null,
+      );
+    }
+    _groundingLog(
+      'parsed result title=${grounded.title ?? fallbackTitle} '
+      'priceStatus=${grounded.priceVerified ? 'verified' : 'unverified'} '
+      'currency=${grounded.currency}',
+    );
+    if (!grounded.priceVerified) {
+      _groundingLog(
+        'price unverified reason=${grounded.unverifiedReason ?? 'price_unverified'}',
+      );
+    }
+    return item.copyWith(
+      title: (grounded.title ?? '').trim().isNotEmpty
+          ? grounded.title!.trim()
+          : fallbackTitle,
+      subtitle: (grounded.subtitle ?? '').trim().isNotEmpty
+          ? grounded.subtitle!.trim()
+          : item.subtitle,
+      estimatedCostMin: grounded.priceVerified
+          ? grounded.estimatedCostMin
+          : null,
+      estimatedCostMax: grounded.priceVerified
+          ? grounded.estimatedCostMax
+          : null,
+      estimatedPriceMin: grounded.priceVerified
+          ? grounded.estimatedCostMin
+          : null,
+      estimatedPriceMax: grounded.priceVerified
+          ? grounded.estimatedCostMax
+          : null,
+      currency: grounded.currency.trim().isNotEmpty
+          ? grounded.currency.trim()
+          : item.currency,
+      costUnit: grounded.costUnit.trim().isNotEmpty
+          ? grounded.costUnit.trim()
+          : item.costUnit,
+      externalUrl: (grounded.externalUrl ?? '').trim().isNotEmpty
+          ? grounded.externalUrl!.trim()
+          : fallbackUrl,
+      originalCurrency: grounded.originalCurrency ?? item.originalCurrency,
+      originalPriceMin: grounded.originalPriceMin ?? item.originalPriceMin,
+      originalPriceMax: grounded.originalPriceMax ?? item.originalPriceMax,
+      budgetWarning: grounded.priceVerified
+          ? item.budgetWarning
+          : _mergeWarning(
+              item.budgetWarning,
+              grounded.unverifiedReason ?? 'price_unverified',
+            ),
+      priceStatus: grounded.priceVerified ? 'verified' : 'price_unverified',
+      dataSource: grounded.priceVerified
+          ? 'grounded_gemini'
+          : 'grounded_gemini_unverified',
+    );
+  }
+
+  String _buildGoogleHotelsSearchUrl({
+    required String destination,
+    required String hotelName,
+  }) {
+    return Uri.https('www.google.com', '/travel/hotels', <String, String>{
+      'q': _joinNonEmptyText(<String>[hotelName, destination, 'hotel']),
+    }).toString();
+  }
+
+  String _buildGoogleSearchUrlForType({
+    required String type,
+    required String title,
+    required String destination,
+  }) {
+    final normalizedType = type.trim().toLowerCase();
+    final query = normalizedType == 'activity'
+        ? _joinNonEmptyText(<String>[title, destination, 'ticket price'])
+        : _joinNonEmptyText(<String>[title, destination, 'average price']);
+    return Uri.https('www.google.com', '/search', <String, String>{
+      'q': query,
+    }).toString();
+  }
+
+  ChecklistDetailItem _buildSearchHotelsWithinBudgetItem({
+    required GeminiPlanningInput input,
+    required int displayOrder,
+  }) {
+    return ChecklistDetailItem(
+      id: _buildItemId(prefix: 'hotel_search', order: displayOrder),
+      groupType: 'stay',
+      title: 'Search hotels within your budget',
+      subtitle: input.destination,
+      isCompleted: false,
+      type: 'hotel',
+      estimatedCostMin: null,
+      estimatedCostMax: null,
+      estimatedPriceMin: null,
+      estimatedPriceMax: null,
+      costUnit: 'per_night',
+      currency: input.currency,
+      providerName: 'Google Hotels',
+      externalUrl: _buildGoogleHotelsSearchUrl(
+        destination: input.destination,
+        hotelName: input.destination,
+      ),
+      dataSource: 'fallback',
+      status: 'suggested',
+      priceStatus: 'price_unverified',
+      displayOrder: displayOrder,
+      dayIndex: input.tripDays > 0 ? 1 : 0,
+      budgetWarning: 'price_unverified|validation_error',
+    );
   }
 
   (double?, double?) _normalizeHotelCandidatePriceRange({
@@ -1541,6 +2462,134 @@ class FirebaseChecklistRemoteDataSource implements ChecklistRemoteDataSource {
     return '${prefix}_${DateTime.now().microsecondsSinceEpoch}_$order';
   }
 
+  GroundedFlightResult? _findGroundedFlightByDirection({
+    required List<GroundedFlightResult> groundedFlights,
+    required String tripDirection,
+  }) {
+    for (final flight in groundedFlights) {
+      if (flight.tripDirection.trim().toLowerCase() ==
+          tripDirection.trim().toLowerCase()) {
+        return flight;
+      }
+    }
+    return null;
+  }
+
+  List<GroundedFlightResult> _buildUnverifiedGroundedFlights({
+    required GeminiPlanningInput input,
+    required List<GeminiFlightPlan> flights,
+  }) {
+    final sourceFlights = flights.isEmpty
+        ? <GeminiFlightPlan>[
+            _fillFlightPlanFallback(
+              input: input,
+              tripDirection: 'outbound',
+              flight: null,
+            ),
+            _fillFlightPlanFallback(
+              input: input,
+              tripDirection: 'return',
+              flight: null,
+            ),
+          ]
+        : flights;
+    return sourceFlights
+        .map((flight) {
+          return GroundedFlightResult(
+            tripDirection: flight.tripDirection,
+            airlineName: flight.airlineName,
+            airlineCode: flight.airlineCode,
+            flightNumber: flight.flightNumber,
+            departureDate: flight.departureDate,
+            departureTime: flight.departureTime,
+            arrivalTime: flight.arrivalTime,
+            departureCity: flight.departureCity,
+            arrivalCity: flight.arrivalCity,
+            departureAirportName: flight.departureAirportName,
+            departureAirportCode: flight.departureAirportCode,
+            departureTerminal: flight.departureTerminal,
+            arrivalAirportName: flight.arrivalAirportName,
+            arrivalAirportCode: flight.arrivalAirportCode,
+            arrivalTerminal: flight.arrivalTerminal,
+            estimatedPrice: null,
+            estimatedCostMin: null,
+            estimatedCostMax: null,
+            currency: input.currency,
+            googleFlightsUrl: flight.googleFlightsUrl,
+            originalCurrency: flight.currency,
+            originalPriceMin: flight.estimatedCostMin,
+            originalPriceMax: flight.estimatedCostMax,
+            priceVerified: false,
+            unverifiedReason: 'grounding_failed',
+          );
+        })
+        .toList(growable: false);
+  }
+
+  GeminiFlightPlan? _mergeGroundedFlight({
+    required GeminiFlightPlan? skeleton,
+    required GroundedFlightResult? grounded,
+    required String fallbackCurrency,
+  }) {
+    if (grounded == null) {
+      return skeleton;
+    }
+    _groundingLog(
+      'parsed result title=${grounded.airlineName ?? skeleton?.airlineName ?? ''} '
+      'priceStatus=${grounded.priceVerified ? 'verified' : 'unverified'} '
+      'currency=${(grounded.currency).trim().isNotEmpty ? grounded.currency : fallbackCurrency}',
+    );
+    return GeminiFlightPlan(
+      tripDirection: grounded.tripDirection,
+      airlineName: (grounded.airlineName ?? skeleton?.airlineName)?.trim(),
+      airlineCode: (grounded.airlineCode ?? skeleton?.airlineCode)?.trim(),
+      flightNumber: (grounded.flightNumber ?? skeleton?.flightNumber)?.trim(),
+      departureCity: (grounded.departureCity ?? skeleton?.departureCity)
+          ?.trim(),
+      arrivalCity: (grounded.arrivalCity ?? skeleton?.arrivalCity)?.trim(),
+      departureAirportName:
+          (grounded.departureAirportName ?? skeleton?.departureAirportName)
+              ?.trim(),
+      departureAirportCode:
+          (grounded.departureAirportCode ?? skeleton?.departureAirportCode)
+              ?.trim(),
+      departureTerminal:
+          (grounded.departureTerminal ?? skeleton?.departureTerminal)?.trim(),
+      arrivalAirportName:
+          (grounded.arrivalAirportName ?? skeleton?.arrivalAirportName)?.trim(),
+      arrivalAirportCode:
+          (grounded.arrivalAirportCode ?? skeleton?.arrivalAirportCode)?.trim(),
+      arrivalTerminal: (grounded.arrivalTerminal ?? skeleton?.arrivalTerminal)
+          ?.trim(),
+      departureTime: (grounded.departureTime ?? skeleton?.departureTime)
+          ?.trim(),
+      arrivalTime: (grounded.arrivalTime ?? skeleton?.arrivalTime)?.trim(),
+      departureDate: (grounded.departureDate ?? skeleton?.departureDate)
+          ?.trim(),
+      estimatedPrice: grounded.priceVerified
+          ? (grounded.estimatedPrice ?? skeleton?.estimatedPrice)
+          : null,
+      estimatedCostMin: grounded.priceVerified
+          ? (grounded.estimatedCostMin ?? skeleton?.estimatedCostMin)
+          : null,
+      estimatedCostMax: grounded.priceVerified
+          ? (grounded.estimatedCostMax ?? skeleton?.estimatedCostMax)
+          : null,
+      currency: grounded.currency.trim().isNotEmpty
+          ? grounded.currency.trim()
+          : (skeleton?.currency.trim().isNotEmpty == true
+                ? skeleton!.currency.trim()
+                : fallbackCurrency),
+      googleFlightsUrl:
+          (grounded.googleFlightsUrl ?? skeleton?.googleFlightsUrl)?.trim(),
+      originalCurrency: grounded.originalCurrency ?? skeleton?.originalCurrency,
+      originalPriceMin: grounded.originalPriceMin ?? skeleton?.originalPriceMin,
+      originalPriceMax: grounded.originalPriceMax ?? skeleton?.originalPriceMax,
+      priceVerified: grounded.priceVerified,
+      unverifiedReason: grounded.unverifiedReason ?? skeleton?.unverifiedReason,
+    );
+  }
+
   ChecklistDetailItem _buildFlightItemFromPlan({
     required GeminiPlanningInput input,
     required GeminiFlightPlan flight,
@@ -1592,6 +2641,9 @@ class FirebaseChecklistRemoteDataSource implements ChecklistRemoteDataSource {
       estimatedPriceMax: estimatedCostMax,
       estimatedCostMin: estimatedCostMin,
       estimatedCostMax: estimatedCostMax,
+      originalCurrency: flight.originalCurrency,
+      originalPriceMin: flight.originalPriceMin,
+      originalPriceMax: flight.originalPriceMax,
       costUnit: 'per_ticket',
       currency: flight.currency,
       routeText: routeText,
@@ -1605,10 +2657,16 @@ class FirebaseChecklistRemoteDataSource implements ChecklistRemoteDataSource {
       externalUrl: (flight.googleFlightsUrl ?? '').trim().isNotEmpty
           ? flight.googleFlightsUrl!.trim()
           : fallbackUrl,
-      dataSource: 'gemini',
+      dataSource: flight.priceVerified
+          ? 'grounded_gemini'
+          : 'grounded_gemini_unverified',
       status: 'suggested',
+      priceStatus: flight.priceVerified ? 'verified' : 'price_unverified',
       displayOrder: displayOrder,
       dayIndex: dayIndex,
+      budgetWarning: flight.priceVerified
+          ? null
+          : _mergeWarning(null, flight.unverifiedReason ?? 'price_unverified'),
       airline: airlineName,
       airlineCode: flight.airlineCode,
       flightNumber: flightNumber,
@@ -1712,6 +2770,11 @@ class FirebaseChecklistRemoteDataSource implements ChecklistRemoteDataSource {
               input: input,
               tripDirection: tripDirection,
             ),
+      originalCurrency: flight?.originalCurrency,
+      originalPriceMin: flight?.originalPriceMin,
+      originalPriceMax: flight?.originalPriceMax,
+      priceVerified: flight?.priceVerified ?? false,
+      unverifiedReason: flight?.unverifiedReason,
     );
   }
 
@@ -2491,6 +3554,7 @@ class FirebaseChecklistRemoteDataSource implements ChecklistRemoteDataSource {
           dataSource: (map['dataSource'] as String?)?.trim(),
           accuracyNote: (map['accuracyNote'] as String?)?.trim(),
           status: (map['status'] as String?)?.trim(),
+          priceStatus: (map['priceStatus'] as String?)?.trim(),
           displayOrder: _readInt(map['displayOrder']),
           dayIndex: _readInt(map['dayIndex']),
           budgetWarning: (map['budgetWarning'] as String?)?.trim(),
@@ -2556,6 +3620,7 @@ class FirebaseChecklistRemoteDataSource implements ChecklistRemoteDataSource {
       'dataSource': item.dataSource,
       'accuracyNote': item.accuracyNote,
       'status': item.status,
+      'priceStatus': item.priceStatus,
       'displayOrder': item.displayOrder,
       'dayIndex': item.dayIndex,
       'budgetWarning': item.budgetWarning,
@@ -2674,6 +3739,7 @@ class FirebaseChecklistRemoteDataSource implements ChecklistRemoteDataSource {
       dataSource: (data['dataSource'] as String?)?.trim(),
       accuracyNote: (data['accuracyNote'] as String?)?.trim(),
       status: (data['status'] as String?)?.trim(),
+      priceStatus: (data['priceStatus'] as String?)?.trim(),
       displayOrder: _readInt(data['displayOrder']),
       dayIndex: _readInt(data['dayIndex']),
       budgetWarning: (data['budgetWarning'] as String?)?.trim(),
@@ -2789,4 +3855,45 @@ class FirebaseChecklistRemoteDataSource implements ChecklistRemoteDataSource {
     }
     return null;
   }
+}
+
+class _ItemValidationResult {
+  const _ItemValidationResult({required this.filteredOut, required this.item});
+
+  final bool filteredOut;
+  final ChecklistDetailItem? item;
+}
+
+class _PlaceEnrichTaskResult {
+  const _PlaceEnrichTaskResult({
+    required this.originalIndex,
+    required this.queryText,
+    required this.baseItem,
+    required this.place,
+    required this.hasError,
+  });
+
+  final int originalIndex;
+  final String queryText;
+  final ChecklistDetailItem baseItem;
+  final GooglePlaceSearchResult? place;
+  final bool hasError;
+}
+
+class _HotelEnrichTaskResult {
+  const _HotelEnrichTaskResult({
+    required this.originalIndex,
+    required this.candidateName,
+    required this.baseItem,
+    required this.place,
+    required this.isGroundingVerifiedPrice,
+    required this.hasError,
+  });
+
+  final int originalIndex;
+  final String candidateName;
+  final ChecklistDetailItem baseItem;
+  final GooglePlaceSearchResult? place;
+  final bool isGroundingVerifiedPrice;
+  final bool hasError;
 }
