@@ -702,6 +702,47 @@ class GeminiPlanningRemoteDataSource {
   }
 
   _BudgetHints _buildBudgetHints(GeminiPlanningInput input) {
+    if (input.manualFlightBudget != null &&
+        input.manualHotelBudget != null &&
+        input.manualFoodBudget != null &&
+        input.manualOtherBudget != null) {
+      final flightBudgetHint = input.manualFlightBudget!.clamp(
+        0,
+        input.totalBudget,
+      );
+      final hotelBudgetHint = input.manualHotelBudget!.clamp(
+        0,
+        input.totalBudget,
+      );
+      final foodBudgetHint = input.manualFoodBudget!.clamp(
+        0,
+        input.totalBudget,
+      );
+      final otherBudgetHint = input.manualOtherBudget!.clamp(
+        0,
+        input.totalBudget,
+      );
+      final remainingBudgetHint =
+          (hotelBudgetHint + foodBudgetHint + otherBudgetHint)
+              .clamp(0, input.totalBudget)
+              .toDouble();
+      final maxNightlyHint = input.nightCount > 0
+          ? hotelBudgetHint / input.nightCount
+          : hotelBudgetHint;
+      return _BudgetHints(
+        flightBudgetHint: _roundMoney(flightBudgetHint.toDouble()),
+        remainingBudgetHint: _roundMoney(remainingBudgetHint),
+        hotelBudgetHint: _roundMoney(hotelBudgetHint.toDouble()),
+        maxHotelNightlyBudgetHint: _roundMoney(maxNightlyHint.toDouble()),
+        foodBudgetHint: _roundMoney(foodBudgetHint.toDouble()),
+        otherBudgetHint: _roundMoney(otherBudgetHint.toDouble()),
+        flightRatioHint: input.manualFlightRatio,
+        hotelRatioHint: input.manualHotelRatio,
+        foodRatioHint: input.manualFoodRatio,
+        otherRatioHint: input.manualOtherRatio,
+      );
+    }
+
     final normalizedPreference = input.accommodationPreference
         .trim()
         .toLowerCase();
@@ -727,6 +768,12 @@ class GeminiPlanningRemoteDataSource {
       remainingBudgetHint: _roundMoney(remainingBudgetHint),
       hotelBudgetHint: _roundMoney(hotelBudgetHint),
       maxHotelNightlyBudgetHint: _roundMoney(maxNightlyHint),
+      foodBudgetHint: _roundMoney(input.totalBudget * 0.15),
+      otherBudgetHint: _roundMoney(input.totalBudget * 0.08),
+      flightRatioHint: null,
+      hotelRatioHint: null,
+      foodRatioHint: null,
+      otherRatioHint: null,
     );
   }
 
@@ -837,12 +884,17 @@ class GeminiPlanningRemoteDataSource {
     _BudgetHints hints,
   ) {
     return <String, dynamic>{
+      'flightRatio': hints.flightRatioHint ?? 35,
+      'hotelRatio': hints.hotelRatioHint ?? 42,
+      'foodRatio': hints.foodRatioHint ?? 15,
+      'otherRatio': hints.otherRatioHint ?? 8,
       'flightBudgetMax': hints.flightBudgetHint,
       'remainingBudget': hints.remainingBudgetHint,
       'hotelBudget': hints.hotelBudgetHint,
       'currency': input.currency,
-      'foodBudget': _roundMoney(input.totalBudget * 0.2),
-      'activityBudget': _roundMoney(input.totalBudget * 0.12),
+      'foodBudget': hints.foodBudgetHint,
+      'otherBudget': hints.otherBudgetHint,
+      'activityBudget': hints.otherBudgetHint,
       'localTransportBudget': _roundMoney(input.totalBudget * 0.08),
       'bufferBudget': _roundMoney(input.totalBudget * 0.1),
     };
@@ -854,7 +906,9 @@ class GeminiPlanningRemoteDataSource {
     final outboundDate = _formatDebugDate(input.startDate);
     final returnDate = _formatDebugDate(input.endDate);
     final oneWayPrice = _roundMoney(
-      ((input.totalBudget * 0.35) / 2).clamp(300, input.totalBudget).toDouble(),
+      ((input.manualFlightBudget ?? input.totalBudget * 0.35) / 2)
+          .clamp(300, input.totalBudget)
+          .toDouble(),
     );
     return <Map<String, dynamic>>[
       <String, dynamic>{
@@ -1007,6 +1061,8 @@ Rules:
 - remainingBudget = totalBudget - flightBudgetMax.
 - currency must be the selected user currency.
 - keep values practical and concise.
+- If Input JSON contains manualBudgetSplit, respect those ratios as the primary split target.
+- Prefer returning flightRatio, hotelRatio, foodRatio, otherRatio as integer-like percentages.
 
 Input JSON:
 $inputJson
@@ -1014,11 +1070,16 @@ $inputJson
 Compact output shape example:
 {
   "budgetSplit": {
+    "flightRatio": 30,
+    "hotelRatio": 30,
+    "foodRatio": 25,
+    "otherRatio": 15,
     "flightBudgetMax": 0,
     "remainingBudget": 0,
     "hotelBudget": 0,
     "currency": "CNY",
     "foodBudget": 0,
+    "otherBudget": 0,
     "activityBudget": 0,
     "localTransportBudget": 0,
     "bufferBudget": 0
@@ -1069,6 +1130,12 @@ Compact output shape example:
       'remainingBudgetHint': hints.remainingBudgetHint,
       'hotelBudgetHint': hints.hotelBudgetHint,
       'maxHotelNightlyBudgetHint': hints.maxHotelNightlyBudgetHint,
+      'foodBudgetHint': hints.foodBudgetHint,
+      'otherBudgetHint': hints.otherBudgetHint,
+      'flightRatioHint': hints.flightRatioHint,
+      'hotelRatioHint': hints.hotelRatioHint,
+      'foodRatioHint': hints.foodRatioHint,
+      'otherRatioHint': hints.otherRatioHint,
     });
     return '''
 Return compact JSON only.
@@ -1085,6 +1152,7 @@ Rules:
 - costUnit must be per_night.
 - Use hotelBudgetHint and maxHotelNightlyBudgetHint to keep prices realistic.
 - expectedCostMax * nightCount should not exceed hotelBudgetHint.
+- If ratio hints exist, keep hotel pricing aligned with the manual split.
 - accommodationPreference affects tier preference, not strict blacklist.
 - currency context must follow user currency.
 
@@ -1254,6 +1322,14 @@ class GeminiPlanningInput {
     required this.accommodationPreference,
     this.debugHotelBudget,
     this.debugMaxHotelNightlyBudget,
+    this.manualFlightRatio,
+    this.manualHotelRatio,
+    this.manualFoodRatio,
+    this.manualOtherRatio,
+    this.manualFlightBudget,
+    this.manualHotelBudget,
+    this.manualFoodBudget,
+    this.manualOtherBudget,
   }) : restaurantTargetCount = _buildRestaurantTargetCount(tripDays),
        activityTargetCount = _buildActivityTargetCount(
          tripDays: tripDays,
@@ -1279,6 +1355,14 @@ class GeminiPlanningInput {
   final String accommodationPreference;
   final double? debugHotelBudget;
   final double? debugMaxHotelNightlyBudget;
+  final double? manualFlightRatio;
+  final double? manualHotelRatio;
+  final double? manualFoodRatio;
+  final double? manualOtherRatio;
+  final double? manualFlightBudget;
+  final double? manualHotelBudget;
+  final double? manualFoodBudget;
+  final double? manualOtherBudget;
   final int restaurantTargetCount;
   final int activityTargetCount;
 
@@ -1301,6 +1385,16 @@ class GeminiPlanningInput {
       'preferences': preferences,
       'pace': pace,
       'accommodationPreference': accommodationPreference,
+      'manualBudgetSplit': <String, dynamic>{
+        'flightRatio': manualFlightRatio,
+        'hotelRatio': manualHotelRatio,
+        'foodRatio': manualFoodRatio,
+        'otherRatio': manualOtherRatio,
+        'flightBudget': manualFlightBudget,
+        'hotelBudget': manualHotelBudget,
+        'foodBudget': manualFoodBudget,
+        'otherBudget': manualOtherBudget,
+      },
       'restaurantTargetCount': restaurantTargetCount,
       'activityTargetCount': activityTargetCount,
     };
@@ -1388,6 +1482,10 @@ class GeminiGeneratedPlan {
   }) {
     final map = value is Map ? value.cast<Object?, Object?>() : null;
     return ChecklistBudgetSplit(
+      flightRatio: _readDouble(map?['flightRatio']),
+      hotelRatio: _readDouble(map?['hotelRatio']),
+      foodRatio: _readDouble(map?['foodRatio']),
+      otherRatio: _readDouble(map?['otherRatio']),
       transportRatio: _readDouble(map?['transportRatio']),
       stayRatio: _readDouble(map?['stayRatio']),
       foodActivityRatio: _readDouble(map?['foodActivityRatio']),
@@ -1395,6 +1493,7 @@ class GeminiGeneratedPlan {
       remainingBudget: _readDouble(map?['remainingBudget']),
       hotelBudget: _readDouble(map?['hotelBudget']),
       foodBudget: _readDouble(map?['foodBudget']),
+      otherBudget: _readDouble(map?['otherBudget']),
       activityBudget: _readDouble(map?['activityBudget']),
       localTransportBudget: _readDouble(map?['localTransportBudget']),
       bufferBudget: _readDouble(map?['bufferBudget']),
@@ -1740,10 +1839,22 @@ class _BudgetHints {
     required this.remainingBudgetHint,
     required this.hotelBudgetHint,
     required this.maxHotelNightlyBudgetHint,
+    required this.foodBudgetHint,
+    required this.otherBudgetHint,
+    required this.flightRatioHint,
+    required this.hotelRatioHint,
+    required this.foodRatioHint,
+    required this.otherRatioHint,
   });
 
   final double flightBudgetHint;
   final double remainingBudgetHint;
   final double hotelBudgetHint;
   final double maxHotelNightlyBudgetHint;
+  final double foodBudgetHint;
+  final double otherBudgetHint;
+  final double? flightRatioHint;
+  final double? hotelRatioHint;
+  final double? foodRatioHint;
+  final double? otherRatioHint;
 }

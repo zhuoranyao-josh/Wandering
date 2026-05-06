@@ -1301,11 +1301,47 @@ abstract class AppLocalizations {
   /// **'Adjust'**
   String get checklistAdjust;
 
+  /// No description provided for @checklistAdjustBudgetSplitTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Adjust Budget Split'**
+  String get checklistAdjustBudgetSplitTitle;
+
+  /// No description provided for @checklistAdjustBudgetSplitHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Increasing flight or hotel will rebalance flexible budgets first.'**
+  String get checklistAdjustBudgetSplitHint;
+
   /// No description provided for @checklistNotSet.
   ///
   /// In en, this message translates to:
   /// **'Not set'**
   String get checklistNotSet;
+
+  /// No description provided for @checklistFlight.
+  ///
+  /// In en, this message translates to:
+  /// **'Flight'**
+  String get checklistFlight;
+
+  /// No description provided for @checklistHotel.
+  ///
+  /// In en, this message translates to:
+  /// **'Hotel'**
+  String get checklistHotel;
+
+  /// No description provided for @checklistFood.
+  ///
+  /// In en, this message translates to:
+  /// **'Food'**
+  String get checklistFood;
+
+  /// No description provided for @checklistOther.
+  ///
+  /// In en, this message translates to:
+  /// **'Other'**
+  String get checklistOther;
 
   /// No description provided for @checklistTransport.
   ///

@@ -232,16 +232,28 @@
 - Added a shared disk image cache manager and cache service.
 - Added a Me page cache entry with cache size display and clear-cache action.
 - Extended checklist planning flow across datasource, controller, and UI layers.
+- Added an adjustable checklist budget split sheet with flight, hotel, food, and other categories.
+- Added budget split persistence and Gemini planning hints based on the user's manual allocation.
+- Added official place matching for community posts using `placeId`, while preserving Mapbox's external `mapboxId`.
+- Added real community posts to PlaceDetail pages by querying posts with the current official `placeId`.
 
 ### Bug Fixes
 - Fixed Community image loading failures caused by _AssertionError in the new cached image pipeline. The shared custom cache manager was initially created as a plain CacheManager, but resized disk caching (maxWidthDiskCache / maxHeightDiskCache) requires ImageCacheManager. Updated the manager type, guarded cache dimensions, and improved fallback handling for invalid or empty image URLs.
 - Fixed the cache section in Me page showing a static helper message instead of real cache usage. Replaced it with actual cache-size calculation from the shared cache store and refresh after cleanup.
+- Fixed a community place-linking bug where posts created from Mapbox locations only saved display fields, so PlaceDetail could not find related posts. Posts now save `mapboxId` and, when matched, the official `placeId`.
+- Fixed a Mapbox parsing bug where country could be reused as city, causing cases like Chiang Mai Province to produce `placeCity = Thailand`. Location parsing now prefers Mapbox context fields and clears city when it matches country.
 
-### Improvement
+### Improvements
 - Improved cached image stability with safer parameter handling, unified cache entry points, and stronger error logging.
 - Improved checklist planning orchestration with additional Gemini request handling, grounding support, and broader enrichment coverage.
 - Improved Me page UX by surfacing current cache size directly in the settings row.
+- Updated budget overview UI to show clearer budget categories and compact split values.
+- Improved PlaceDetail community cards with real post data, tappable post navigation, and safer username overflow handling.
+- Adjusted Activity cards to use a 16:9 cover ratio, larger spacing, and two-line titles.
+- Added English and Chinese localization keys for the new budget split UI.
 
 ### Learnings
 - cached_network_image resized disk caching is not compatible with a plain CacheManager; custom managers must implement ImageCacheManager.
 - A shared cache service makes cleanup, cache-size reporting, and future cache controls much easier to add without leaking storage logic into UI code.
+- Mapbox IDs should stay as external provider IDs; app matching should use internal official `placeId`.
+- Budget percentages need a normalized domain model so UI, Firestore, and planning prompts stay consistent.

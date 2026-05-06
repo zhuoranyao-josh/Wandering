@@ -94,15 +94,11 @@ class ChecklistRepositoryImpl implements ChecklistRepository {
   @override
   Future<void> updateBudgetSplit({
     required String checklistId,
-    double? transportRatio,
-    double? stayRatio,
-    double? foodActivityRatio,
+    required ChecklistBudgetSplit split,
   }) {
     return remoteDataSource.updateBudgetSplit(
       checklistId: checklistId,
-      transportRatio: transportRatio,
-      stayRatio: stayRatio,
-      foodActivityRatio: foodActivityRatio,
+      split: split,
     );
   }
 

@@ -618,7 +618,25 @@ class AppLocalizationsEn extends AppLocalizations {
   String get checklistAdjust => 'Adjust';
 
   @override
+  String get checklistAdjustBudgetSplitTitle => 'Adjust Budget Split';
+
+  @override
+  String get checklistAdjustBudgetSplitHint => 'Increasing flight or hotel will rebalance flexible budgets first.';
+
+  @override
   String get checklistNotSet => 'Not set';
+
+  @override
+  String get checklistFlight => 'Flight';
+
+  @override
+  String get checklistHotel => 'Hotel';
+
+  @override
+  String get checklistFood => 'Food';
+
+  @override
+  String get checklistOther => 'Other';
 
   @override
   String get checklistTransport => 'Transport';

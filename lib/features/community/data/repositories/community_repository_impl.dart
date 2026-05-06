@@ -25,8 +25,11 @@ class CommunityRepositoryImpl implements CommunityRepository {
     List<String> imageLocalPaths = const <String>[],
     String? placeName,
     String? placeNameFull,
+    String? placeId,
+    String? mapboxId,
     String? placeCity,
     String? placeCountry,
+    String? placeAddress,
     String? placeType,
     double? latitude,
     double? longitude,
@@ -40,8 +43,11 @@ class CommunityRepositoryImpl implements CommunityRepository {
       imageLocalPaths: imageLocalPaths,
       placeName: placeName,
       placeNameFull: placeNameFull,
+      placeId: placeId,
+      mapboxId: mapboxId,
       placeCity: placeCity,
       placeCountry: placeCountry,
+      placeAddress: placeAddress,
       placeType: placeType,
       latitude: latitude,
       longitude: longitude,
@@ -184,6 +190,11 @@ class CommunityRepositoryImpl implements CommunityRepository {
   @override
   Future<List<Post>> getPostsByUserId(String userId, {int? limit}) {
     return remoteDataSource.getPostsByUserId(userId, limit: limit);
+  }
+
+  @override
+  Future<List<Post>> fetchPostsByPlaceId(String placeId, {int? limit}) {
+    return remoteDataSource.fetchPostsByPlaceId(placeId, limit: limit);
   }
 
   @override

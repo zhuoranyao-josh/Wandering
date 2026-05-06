@@ -618,7 +618,25 @@ class AppLocalizationsZh extends AppLocalizations {
   String get checklistAdjust => '调整';
 
   @override
+  String get checklistAdjustBudgetSplitTitle => '调整预算分配';
+
+  @override
+  String get checklistAdjustBudgetSplitHint => '增加机票或酒店预算时，会优先压缩弹性预算。';
+
+  @override
   String get checklistNotSet => '未设置';
+
+  @override
+  String get checklistFlight => '机票';
+
+  @override
+  String get checklistHotel => '酒店';
+
+  @override
+  String get checklistFood => '餐饮';
+
+  @override
+  String get checklistOther => '其他';
 
   @override
   String get checklistTransport => '交通';

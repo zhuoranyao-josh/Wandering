@@ -590,24 +590,12 @@ class FirebaseChecklistRemoteDataSource implements ChecklistRemoteDataSource {
   @override
   Future<void> updateBudgetSplit({
     required String checklistId,
-    double? transportRatio,
-    double? stayRatio,
-    double? foodActivityRatio,
+    required ChecklistBudgetSplit split,
   }) async {
     try {
       final ref = _resolveChecklistCollection().doc(checklistId.trim());
-      final currentDoc = await ref.get();
-      final currentSplit = (currentDoc.exists && currentDoc.data() != null)
-          ? _readBudgetSplit(currentDoc.data()!)
-          : null;
-      final nextSplit = (currentSplit ?? const ChecklistBudgetSplit()).copyWith(
-        transportRatio: transportRatio,
-        stayRatio: stayRatio,
-        foodActivityRatio: foodActivityRatio,
-      );
-
       await ref.set(<String, dynamic>{
-        'budgetSplit': _toBudgetSplitJson(nextSplit),
+        'budgetSplit': _toBudgetSplitJson(split),
         'updatedAt': FieldValue.serverTimestamp(),
       }, SetOptions(merge: true));
     } catch (_) {
@@ -695,6 +683,11 @@ class FirebaseChecklistRemoteDataSource implements ChecklistRemoteDataSource {
         detail.accommodationPreference?.trim() ?? '';
     final latitude = detail.resolvedLatitude;
     final longitude = detail.resolvedLongitude;
+    final budgetAllocation =
+        (detail.budgetSplit ?? const ChecklistBudgetSplit()).resolveAllocation(
+          totalBudget: totalBudget,
+          currencySymbol: currency,
+        );
     final missingFields = <String>[];
 
     if (destination.isEmpty) {
@@ -785,11 +778,19 @@ class FirebaseChecklistRemoteDataSource implements ChecklistRemoteDataSource {
       preferences: detail.preferences,
       pace: pace,
       accommodationPreference: accommodationPreference,
-      debugHotelBudget: detail.budgetSplit?.hotelBudget,
+      debugHotelBudget: budgetAllocation.hotelBudget,
       debugMaxHotelNightlyBudget:
-          detail.budgetSplit?.hotelBudget != null && nightCount > 0
-          ? detail.budgetSplit!.hotelBudget! / nightCount
+          budgetAllocation.hotelBudget != null && nightCount > 0
+          ? budgetAllocation.hotelBudget! / nightCount
           : null,
+      manualFlightRatio: budgetAllocation.flightPercent,
+      manualHotelRatio: budgetAllocation.hotelPercent,
+      manualFoodRatio: budgetAllocation.foodPercent,
+      manualOtherRatio: budgetAllocation.otherPercent,
+      manualFlightBudget: budgetAllocation.flightBudget,
+      manualHotelBudget: budgetAllocation.hotelBudget,
+      manualFoodBudget: budgetAllocation.foodBudget,
+      manualOtherBudget: budgetAllocation.otherBudget,
     );
   }
 
@@ -3439,6 +3440,10 @@ class FirebaseChecklistRemoteDataSource implements ChecklistRemoteDataSource {
     if (rawBudgetSplit is Map) {
       final map = rawBudgetSplit.cast<Object?, Object?>();
       return ChecklistBudgetSplit(
+        flightRatio: _readDouble(map['flightRatio']),
+        hotelRatio: _readDouble(map['hotelRatio']),
+        foodRatio: _readDouble(map['foodRatio']),
+        otherRatio: _readDouble(map['otherRatio']),
         transportRatio: _readDouble(map['transportRatio']),
         stayRatio: _readDouble(map['stayRatio']),
         foodActivityRatio: _readDouble(map['foodActivityRatio']),
@@ -3446,6 +3451,7 @@ class FirebaseChecklistRemoteDataSource implements ChecklistRemoteDataSource {
         remainingBudget: _readDouble(map['remainingBudget']),
         hotelBudget: _readDouble(map['hotelBudget']),
         foodBudget: _readDouble(map['foodBudget']),
+        otherBudget: _readDouble(map['otherBudget']),
         activityBudget: _readDouble(map['activityBudget']),
         localTransportBudget: _readDouble(map['localTransportBudget']),
         bufferBudget: _readDouble(map['bufferBudget']),
@@ -3455,6 +3461,10 @@ class FirebaseChecklistRemoteDataSource implements ChecklistRemoteDataSource {
     }
 
     return ChecklistBudgetSplit(
+      flightRatio: _readDouble(data['flightRatio']),
+      hotelRatio: _readDouble(data['hotelRatio']),
+      foodRatio: _readDouble(data['foodRatio']),
+      otherRatio: _readDouble(data['otherRatio']),
       transportRatio: _readDouble(data['transportRatio']),
       stayRatio: _readDouble(data['stayRatio']),
       foodActivityRatio: _readDouble(data['foodActivityRatio']),
@@ -3462,6 +3472,7 @@ class FirebaseChecklistRemoteDataSource implements ChecklistRemoteDataSource {
       remainingBudget: _readDouble(data['remainingBudget']),
       hotelBudget: _readDouble(data['hotelBudget']),
       foodBudget: _readDouble(data['foodBudget']),
+      otherBudget: _readDouble(data['otherBudget']),
       activityBudget: _readDouble(data['activityBudget']),
       localTransportBudget: _readDouble(data['localTransportBudget']),
       bufferBudget: _readDouble(data['bufferBudget']),
@@ -3675,6 +3686,10 @@ class FirebaseChecklistRemoteDataSource implements ChecklistRemoteDataSource {
 
   Map<String, dynamic> _toBudgetSplitJson(ChecklistBudgetSplit split) {
     return <String, dynamic>{
+      'flightRatio': split.flightRatio,
+      'hotelRatio': split.hotelRatio,
+      'foodRatio': split.foodRatio,
+      'otherRatio': split.otherRatio,
       'transportRatio': split.transportRatio,
       'stayRatio': split.stayRatio,
       'foodActivityRatio': split.foodActivityRatio,
@@ -3682,6 +3697,7 @@ class FirebaseChecklistRemoteDataSource implements ChecklistRemoteDataSource {
       'remainingBudget': split.remainingBudget,
       'hotelBudget': split.hotelBudget,
       'foodBudget': split.foodBudget,
+      'otherBudget': split.otherBudget,
       'activityBudget': split.activityBudget,
       'localTransportBudget': split.localTransportBudget,
       'bufferBudget': split.bufferBudget,

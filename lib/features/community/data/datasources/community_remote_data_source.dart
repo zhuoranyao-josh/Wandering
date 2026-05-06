@@ -21,8 +21,11 @@ abstract class CommunityRemoteDataSource {
     List<String> imageLocalPaths = const <String>[],
     String? placeName,
     String? placeNameFull,
+    String? placeId,
+    String? mapboxId,
     String? placeCity,
     String? placeCountry,
+    String? placeAddress,
     String? placeType,
     double? latitude,
     double? longitude,
@@ -70,6 +73,8 @@ abstract class CommunityRemoteDataSource {
   Future<UserProfileSummary?> getUserProfileSummary(String userId);
 
   Future<List<Post>> getPostsByUserId(String userId, {int? limit});
+
+  Future<List<Post>> fetchPostsByPlaceId(String placeId, {int? limit});
 
   Future<void> followUser({
     required String currentUserId,

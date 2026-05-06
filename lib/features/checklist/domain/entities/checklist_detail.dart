@@ -153,6 +153,10 @@ class ChecklistDetail {
 
 class ChecklistBudgetSplit {
   const ChecklistBudgetSplit({
+    this.flightRatio,
+    this.hotelRatio,
+    this.foodRatio,
+    this.otherRatio,
     this.transportRatio,
     this.stayRatio,
     this.foodActivityRatio,
@@ -160,6 +164,7 @@ class ChecklistBudgetSplit {
     this.remainingBudget,
     this.hotelBudget,
     this.foodBudget,
+    this.otherBudget,
     this.activityBudget,
     this.localTransportBudget,
     this.bufferBudget,
@@ -167,6 +172,10 @@ class ChecklistBudgetSplit {
     this.budgetWarning,
   });
 
+  final double? flightRatio;
+  final double? hotelRatio;
+  final double? foodRatio;
+  final double? otherRatio;
   final double? transportRatio;
   final double? stayRatio;
   final double? foodActivityRatio;
@@ -174,13 +183,29 @@ class ChecklistBudgetSplit {
   final double? remainingBudget;
   final double? hotelBudget;
   final double? foodBudget;
+  final double? otherBudget;
   final double? activityBudget;
   final double? localTransportBudget;
   final double? bufferBudget;
   final String? currency;
   final String? budgetWarning;
 
+  ChecklistBudgetAllocation resolveAllocation({
+    required double? totalBudget,
+    String? currencySymbol,
+  }) {
+    return ChecklistBudgetAllocation.fromSplit(
+      split: this,
+      totalBudget: totalBudget,
+      currency: (currency ?? currencySymbol ?? '').trim(),
+    );
+  }
+
   bool get hasAnyValue =>
+      flightRatio != null ||
+      hotelRatio != null ||
+      foodRatio != null ||
+      otherRatio != null ||
       transportRatio != null ||
       stayRatio != null ||
       foodActivityRatio != null ||
@@ -188,6 +213,7 @@ class ChecklistBudgetSplit {
       remainingBudget != null ||
       hotelBudget != null ||
       foodBudget != null ||
+      otherBudget != null ||
       activityBudget != null ||
       localTransportBudget != null ||
       bufferBudget != null ||
@@ -195,6 +221,10 @@ class ChecklistBudgetSplit {
       (budgetWarning?.trim().isNotEmpty ?? false);
 
   ChecklistBudgetSplit copyWith({
+    double? flightRatio,
+    double? hotelRatio,
+    double? foodRatio,
+    double? otherRatio,
     double? transportRatio,
     double? stayRatio,
     double? foodActivityRatio,
@@ -202,6 +232,7 @@ class ChecklistBudgetSplit {
     double? remainingBudget,
     double? hotelBudget,
     double? foodBudget,
+    double? otherBudget,
     double? activityBudget,
     double? localTransportBudget,
     double? bufferBudget,
@@ -209,6 +240,10 @@ class ChecklistBudgetSplit {
     String? budgetWarning,
   }) {
     return ChecklistBudgetSplit(
+      flightRatio: flightRatio ?? this.flightRatio,
+      hotelRatio: hotelRatio ?? this.hotelRatio,
+      foodRatio: foodRatio ?? this.foodRatio,
+      otherRatio: otherRatio ?? this.otherRatio,
       transportRatio: transportRatio ?? this.transportRatio,
       stayRatio: stayRatio ?? this.stayRatio,
       foodActivityRatio: foodActivityRatio ?? this.foodActivityRatio,
@@ -216,6 +251,7 @@ class ChecklistBudgetSplit {
       remainingBudget: remainingBudget ?? this.remainingBudget,
       hotelBudget: hotelBudget ?? this.hotelBudget,
       foodBudget: foodBudget ?? this.foodBudget,
+      otherBudget: otherBudget ?? this.otherBudget,
       activityBudget: activityBudget ?? this.activityBudget,
       localTransportBudget: localTransportBudget ?? this.localTransportBudget,
       bufferBudget: bufferBudget ?? this.bufferBudget,
@@ -224,6 +260,169 @@ class ChecklistBudgetSplit {
     );
   }
 }
+
+class ChecklistBudgetAllocation {
+  const ChecklistBudgetAllocation({
+    required this.flightPercent,
+    required this.hotelPercent,
+    required this.foodPercent,
+    required this.otherPercent,
+    required this.flightBudget,
+    required this.hotelBudget,
+    required this.foodBudget,
+    required this.otherBudget,
+    required this.currency,
+  });
+
+  static const double defaultFlightPercent = 30;
+  static const double defaultHotelPercent = 30;
+  static const double defaultFoodPercent = 25;
+  static const double defaultOtherPercent = 15;
+
+  final double flightPercent;
+  final double hotelPercent;
+  final double foodPercent;
+  final double otherPercent;
+  final double? flightBudget;
+  final double? hotelBudget;
+  final double? foodBudget;
+  final double? otherBudget;
+  final String currency;
+
+  factory ChecklistBudgetAllocation.fromSplit({
+    required ChecklistBudgetSplit? split,
+    required double? totalBudget,
+    required String? currency,
+  }) {
+    if (split == null || !split.hasAnyValue) {
+      return _fromPercentMap(
+        percentMap: <_BudgetCategory, double>{
+          _BudgetCategory.flight: defaultFlightPercent,
+          _BudgetCategory.hotel: defaultHotelPercent,
+          _BudgetCategory.food: defaultFoodPercent,
+          _BudgetCategory.other: defaultOtherPercent,
+        },
+        totalBudget: totalBudget,
+        currency: currency,
+      );
+    }
+
+    final resolvedFlight =
+        _toPercent(split.flightRatio) ?? _toPercent(split.transportRatio);
+    final resolvedHotel =
+        _toPercent(split.hotelRatio) ?? _toPercent(split.stayRatio);
+    double? resolvedFood = _toPercent(split.foodRatio);
+    double? resolvedOther = _toPercent(split.otherRatio);
+
+    final combinedFoodOther = _toPercent(split.foodActivityRatio);
+    if (combinedFoodOther != null &&
+        (resolvedFood == null || resolvedOther == null)) {
+      final foodBudget = split.foodBudget;
+      final otherBudget = split.otherBudget ?? split.activityBudget;
+      final combinedBudget = (foodBudget ?? 0) + (otherBudget ?? 0);
+      final foodShare = combinedBudget > 0
+          ? (foodBudget ?? 0) / combinedBudget
+          : (defaultFoodPercent / (defaultFoodPercent + defaultOtherPercent));
+      resolvedFood ??= combinedFoodOther * foodShare;
+      resolvedOther ??= combinedFoodOther - resolvedFood;
+    }
+
+    final percentMap = <_BudgetCategory, double>{
+      _BudgetCategory.flight: resolvedFlight ?? defaultFlightPercent,
+      _BudgetCategory.hotel: resolvedHotel ?? defaultHotelPercent,
+      _BudgetCategory.food: resolvedFood ?? defaultFoodPercent,
+      _BudgetCategory.other: resolvedOther ?? defaultOtherPercent,
+    };
+
+    return _fromPercentMap(
+      percentMap: percentMap,
+      totalBudget: totalBudget,
+      currency: split.currency ?? currency,
+    );
+  }
+
+  ChecklistBudgetSplit toSplit({String? currencyOverride}) {
+    return ChecklistBudgetSplit(
+      flightRatio: flightPercent,
+      hotelRatio: hotelPercent,
+      foodRatio: foodPercent,
+      otherRatio: otherPercent,
+      transportRatio: flightPercent,
+      stayRatio: hotelPercent,
+      foodActivityRatio: foodPercent + otherPercent,
+      flightBudgetMax: flightBudget,
+      hotelBudget: hotelBudget,
+      foodBudget: foodBudget,
+      otherBudget: otherBudget,
+      activityBudget: otherBudget,
+      currency: (currencyOverride ?? currency).trim(),
+    );
+  }
+
+  static ChecklistBudgetAllocation _fromPercentMap({
+    required Map<_BudgetCategory, double> percentMap,
+    required double? totalBudget,
+    required String? currency,
+  }) {
+    final normalized = _normalizePercentMap(percentMap);
+    final safeBudget = totalBudget != null && totalBudget > 0
+        ? totalBudget
+        : null;
+    return ChecklistBudgetAllocation(
+      flightPercent: normalized[_BudgetCategory.flight]!,
+      hotelPercent: normalized[_BudgetCategory.hotel]!,
+      foodPercent: normalized[_BudgetCategory.food]!,
+      otherPercent: normalized[_BudgetCategory.other]!,
+      flightBudget: _computeBudget(
+        safeBudget,
+        normalized[_BudgetCategory.flight]!,
+      ),
+      hotelBudget: _computeBudget(
+        safeBudget,
+        normalized[_BudgetCategory.hotel]!,
+      ),
+      foodBudget: _computeBudget(safeBudget, normalized[_BudgetCategory.food]!),
+      otherBudget: _computeBudget(
+        safeBudget,
+        normalized[_BudgetCategory.other]!,
+      ),
+      currency: (currency ?? '').trim(),
+    );
+  }
+
+  static Map<_BudgetCategory, double> _normalizePercentMap(
+    Map<_BudgetCategory, double> raw,
+  ) {
+    final total = raw.values.fold<double>(0, (sum, value) => sum + value);
+    if (total <= 0) {
+      return <_BudgetCategory, double>{
+        _BudgetCategory.flight: defaultFlightPercent,
+        _BudgetCategory.hotel: defaultHotelPercent,
+        _BudgetCategory.food: defaultFoodPercent,
+        _BudgetCategory.other: defaultOtherPercent,
+      };
+    }
+    return <_BudgetCategory, double>{
+      for (final entry in raw.entries) entry.key: entry.value / total * 100,
+    };
+  }
+
+  static double? _computeBudget(double? totalBudget, double percent) {
+    if (totalBudget == null) {
+      return null;
+    }
+    return totalBudget * percent / 100;
+  }
+
+  static double? _toPercent(double? raw) {
+    if (raw == null) {
+      return null;
+    }
+    return raw <= 1.2 ? raw * 100 : raw;
+  }
+}
+
+enum _BudgetCategory { flight, hotel, food, other }
 
 class ChecklistEssential {
   const ChecklistEssential({

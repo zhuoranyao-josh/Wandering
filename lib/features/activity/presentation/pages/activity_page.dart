@@ -303,7 +303,7 @@ class _ActivityPageState extends State<ActivityPage> {
         physics: const AlwaysScrollableScrollPhysics(),
         padding: const EdgeInsets.fromLTRB(16, 0, 16, 24),
         itemCount: _controller.visibleEvents.length,
-        separatorBuilder: (context, index) => const SizedBox(height: 12),
+        separatorBuilder: (context, index) => const SizedBox(height: 16),
         itemBuilder: (context, index) {
           final event = _controller.visibleEvents[index];
           return ActivityEventCard(

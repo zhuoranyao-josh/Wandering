@@ -43,9 +43,7 @@ abstract class ChecklistRepository {
 
   Future<void> updateBudgetSplit({
     required String checklistId,
-    double? transportRatio,
-    double? stayRatio,
-    double? foodActivityRatio,
+    required ChecklistBudgetSplit split,
   });
 
   Future<void> toggleItemCompleted({

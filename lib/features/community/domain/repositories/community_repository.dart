@@ -34,8 +34,11 @@ abstract class CommunityRepository {
     List<String> imageLocalPaths = const <String>[],
     String? placeName,
     String? placeNameFull,
+    String? placeId,
+    String? mapboxId,
     String? placeCity,
     String? placeCountry,
+    String? placeAddress,
     String? placeType,
     double? latitude,
     double? longitude,
@@ -101,6 +104,9 @@ abstract class CommunityRepository {
 
   /// 获取指定用户发布的帖子列表。
   Future<List<Post>> getPostsByUserId(String userId, {int? limit});
+
+  /// 获取与某个地点关联的帖子列表。
+  Future<List<Post>> fetchPostsByPlaceId(String placeId, {int? limit});
 
   /// 关注与取消关注指定用户。
   Future<void> followUser({

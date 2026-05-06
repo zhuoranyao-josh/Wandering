@@ -22,6 +22,7 @@ class FirebaseCommunityRemoteDataSource implements CommunityRemoteDataSource {
   final FirebaseFirestore firestore;
   final FirebaseAuth firebaseAuth;
   final FirebaseStorage storage;
+  List<_OfficialPlaceCandidate>? _officialPlacesCache;
 
   FirebaseCommunityRemoteDataSource({
     required this.firestore,
@@ -125,6 +126,34 @@ class FirebaseCommunityRemoteDataSource implements CommunityRemoteDataSource {
   }
 
   @override
+  Future<List<Post>> fetchPostsByPlaceId(String placeId, {int? limit}) async {
+    final trimmedPlaceId = placeId.trim();
+    if (trimmedPlaceId.isEmpty) {
+      return const <Post>[];
+    }
+
+    try {
+      final snapshot = await firestore
+          .collection('posts')
+          .where('placeId', isEqualTo: trimmedPlaceId)
+          .get();
+
+      final posts =
+          snapshot.docs
+              .map((doc) => _mapDocToPost(doc.id, doc.data()))
+              .toList(growable: false)
+            ..sort((a, b) => b.createdAt.compareTo(a.createdAt));
+
+      final visiblePosts = limit == null
+          ? posts
+          : posts.take(limit).toList(growable: false);
+      return _attachLikeSnapshot(visiblePosts);
+    } catch (_) {
+      throw AppException('community_load_failed');
+    }
+  }
+
+  @override
   Future<Post?> getPostById(String postId) async {
     try {
       final doc = await firestore.collection('posts').doc(postId).get();
@@ -153,8 +182,11 @@ class FirebaseCommunityRemoteDataSource implements CommunityRemoteDataSource {
     List<String> imageLocalPaths = const <String>[],
     String? placeName,
     String? placeNameFull,
+    String? placeId,
+    String? mapboxId,
     String? placeCity,
     String? placeCountry,
+    String? placeAddress,
     String? placeType,
     double? latitude,
     double? longitude,
@@ -168,9 +200,21 @@ class FirebaseCommunityRemoteDataSource implements CommunityRemoteDataSource {
       final cleanPlaceNameFull = _normalizeNullableText(
         placeNameFull ?? placeName,
       );
+      final cleanPlaceId = _normalizeNullableText(placeId);
+      final cleanMapboxId = _normalizeNullableText(mapboxId);
       final cleanPlaceCity = _normalizeNullableText(placeCity);
       final cleanPlaceCountry = _normalizeNullableText(placeCountry);
+      final cleanPlaceAddress = _normalizeNullableText(placeAddress);
       final cleanPlaceType = _normalizeNullableText(placeType);
+      // placeId 优先使用调用方传入值；否则按官方 places 规则尝试匹配。
+      final resolvedPlaceId =
+          cleanPlaceId ??
+          await _matchOfficialPlaceId(
+            placeCity: cleanPlaceCity,
+            placeCountry: cleanPlaceCountry,
+            latitude: latitude,
+            longitude: longitude,
+          );
       // 先上传图片，再把下载地址写进帖子文档，保证 images 中都是可访问 URL。
       final uploadedImages = await _uploadPostImages(
         authorId: authorId,
@@ -187,8 +231,11 @@ class FirebaseCommunityRemoteDataSource implements CommunityRemoteDataSource {
         'images': uploadedImages.map(_mapImageToJson).toList(growable: false),
         'placeName': cleanPlaceNameFull ?? cleanPlaceName,
         'placeNameFull': cleanPlaceNameFull,
+        'placeId': resolvedPlaceId,
+        'mapboxId': cleanMapboxId,
         'placeCity': cleanPlaceCity,
         'placeCountry': cleanPlaceCountry,
+        'placeAddress': cleanPlaceAddress,
         'placeType': cleanPlaceType,
         'latitude': latitude,
         'longitude': longitude,
@@ -208,8 +255,11 @@ class FirebaseCommunityRemoteDataSource implements CommunityRemoteDataSource {
         images: uploadedImages,
         placeName: cleanPlaceNameFull ?? cleanPlaceName,
         placeNameFull: cleanPlaceNameFull,
+        placeId: resolvedPlaceId,
+        mapboxId: cleanMapboxId,
         placeCity: cleanPlaceCity,
         placeCountry: cleanPlaceCountry,
+        placeAddress: cleanPlaceAddress,
         placeType: cleanPlaceType,
         latitude: latitude,
         longitude: longitude,
@@ -858,8 +908,13 @@ class FirebaseCommunityRemoteDataSource implements CommunityRemoteDataSource {
         placeNameFull:
             _normalizeNullableText(data['placeNameFull']) ??
             _normalizeNullableText(data['placeName']),
+        placeId: _normalizeNullableText(data['placeId']),
+        mapboxId: _normalizeNullableText(data['mapboxId']),
         placeCity: _normalizeNullableText(data['placeCity']),
         placeCountry: _normalizeNullableText(data['placeCountry']),
+        placeAddress:
+            _normalizeNullableText(data['placeAddress']) ??
+            _normalizeNullableText(data['placeFormatted']),
         placeType: _normalizeNullableText(data['placeType']),
         latitude: _readDouble(data['latitude']),
         longitude: _readDouble(data['longitude']),
@@ -1051,25 +1106,48 @@ class FirebaseCommunityRemoteDataSource implements CommunityRemoteDataSource {
   }) {
     final properties = _readMap(json['properties']);
     final coordinates = _readMap(properties?['coordinates']);
+    final context = _readMap(properties?['context']);
     final name =
         _normalizeNullableText(json['name']) ??
         _normalizeNullableText(properties?['name']) ??
         fallback.fullName;
-    final formatted =
+    final placeAddress =
+        _normalizeNullableText(properties?['full_address']) ??
         _normalizeNullableText(json['place_formatted']) ??
         _normalizeNullableText(properties?['place_formatted']) ??
         fallback.placeFormatted;
     final rawFeatureType =
-        _normalizeNullableText(json['feature_type']) ?? fallback.placeType;
+        _normalizeNullableText(json['feature_type']) ??
+        _normalizeNullableText(properties?['feature_type']) ??
+        fallback.placeType;
+    final resolvedMapboxId =
+        _normalizeNullableText(properties?['mapbox_id']) ??
+        _normalizeNullableText(json['mapbox_id']) ??
+        _normalizeNullableText(json['id']) ??
+        fallback.mapboxId;
+    final parsedCountry =
+        _readContextName(context, const <String>['country']) ??
+        _countryFromFormatted(placeAddress) ??
+        fallback.country;
+    final parsedCity = _sanitizeCity(
+      _readContextName(
+            context,
+            const <String>['place', 'locality', 'district', 'region'],
+          ) ??
+          _cityFromFormatted(placeAddress) ??
+          fallback.city,
+      country: parsedCountry,
+    );
 
     return fallback.copyWith(
       fullName: name,
-      city: _cityFromFormatted(formatted) ?? fallback.city,
-      country: _countryFromFormatted(formatted) ?? fallback.country,
+      city: parsedCity,
+      country: parsedCountry,
       latitude: _readCoordinatesLatitude(coordinates) ?? fallback.latitude,
       longitude: _readCoordinatesLongitude(coordinates) ?? fallback.longitude,
       placeType: _canonicalPlaceType(rawFeatureType),
-      placeFormatted: formatted,
+      placeFormatted: placeAddress,
+      mapboxId: resolvedMapboxId,
     );
   }
 
@@ -1104,13 +1182,45 @@ class FirebaseCommunityRemoteDataSource implements CommunityRemoteDataSource {
 
   String? _cityFromFormatted(String? formatted) {
     final segments = _splitFormattedSegments(formatted);
-    if (segments.isEmpty) {
+    if (segments.length <= 1) {
       return null;
     }
-    if (segments.length == 1) {
-      return segments.first;
-    }
     return segments[segments.length - 2];
+  }
+
+  String? _readContextName(Map<String, dynamic>? context, List<String> keys) {
+    if (context == null) {
+      return null;
+    }
+
+    for (final key in keys) {
+      final candidate = _readMap(context[key]);
+      final name =
+          _normalizeNullableText(candidate?['name']) ??
+          _normalizeNullableText(candidate?['name_preferred']) ??
+          _normalizeNullableText(candidate?['text']);
+      if (name != null) {
+        return name;
+      }
+    }
+    return null;
+  }
+
+  String? _sanitizeCity(String? city, {required String? country}) {
+    final cleanCity = _normalizeNullableText(city);
+    if (cleanCity == null) {
+      return null;
+    }
+
+    final cleanCountry = _normalizeNullableText(country);
+    if (cleanCountry == null) {
+      return cleanCity;
+    }
+
+    if (_normalizeComparisonText(cleanCity) == _normalizeComparisonText(cleanCountry)) {
+      return null;
+    }
+    return cleanCity;
   }
 
   List<String> _splitFormattedSegments(String? formatted) {
@@ -1239,6 +1349,331 @@ class FirebaseCommunityRemoteDataSource implements CommunityRemoteDataSource {
     }
   }
 
+  Future<String?> _matchOfficialPlaceId({
+    required String? placeCity,
+    required String? placeCountry,
+    required double? latitude,
+    required double? longitude,
+  }) async {
+    final normalizedCity = _normalizeComparisonText(placeCity);
+    final citySlug = _toSlug(placeCity);
+    final normalizedCountry = _normalizeComparisonText(placeCountry);
+    final hasCoordinates = latitude != null && longitude != null;
+
+    if (normalizedCity == null && !hasCoordinates) {
+      return null;
+    }
+
+    final candidates = await _loadOfficialPlaces();
+    if (candidates.isEmpty) {
+      return null;
+    }
+
+    _OfficialPlaceCandidate? bestNameMatch;
+    var bestNameDistanceKm = double.infinity;
+
+    for (final candidate in candidates) {
+      final cityMatched = _isOfficialPlaceCityMatch(
+        candidate,
+        normalizedCity: normalizedCity,
+        citySlug: citySlug,
+      );
+      if (!cityMatched) {
+        continue;
+      }
+      if (!_isOfficialPlaceCountryMatch(candidate, normalizedCountry)) {
+        continue;
+      }
+
+      final distanceKm = _distanceInKilometersOrNull(
+        latitude: latitude,
+        longitude: longitude,
+        targetLatitude: candidate.latitude,
+        targetLongitude: candidate.longitude,
+      );
+      if (distanceKm == null) {
+        return candidate.id;
+      }
+
+      if (distanceKm < bestNameDistanceKm) {
+        bestNameDistanceKm = distanceKm;
+        bestNameMatch = candidate;
+      }
+    }
+
+    if (bestNameMatch != null && bestNameDistanceKm <= 50.0) {
+      return bestNameMatch.id;
+    }
+
+    if (!hasCoordinates) {
+      return null;
+    }
+
+    // 名称未命中时，兜底使用“同国家(若可判定) + 距离阈值”的最近点匹配。
+    _OfficialPlaceCandidate? nearestCandidate;
+    var nearestDistanceKm = double.infinity;
+    for (final candidate in candidates) {
+      if (!_isOfficialPlaceCountryMatch(candidate, normalizedCountry)) {
+        continue;
+      }
+
+      final distanceKm = _distanceInKilometersOrNull(
+        latitude: latitude,
+        longitude: longitude,
+        targetLatitude: candidate.latitude,
+        targetLongitude: candidate.longitude,
+      );
+      if (distanceKm == null) {
+        continue;
+      }
+
+      if (distanceKm < nearestDistanceKm) {
+        nearestDistanceKm = distanceKm;
+        nearestCandidate = candidate;
+      }
+    }
+
+    if (nearestCandidate != null && nearestDistanceKm <= 50.0) {
+      return nearestCandidate.id;
+    }
+    return null;
+  }
+
+  bool _isOfficialPlaceCityMatch(
+    _OfficialPlaceCandidate candidate, {
+    required String? normalizedCity,
+    required String? citySlug,
+  }) {
+    if (normalizedCity != null) {
+      if (candidate.normalizedNames.contains(normalizedCity)) {
+        return true;
+      }
+      if (candidate.normalizedNames.any(
+        (value) => _isStrongNameMatch(normalizedCity, value),
+      )) {
+        return true;
+      }
+    }
+
+    if (citySlug != null && citySlug.isNotEmpty) {
+      if (candidate.slugNames.contains(citySlug)) {
+        return true;
+      }
+      if (candidate.id == citySlug) {
+        return true;
+      }
+    }
+
+    return false;
+  }
+
+  bool _isOfficialPlaceCountryMatch(
+    _OfficialPlaceCandidate candidate,
+    String? normalizedCountry,
+  ) {
+    if (normalizedCountry == null || normalizedCountry.isEmpty) {
+      return true;
+    }
+    if (candidate.normalizedCountries.isEmpty) {
+      return true;
+    }
+    return candidate.normalizedCountries.any(
+      (country) => _isStrongNameMatch(normalizedCountry, country),
+    );
+  }
+
+  bool _isStrongNameMatch(String left, String right) {
+    if (left == right) {
+      return true;
+    }
+    if (left.length >= 2 && right.length >= 2) {
+      return left.contains(right) || right.contains(left);
+    }
+    return false;
+  }
+
+  Future<List<_OfficialPlaceCandidate>> _loadOfficialPlaces() async {
+    if (_officialPlacesCache != null) {
+      return _officialPlacesCache!;
+    }
+
+    final snapshot = await firestore.collection('places').get();
+    final places = snapshot.docs
+        .map((doc) => _toOfficialPlaceCandidate(doc.id, doc.data()))
+        .whereType<_OfficialPlaceCandidate>()
+        .toList(growable: false);
+    _officialPlacesCache = places;
+    return places;
+  }
+
+  _OfficialPlaceCandidate? _toOfficialPlaceCandidate(
+    String documentId,
+    Map<String, dynamic> data,
+  ) {
+    final placeId = _normalizeNullableText(data['id']) ?? documentId.trim();
+    if (placeId.isEmpty) {
+      return null;
+    }
+
+    final rawNames = <String>{
+      documentId,
+      placeId,
+      if (data['name'] is String) data['name'] as String,
+      if (data['city'] is String) data['city'] as String,
+      if (data['cityName'] is String) data['cityName'] as String,
+    };
+    final nameMap = _readMap(data['name']);
+    if (nameMap != null) {
+      for (final value in nameMap.values) {
+        if (value is String) {
+          rawNames.add(value);
+        }
+      }
+    }
+
+    final normalizedNames = rawNames
+        .map(_normalizeComparisonText)
+        .whereType<String>()
+        .toSet();
+    final slugNames = rawNames.map(_toSlug).whereType<String>().toSet();
+    if (normalizedNames.isEmpty && slugNames.isEmpty) {
+      return null;
+    }
+
+    final rawCountries = <String>{
+      if (data['country'] is String) data['country'] as String,
+      if (data['countryName'] is String) data['countryName'] as String,
+      if (data['countryCode'] is String) data['countryCode'] as String,
+      if (data['countryCode2'] is String) data['countryCode2'] as String,
+      if (data['countryCode3'] is String) data['countryCode3'] as String,
+    };
+    final normalizedCountries = rawCountries
+        .map(_normalizeComparisonText)
+        .whereType<String>()
+        .toSet();
+
+    return _OfficialPlaceCandidate(
+      id: placeId,
+      normalizedNames: normalizedNames,
+      slugNames: slugNames,
+      normalizedCountries: normalizedCountries,
+      latitude: _readDouble(data['latitude']),
+      longitude: _readDouble(data['longitude']),
+    );
+  }
+
+  String? _normalizeComparisonText(String? value) {
+    final cleanValue = _normalizeNullableText(value);
+    if (cleanValue == null) {
+      return null;
+    }
+
+    final lower = _stripSimpleAccents(cleanValue.toLowerCase());
+    final compact = lower.replaceAll(RegExp(r'[\s\-\_,.()]+'), '');
+    return compact.isEmpty ? null : compact;
+  }
+
+  String? _toSlug(String? value) {
+    final cleanValue = _normalizeNullableText(value);
+    if (cleanValue == null) {
+      return null;
+    }
+
+    final lower = _stripSimpleAccents(cleanValue.toLowerCase());
+    final underscored = lower
+        .replaceAll(RegExp(r'[^a-z0-9]+'), '_')
+        .replaceAll(RegExp(r'_+'), '_')
+        .replaceAll(RegExp(r'^_|_$'), '');
+    return underscored.isEmpty ? null : underscored;
+  }
+
+  String _stripSimpleAccents(String value) {
+    const accentMap = <String, String>{
+      'á': 'a',
+      'à': 'a',
+      'â': 'a',
+      'ä': 'a',
+      'ã': 'a',
+      'å': 'a',
+      'ā': 'a',
+      'é': 'e',
+      'è': 'e',
+      'ê': 'e',
+      'ë': 'e',
+      'ē': 'e',
+      'í': 'i',
+      'ì': 'i',
+      'î': 'i',
+      'ï': 'i',
+      'ī': 'i',
+      'ó': 'o',
+      'ò': 'o',
+      'ô': 'o',
+      'ö': 'o',
+      'õ': 'o',
+      'ō': 'o',
+      'ú': 'u',
+      'ù': 'u',
+      'û': 'u',
+      'ü': 'u',
+      'ū': 'u',
+      'ç': 'c',
+      'ñ': 'n',
+      'ý': 'y',
+      'ÿ': 'y',
+      'ß': 'ss',
+    };
+    var result = value;
+    accentMap.forEach((accent, plain) {
+      result = result.replaceAll(accent, plain);
+    });
+    return result;
+  }
+
+  double? _distanceInKilometersOrNull({
+    required double? latitude,
+    required double? longitude,
+    required double? targetLatitude,
+    required double? targetLongitude,
+  }) {
+    if (latitude == null ||
+        longitude == null ||
+        targetLatitude == null ||
+        targetLongitude == null) {
+      return null;
+    }
+
+    return _distanceInKilometers(
+      latitude,
+      longitude,
+      targetLatitude,
+      targetLongitude,
+    );
+  }
+
+  double _distanceInKilometers(
+    double startLatitude,
+    double startLongitude,
+    double endLatitude,
+    double endLongitude,
+  ) {
+    const earthRadiusKm = 6371.0;
+    final latitudeDelta = _degreeToRadian(endLatitude - startLatitude);
+    final longitudeDelta = _degreeToRadian(endLongitude - startLongitude);
+    final startLatitudeInRadians = _degreeToRadian(startLatitude);
+    final endLatitudeInRadians = _degreeToRadian(endLatitude);
+
+    final a =
+        (math.sin(latitudeDelta / 2) * math.sin(latitudeDelta / 2)) +
+        math.cos(startLatitudeInRadians) *
+            math.cos(endLatitudeInRadians) *
+            (math.sin(longitudeDelta / 2) * math.sin(longitudeDelta / 2));
+    final c = 2 * math.atan2(math.sqrt(a), math.sqrt(1 - a));
+    return earthRadiusKm * c;
+  }
+
+  double _degreeToRadian(double degree) => degree * math.pi / 180.0;
+
   DateTime? _readDateTime(dynamic value) {
     if (value is Timestamp) {
       return value.toDate();
@@ -1346,4 +1781,22 @@ class FirebaseCommunityRemoteDataSource implements CommunityRemoteDataSource {
     }
     return chunks;
   }
+}
+
+class _OfficialPlaceCandidate {
+  const _OfficialPlaceCandidate({
+    required this.id,
+    required this.normalizedNames,
+    required this.slugNames,
+    required this.normalizedCountries,
+    required this.latitude,
+    required this.longitude,
+  });
+
+  final String id;
+  final Set<String> normalizedNames;
+  final Set<String> slugNames;
+  final Set<String> normalizedCountries;
+  final double? latitude;
+  final double? longitude;
 }

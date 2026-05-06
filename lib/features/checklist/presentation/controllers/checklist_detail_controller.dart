@@ -38,6 +38,7 @@ class ChecklistDetailController extends ChangeNotifier {
   final Set<int> _cancelledSessionIds = <int>{};
   _ChecklistEditableInput? _baselineInput;
   _ChecklistEditableInput? _editableInput;
+  _ChecklistBudgetSplitSnapshot? _baselineBudgetSplit;
   bool _hasInputChanges = false;
 
   bool get isLoading => _isLoading;
@@ -218,16 +219,20 @@ class ChecklistDetailController extends ChangeNotifier {
     if (detail == null) {
       return;
     }
+    final resolvedCurrency = (currency ?? detail.currency)?.trim();
     final currentEditable =
         _editableInput ?? _ChecklistEditableInput.fromDetail(detail);
     _editableInput = currentEditable.copyWith(
       totalBudget: totalBudget,
-      currency: currency ?? currentEditable.currency,
+      currency: resolvedCurrency ?? currentEditable.currency,
     );
     _checklistDetail = detail.copyWith(
       totalBudget: totalBudget,
-      currency: (currency ?? detail.currency)?.trim(),
-      currencySymbol: (currency ?? detail.currencySymbol)?.trim(),
+      currency: resolvedCurrency,
+      currencySymbol: _resolveCurrencySymbol(
+        resolvedCurrency,
+        fallback: detail.currencySymbol,
+      ),
     );
     _recomputeInputChanges();
     debugPrint(
@@ -337,30 +342,20 @@ class ChecklistDetailController extends ChangeNotifier {
     }
   }
 
-  Future<void> updateBudgetSplit({
-    double? transportRatio,
-    double? stayRatio,
-    double? foodActivityRatio,
-  }) async {
+  Future<void> updateBudgetSplit({required ChecklistBudgetSplit split}) async {
     if (_currentChecklistId.isEmpty) {
       return;
     }
     try {
       await repository.updateBudgetSplit(
         checklistId: _currentChecklistId,
-        transportRatio: transportRatio,
-        stayRatio: stayRatio,
-        foodActivityRatio: foodActivityRatio,
+        split: split,
       );
       if (_checklistDetail != null) {
-        _checklistDetail = _checklistDetail!.copyWith(
-          budgetSplit:
-              (_checklistDetail!.budgetSplit ?? const ChecklistBudgetSplit())
-                  .copyWith(
-                    transportRatio: transportRatio,
-                    stayRatio: stayRatio,
-                    foodActivityRatio: foodActivityRatio,
-                  ),
+        _checklistDetail = _checklistDetail!.copyWith(budgetSplit: split);
+        _recomputeInputChanges();
+        debugPrint(
+          '[ChecklistEdit] input changed hasInputChanges=$_hasInputChanges',
         );
         notifyListeners();
       }
@@ -665,6 +660,7 @@ class ChecklistDetailController extends ChangeNotifier {
     _editableInput = snapshot;
     if (resetBaseline) {
       _baselineInput = snapshot;
+      _baselineBudgetSplit = _ChecklistBudgetSplitSnapshot.fromDetail(detail);
     }
     _recomputeInputChanges();
   }
@@ -682,10 +678,14 @@ class ChecklistDetailController extends ChangeNotifier {
       _hasInputChanges = inputChanged;
       return;
     }
+    final currentBudgetSplit = _ChecklistBudgetSplitSnapshot.fromDetail(detail);
+    final budgetSplitChanged =
+        _baselineBudgetSplit?.equals(currentBudgetSplit) == false;
     final planningStatus = (detail.planningStatus ?? '').trim().toLowerCase();
     final hasStaleGeneratedPlan =
         planningStatus == 'readytoplan' && detail.items.isNotEmpty;
-    _hasInputChanges = inputChanged || hasStaleGeneratedPlan;
+    _hasInputChanges =
+        inputChanged || budgetSplitChanged || hasStaleGeneratedPlan;
   }
 
   JourneyBasicInfoInput? _buildJourneyBasicInfoInput() {
@@ -906,6 +906,27 @@ class ChecklistDetailController extends ChangeNotifier {
     }
     return 'en';
   }
+
+  String? _resolveCurrencySymbol(String? currencyCode, {String? fallback}) {
+    final normalized = (currencyCode ?? '').trim().toUpperCase();
+    switch (normalized) {
+      case 'CNY':
+      case 'JPY':
+        return '¥';
+      case 'USD':
+        return r'$';
+      case 'EUR':
+        return '€';
+      case 'GBP':
+        return '£';
+      default:
+        final trimmedFallback = fallback?.trim();
+        if (trimmedFallback != null && trimmedFallback.isNotEmpty) {
+          return trimmedFallback;
+        }
+        return normalized.isEmpty ? null : normalized;
+    }
+  }
 }
 
 class _ChecklistEditableInput {
@@ -1032,5 +1053,44 @@ class _ChecklistEditableInput {
       }
     }
     return true;
+  }
+}
+
+class _ChecklistBudgetSplitSnapshot {
+  const _ChecklistBudgetSplitSnapshot({
+    required this.flightPercent,
+    required this.hotelPercent,
+    required this.foodPercent,
+    required this.otherPercent,
+  });
+
+  factory _ChecklistBudgetSplitSnapshot.fromDetail(ChecklistDetail detail) {
+    final allocation = (detail.budgetSplit ?? const ChecklistBudgetSplit())
+        .resolveAllocation(
+          totalBudget: detail.totalBudget,
+          currencySymbol: detail.currencySymbol ?? detail.currency,
+        );
+    return _ChecklistBudgetSplitSnapshot(
+      flightPercent: allocation.flightPercent,
+      hotelPercent: allocation.hotelPercent,
+      foodPercent: allocation.foodPercent,
+      otherPercent: allocation.otherPercent,
+    );
+  }
+
+  final double flightPercent;
+  final double hotelPercent;
+  final double foodPercent;
+  final double otherPercent;
+
+  bool equals(_ChecklistBudgetSplitSnapshot other) {
+    return _sameDouble(flightPercent, other.flightPercent) &&
+        _sameDouble(hotelPercent, other.hotelPercent) &&
+        _sameDouble(foodPercent, other.foodPercent) &&
+        _sameDouble(otherPercent, other.otherPercent);
+  }
+
+  bool _sameDouble(double left, double right) {
+    return (left - right).abs() < 0.0001;
   }
 }

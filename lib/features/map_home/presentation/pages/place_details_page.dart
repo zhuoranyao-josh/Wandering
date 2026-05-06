@@ -5,6 +5,7 @@ import '../../../../app/app_router.dart';
 import '../../../../core/di/service_locator.dart';
 import '../../../../features/checklist/domain/entities/checklist_destination_snapshot.dart';
 import '../../../../features/checklist/presentation/controllers/checklist_controller.dart';
+import '../../../community/domain/entities/post.dart';
 import '../../../../l10n/app_localizations.dart';
 import '../controllers/place_detail_controller.dart';
 import '../models/place_detail_ui_model.dart';
@@ -43,7 +44,10 @@ class _PlaceDetailsPageState extends State<PlaceDetailsPage> {
   late final ChecklistController _checklistController =
       ServiceLocator.checklistController;
   late final PlaceDetailController _placeDetailController =
-      PlaceDetailController(repository: ServiceLocator.mapHomeRepository);
+      PlaceDetailController(
+        repository: ServiceLocator.mapHomeRepository,
+        communityRepository: ServiceLocator.communityRepository,
+      );
   bool _isDescriptionExpanded = false;
   bool _isCreatingChecklist = false;
 
@@ -92,6 +96,10 @@ class _PlaceDetailsPageState extends State<PlaceDetailsPage> {
         final resolvedQuote = model.resolveQuote(languageCode);
         final description = model.resolveDescription(languageCode) ?? '';
         final hasDescription = description.isNotEmpty;
+        final communityPosts = _placeDetailController.communityPosts;
+        final shouldShowCommunitySection =
+            _placeDetailController.isCommunityLoading ||
+            communityPosts.isNotEmpty;
 
         if (_placeDetailController.isLoading &&
             _placeDetailController.detailModel == null &&
@@ -172,14 +180,16 @@ class _PlaceDetailsPageState extends State<PlaceDetailsPage> {
                           const SizedBox(height: 12),
                           _buildStaysSection(model.stays, languageCode),
                           const SizedBox(height: _sectionSpacing),
-                          PlaceSectionHeader(
-                            title: t.placeDetailsCommunityMoments,
-                            actionText: t.placeDetailsViewFeed,
-                            onActionTap: _noop,
-                          ),
-                          const SizedBox(height: 12),
-                          _buildCommunitySection(model.communityMoments),
-                          const SizedBox(height: _sectionSpacing),
+                          if (shouldShowCommunitySection) ...<Widget>[
+                            PlaceSectionHeader(
+                              title: t.placeDetailsCommunityMoments,
+                              actionText: t.placeDetailsViewFeed,
+                              onActionTap: _openCommunityFeed,
+                            ),
+                            const SizedBox(height: 12),
+                            _buildCommunitySection(communityPosts),
+                            const SizedBox(height: _sectionSpacing),
+                          ],
                           PlaceSectionHeader(
                             title: t.placeDetailsGallery,
                             actionText: t.placeDetailsViewAll,
@@ -378,27 +388,31 @@ class _PlaceDetailsPageState extends State<PlaceDetailsPage> {
     );
   }
 
-  Widget _buildCommunitySection(List<PlaceCommunityMomentUiModel> items) {
-    final hasItems = items.isNotEmpty;
-    final itemCount = hasItems ? items.length : 1;
+  Widget _buildCommunitySection(List<Post> posts) {
+    if (_placeDetailController.isCommunityLoading) {
+      return const SizedBox(
+        height: 236,
+        child: Center(child: CircularProgressIndicator()),
+      );
+    }
 
     return SizedBox(
       height: 236,
       child: ListView.separated(
         scrollDirection: Axis.horizontal,
-        itemCount: itemCount,
+        itemCount: posts.length,
         separatorBuilder: (context, index) => const SizedBox(width: 12),
         itemBuilder: (context, index) {
-          if (!hasItems) {
-            return const CommunityCard();
-          }
-          final item = items[index];
+          final post = posts[index];
           return CommunityCard(
-            imageUrl: item.imageUrl,
-            avatarUrl: item.avatarUrl,
-            userName: item.userName,
-            caption: item.caption,
-            likeCount: item.likeCount,
+            imageUrl: post.coverImageUrl,
+            avatarUrl: post.authorAvatarUrl,
+            userName: _displayUserName(post),
+            caption: _communityCaption(post),
+            likeCount: post.likeCount,
+            onTap: post.id.trim().isEmpty
+                ? null
+                : () => _openCommunityPost(post.id),
           );
         },
       ),
@@ -422,6 +436,18 @@ class _PlaceDetailsPageState extends State<PlaceDetailsPage> {
     if (context.canPop()) {
       context.pop();
     }
+  }
+
+  void _openCommunityFeed() {
+    context.go(AppRouter.community);
+  }
+
+  void _openCommunityPost(String postId) {
+    final trimmedPostId = postId.trim();
+    if (trimmedPostId.isEmpty) {
+      return;
+    }
+    context.push(AppRouter.communityPostDetail(trimmedPostId));
   }
 
   Future<void> _handleStartJourney() async {
@@ -485,6 +511,22 @@ class _PlaceDetailsPageState extends State<PlaceDetailsPage> {
   }
 
   static void _noop() {}
+
+  String _communityCaption(Post post) {
+    final title = post.title?.trim() ?? '';
+    if (title.isNotEmpty) {
+      return title;
+    }
+    return post.content.replaceAll('\n', ' ').trim();
+  }
+
+  String _displayUserName(Post post) {
+    final authorName = post.authorName.trim();
+    if (authorName.isNotEmpty) {
+      return authorName;
+    }
+    return post.authorId.trim();
+  }
 
   Map<String, String> _buildDestinationNamesFromModel(String fallbackName) {
     final result = <String, String>{};

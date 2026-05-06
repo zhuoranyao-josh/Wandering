@@ -47,13 +47,13 @@ class ActivityEventCard extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // 适度提高封面高度，减少 cover 在首屏卡片上的裁切量。
+              // 封面统一为 16:9，使用 cover 保证不拉伸，仅做裁切。
               ClipRRect(
                 borderRadius: const BorderRadius.vertical(
                   top: Radius.circular(16),
                 ),
                 child: AspectRatio(
-                  aspectRatio: 3 / 2,
+                  aspectRatio: 16 / 9,
                   child: event.coverImageUrl.isNotEmpty
                       ? AppNetworkImage(
                           imageUrl: event.coverImageUrl,
@@ -75,7 +75,7 @@ class ActivityEventCard extends StatelessWidget {
                   children: [
                     Text(
                       title,
-                      maxLines: 1,
+                      maxLines: 2,
                       overflow: TextOverflow.ellipsis,
                       style: const TextStyle(
                         fontSize: 15,

@@ -21,8 +21,11 @@ class Post {
   /// `placeName` 继续兼容旧数据；新的结构化字段用于更稳定的展示。
   final String? placeName;
   final String? placeNameFull;
+  final String? placeId;
+  final String? mapboxId;
   final String? placeCity;
   final String? placeCountry;
+  final String? placeAddress;
   final String? placeType;
   final double? latitude;
   final double? longitude;
@@ -43,8 +46,11 @@ class Post {
     this.images = const <PostImage>[],
     this.placeName,
     this.placeNameFull,
+    this.placeId,
+    this.mapboxId,
     this.placeCity,
     this.placeCountry,
+    this.placeAddress,
     this.placeType,
     required this.latitude,
     required this.longitude,
@@ -74,6 +80,7 @@ class Post {
       fullName: placeNameFull ?? placeName,
       city: placeCity,
       country: placeCountry,
+      placeFormatted: placeAddress,
       latitude: latitude,
       longitude: longitude,
       placeType: placeType,
@@ -97,8 +104,11 @@ class Post {
     List<PostImage>? images,
     Object? placeName = _postSentinel,
     Object? placeNameFull = _postSentinel,
+    Object? placeId = _postSentinel,
+    Object? mapboxId = _postSentinel,
     Object? placeCity = _postSentinel,
     Object? placeCountry = _postSentinel,
+    Object? placeAddress = _postSentinel,
     Object? placeType = _postSentinel,
     Object? latitude = _postSentinel,
     Object? longitude = _postSentinel,
@@ -121,12 +131,19 @@ class Post {
       placeNameFull: placeNameFull == _postSentinel
           ? this.placeNameFull
           : placeNameFull as String?,
+      placeId: placeId == _postSentinel ? this.placeId : placeId as String?,
+      mapboxId: mapboxId == _postSentinel
+          ? this.mapboxId
+          : mapboxId as String?,
       placeCity: placeCity == _postSentinel
           ? this.placeCity
           : placeCity as String?,
       placeCountry: placeCountry == _postSentinel
           ? this.placeCountry
           : placeCountry as String?,
+      placeAddress: placeAddress == _postSentinel
+          ? this.placeAddress
+          : placeAddress as String?,
       placeType: placeType == _postSentinel
           ? this.placeType
           : placeType as String?,

@@ -41,8 +41,12 @@ class PostLocation {
   String? get summaryLabel {
     final cleanCountry = _clean(country);
     final cleanCity = _clean(city);
+    final cleanFullName = _clean(fullName);
     if (cleanCountry != null && cleanCity != null) {
       return '$cleanCountry · $cleanCity';
+    }
+    if (cleanCountry != null && cleanFullName != null) {
+      return '$cleanCountry · $cleanFullName';
     }
     if (cleanCountry != null) {
       return cleanCountry;
@@ -50,7 +54,7 @@ class PostLocation {
     if (cleanCity != null) {
       return cleanCity;
     }
-    return _clean(fullName) ?? _clean(placeFormatted);
+    return cleanFullName ?? _clean(placeFormatted);
   }
 
   String? get fullLabel {

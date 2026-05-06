@@ -56,6 +56,7 @@ class ServiceLocator {
   static late final AuthController authController;
   static late final ActivityController activityController;
   static late final CommunityController communityController;
+  static late final CommunityRepository communityRepository;
   static late final MapHomeRepository mapHomeRepository;
   static late final CurrentLocationRepository currentLocationRepository;
   static late final ProfileSetupController profileSetupController;
@@ -140,9 +141,7 @@ class ServiceLocator {
           firebaseAuth: firebaseAuth,
           storage: storage,
         );
-    final CommunityRepository communityRepository = CommunityRepositoryImpl(
-      communityRemoteDataSource,
-    );
+    communityRepository = CommunityRepositoryImpl(communityRemoteDataSource);
     communityController = CommunityController(
       communityRepository: communityRepository,
       authController: authController,

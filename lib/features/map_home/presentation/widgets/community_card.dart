@@ -92,17 +92,14 @@ class CommunityCard extends StatelessWidget {
                             color: Color(0xFF6B7280),
                           ),
                           const SizedBox(width: 6),
-                          if (likeCount != null)
-                            Text(
-                              '$likeCount',
-                              style: const TextStyle(
-                                fontSize: 12,
-                                fontWeight: FontWeight.w700,
-                                color: Color(0xFF6B7280),
-                              ),
-                            )
-                          else
-                            _buildPlaceholderLine(32, height: 12),
+                          Text(
+                            '${likeCount ?? 0}',
+                            style: const TextStyle(
+                              fontSize: 12,
+                              fontWeight: FontWeight.w700,
+                              color: Color(0xFF6B7280),
+                            ),
+                          ),
                         ],
                       ),
                     ],
@@ -176,12 +173,17 @@ class _UserOverlay extends StatelessWidget {
           ),
           const SizedBox(width: 6),
           if (userName.isNotEmpty)
-            Text(
-              userName,
-              style: const TextStyle(
-                color: Colors.white,
-                fontSize: 11,
-                fontWeight: FontWeight.w700,
+            ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 108),
+              child: Text(
+                userName,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontSize: 11,
+                  fontWeight: FontWeight.w700,
+                ),
               ),
             )
           else
