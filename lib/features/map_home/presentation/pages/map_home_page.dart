@@ -8,8 +8,10 @@ import 'package:mapbox_maps_flutter/mapbox_maps_flutter.dart';
 import '../../../../app/app_router.dart';
 import '../../../../core/config/mapbox_config.dart';
 import '../../../../core/di/service_locator.dart';
+import '../../../../core/onboarding/onboarding_preferences.dart';
 import '../../../../core/system_ui/app_system_ui.dart';
 import '../../../../core/widgets/app_button.dart';
+import '../../../../core/widgets/app_guide_dialog.dart';
 import '../../../../features/checklist/domain/entities/checklist_destination_snapshot.dart';
 import '../../../../features/checklist/presentation/controllers/checklist_controller.dart';
 import '../../../../l10n/app_localizations.dart';
@@ -46,11 +48,14 @@ class _MapHomePageState extends State<MapHomePage> {
       );
   late final ChecklistController _checklistController =
       ServiceLocator.checklistController;
+  final OnboardingPreferences _onboardingPreferences =
+      const OnboardingPreferences();
   final TextEditingController _searchController = TextEditingController();
   Locale? _lastLocale;
   bool? _lastHasPreviewCard;
   int? _lastLocationNoticeVersion;
   bool _isCreatingChecklist = false;
+  bool _isGuideDialogOpen = false;
 
   CameraOptions get _initialCameraOptions => CameraOptions(
     center: Point(coordinates: Position(105.0, 30.0)),
@@ -58,6 +63,16 @@ class _MapHomePageState extends State<MapHomePage> {
     bearing: 0.0,
     pitch: 0.0,
   );
+
+  @override
+  void initState() {
+    super.initState();
+
+    // 首次进入地图页后再弹窗，避免在 build 过程中直接使用 context 打开 Dialog。
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      unawaited(_showMainGuideIfNeeded());
+    });
+  }
 
   @override
   void didChangeDependencies() {
@@ -249,6 +264,12 @@ class _MapHomePageState extends State<MapHomePage> {
                           color: Color(0xFF111827),
                           size: 24,
                         ),
+                ),
+                const SizedBox(height: 10),
+                MapIconActionButton(
+                  tooltip: t.guideButtonLabel,
+                  onPressed: _openGuideManually,
+                  icon: Icons.help_outline_rounded,
                 ),
               ],
             ),
@@ -549,5 +570,93 @@ class _MapHomePageState extends State<MapHomePage> {
     }
     // Mapbox 临时地点通常只有当前语言名称，这里只写当前语言并保留 destination 兜底。
     return <String, String>{key: value};
+  }
+
+  Future<void> _showMainGuideIfNeeded() async {
+    if (!mounted ||
+        !MapboxConfig.isSupportedPlatform ||
+        !MapboxConfig.hasAccessToken) {
+      return;
+    }
+
+    final hasSeenMainGuide = await _onboardingPreferences.hasSeenMainGuide();
+    if (!mounted || hasSeenMainGuide) {
+      return;
+    }
+
+    await _showGuideDialog(markAsSeenOnClose: true);
+  }
+
+  Future<void> _openGuideManually() {
+    return _showGuideDialog(markAsSeenOnClose: true);
+  }
+
+  Future<void> _showGuideDialog({required bool markAsSeenOnClose}) async {
+    if (_isGuideDialogOpen || !mounted) {
+      return;
+    }
+
+    final t = AppLocalizations.of(context);
+    if (t == null) {
+      return;
+    }
+
+    _isGuideDialogOpen = true;
+    try {
+      await showDialog<void>(
+        context: context,
+        barrierDismissible: false,
+        useSafeArea: false,
+        builder: (dialogContext) {
+          return AppGuideDialog(
+            steps: _buildMainGuideSteps(t),
+            onSkip: markAsSeenOnClose
+                ? _onboardingPreferences.setMainGuideSeen
+                : null,
+            onFinish: markAsSeenOnClose
+                ? _onboardingPreferences.setMainGuideSeen
+                : null,
+          );
+        },
+      );
+    } finally {
+      _isGuideDialogOpen = false;
+    }
+  }
+
+  List<AppGuideStep> _buildMainGuideSteps(AppLocalizations t) {
+    // 步骤内容集中在这里，图片随当前语言切换，避免引导页出现错语种截图。
+    return <AppGuideStep>[
+      AppGuideStep(
+        id: 'map',
+        title: t.guideMapExploreTitle,
+        description: t.guideMapExploreDescription,
+        imageAsset: _guideImagePath('guide_globe'),
+      ),
+      AppGuideStep(
+        id: 'preview',
+        title: t.guidePreviewTitle,
+        description: t.guidePreviewDescription,
+        imageAsset: _guideImagePath('guide_preview'),
+      ),
+      AppGuideStep(
+        id: 'startJourney',
+        title: t.guideJourneyTitle,
+        description: t.guideJourneyDescription,
+        imageAsset: _guideImagePath('guide_start_journey'),
+      ),
+      AppGuideStep(
+        id: 'checklist',
+        title: t.guideGenerateTitle,
+        description: t.guideGenerateDescription,
+        imageAsset: _guideImagePath('guide_checklist'),
+      ),
+    ];
+  }
+
+  String _guideImagePath(String baseName, {String extension = 'jpg'}) {
+    final languageCode = Localizations.localeOf(context).languageCode;
+    final suffix = languageCode.toLowerCase().startsWith('zh') ? 'zh' : 'en';
+    return 'assets/images/onboarding/${baseName}_$suffix.$extension';
   }
 }

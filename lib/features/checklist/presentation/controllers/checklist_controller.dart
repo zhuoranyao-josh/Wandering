@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/foundation.dart';
 
 import '../../domain/entities/checklist_destination_snapshot.dart';
@@ -61,7 +63,7 @@ class ChecklistController extends ChangeNotifier {
         destinationNames: destinationNames,
         destinationSnapshot: destinationSnapshot,
       );
-      await load();
+      _refreshListAfterCreate();
       return checklistId;
     } catch (_) {
       _errorKey = 'checklistCreateFailed';
@@ -82,7 +84,7 @@ class ChecklistController extends ChangeNotifier {
             destinationSnapshot: destinationSnapshot,
             destinationNames: destinationNames,
           );
-      await load();
+      _refreshListAfterCreate();
       return checklistId;
     } catch (_) {
       _errorKey = 'checklistCreateFailed';
@@ -107,5 +109,10 @@ class ChecklistController extends ChangeNotifier {
       _isDeleting = false;
       notifyListeners();
     }
+  }
+
+  void _refreshListAfterCreate() {
+    // 创建成功后先返回 checklistId 让页面跳转，列表刷新放后台避免按钮长时间转圈。
+    unawaited(load());
   }
 }

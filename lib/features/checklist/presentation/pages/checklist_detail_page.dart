@@ -28,12 +28,6 @@ class _ChecklistDetailPageState extends State<ChecklistDetailPage>
     with RouteAware {
   static const double _horizontalPadding = 16;
   static const double _sectionSpacing = 24;
-  static const List<String> _budgetCurrencyOptions = <String>[
-    'CNY',
-    'USD',
-    'EUR',
-    'JPY',
-  ];
 
   late final ChecklistDetailController _controller =
       ServiceLocator.createChecklistDetailController();
@@ -92,7 +86,7 @@ class _ChecklistDetailPageState extends State<ChecklistDetailPage>
   @override
   void didPopNext() {
     // 从 Wizard/其他子页面返回时，强制刷新详情，避免停留旧数据。
-    _controller.refreshChecklistDetail(forceRefresh: true);
+    _reloadDetailAfterWizard();
   }
 
   void _handleControllerChange() {
@@ -162,13 +156,7 @@ class _ChecklistDetailPageState extends State<ChecklistDetailPage>
           TextButton(
             onPressed: () async {
               debugPrint('[ChecklistEdit] wizard edit opened');
-              await context.push(
-                AppRouter.checklistWizard(widget.checklistId, isEditMode: true),
-              );
-              if (!mounted) {
-                return;
-              }
-              await _controller.refreshChecklistDetail(forceRefresh: true);
+              await _openWizardForPlanning(isEditMode: true);
             },
             style: TextButton.styleFrom(
               padding: const EdgeInsets.symmetric(horizontal: 16),
@@ -212,7 +200,7 @@ class _ChecklistDetailPageState extends State<ChecklistDetailPage>
           final hasEssentials = displayEssentials.isNotEmpty;
           final isReadyToPlan = _controller.isReadyToPlan;
           final hasInputChanges = _controller.hasInputChanges;
-          final shouldShowPlanningSummary = detail.basicInfoCompleted;
+          final shouldShowPlanningSummary = isReadyToPlan;
 
           return SingleChildScrollView(
             padding: const EdgeInsets.fromLTRB(
@@ -247,13 +235,7 @@ class _ChecklistDetailPageState extends State<ChecklistDetailPage>
                     message: t.checklistPlanningPromptMessage,
                     buttonLabel: t.checklistStartPlanning,
                     onTap: () async {
-                      await context.push(
-                        AppRouter.checklistWizard(widget.checklistId),
-                      );
-                      if (!mounted) return;
-                      await _controller.refreshChecklistDetail(
-                        forceRefresh: true,
-                      );
+                      await _openWizardForPlanning();
                     },
                   ),
                 if (hasInputChanges) ...<Widget>[
@@ -350,17 +332,8 @@ class _ChecklistDetailPageState extends State<ChecklistDetailPage>
                         onPressed: saveEnabled
                             ? () async {
                                 if (!isReadyToPlan) {
-                                  await context.push(
-                                    AppRouter.checklistWizard(
-                                      widget.checklistId,
-                                      isEditMode: true,
-                                    ),
-                                  );
-                                  if (!mounted) {
-                                    return;
-                                  }
-                                  await _controller.refreshChecklistDetail(
-                                    forceRefresh: true,
+                                  await _openWizardForPlanning(
+                                    isEditMode: true,
                                   );
                                   return;
                                 }
@@ -393,22 +366,21 @@ class _ChecklistDetailPageState extends State<ChecklistDetailPage>
                       child: ElevatedButton(
                         onPressed: updateEnabled
                             ? () async {
-                                if (!isReadyToPlan) {
-                                  await context.push(
-                                    AppRouter.checklistWizard(
-                                      widget.checklistId,
-                                    ),
-                                  );
-                                  if (!mounted) {
-                                    return;
-                                  }
-                                  await _controller.refreshChecklistDetail(
-                                    forceRefresh: true,
-                                  );
+                                if (!hasGeneratedPlan) {
+                                  await _handleGeneratePlanPressed();
                                   return;
                                 }
-                                if (!hasGeneratedPlan) {
-                                  await _openPlanProgressDialogAndGenerate();
+                                if (!isReadyToPlan) {
+                                  await _openWizardForPlanning();
+                                  return;
+                                }
+                                _logGeneratePlanState(
+                                  _controller.checklistDetail,
+                                );
+                                debugPrint(
+                                  '[ChecklistPlan] start generation from detail',
+                                );
+                                if (!mounted) {
                                   return;
                                 }
                                 await _openPlanProgressDialogAndUpdate();
@@ -494,6 +466,109 @@ class _ChecklistDetailPageState extends State<ChecklistDetailPage>
       return t.errorUnknown;
     }
     return key;
+  }
+
+  Future<void> _reloadDetailAfterWizard() async {
+    debugPrint(
+      '[ChecklistDetail] reload after wizard checklistId=${widget.checklistId}',
+    );
+    await _controller.refreshChecklistDetail(
+      checklistId: widget.checklistId,
+      forceRefresh: true,
+    );
+    debugPrint(
+      '[ChecklistDetail] basicInfoCompleted='
+      '${_controller.checklistDetail?.basicInfoCompleted}',
+    );
+  }
+
+  Future<void> _openWizardForPlanning({bool isEditMode = false}) async {
+    await context.push(
+      AppRouter.checklistWizard(widget.checklistId, isEditMode: isEditMode),
+    );
+    if (!mounted) {
+      return;
+    }
+    await _reloadDetailAfterWizard();
+  }
+
+  Future<void> _handleGeneratePlanPressed() async {
+    // 生成前主动拉取最新详情，避免 Wizard 刚保存后按钮仍读取旧状态。
+    await _controller.refreshChecklistDetail(
+      checklistId: widget.checklistId,
+      forceRefresh: true,
+    );
+    if (!mounted) {
+      return;
+    }
+
+    final detail = _controller.checklistDetail;
+    _logGeneratePlanState(detail);
+    final isReadyToPlan =
+        detail != null &&
+        (detail.basicInfoCompleted || detail.isBasicInfoComplete);
+    if (!isReadyToPlan) {
+      debugPrint(
+        '[ChecklistPlan] redirect to wizard reason=basicInfoIncomplete',
+      );
+      await _openWizardForPlanning();
+      return;
+    }
+
+    debugPrint('[ChecklistPlan] start generation from detail');
+    await _openPlanProgressDialogAndGenerate();
+  }
+
+  void _logGeneratePlanState(ChecklistDetail? detail) {
+    debugPrint(
+      '[ChecklistPlan] generate clicked basicInfoCompleted='
+      '${detail?.basicInfoCompleted}',
+    );
+    final missingFields = _collectMissingPlanningFields(detail);
+    if (missingFields.isNotEmpty) {
+      debugPrint(
+        '[ChecklistPlan] missing required fields=${missingFields.join(', ')}',
+      );
+    }
+  }
+
+  List<String> _collectMissingPlanningFields(ChecklistDetail? detail) {
+    if (detail == null) {
+      return const <String>['detail'];
+    }
+    final missingFields = <String>[];
+    if (!detail.hasValidDestination &&
+        detail.resolvedDestinationName.trim().isEmpty) {
+      missingFields.add('destination');
+    }
+    if ((detail.departureCity?.trim().isNotEmpty ?? false) == false) {
+      missingFields.add('departureCity');
+    }
+    if (detail.startDate == null) {
+      missingFields.add('startDate');
+    }
+    if (detail.endDate == null) {
+      missingFields.add('endDate');
+    }
+    if ((detail.totalBudget ?? 0) <= 0) {
+      missingFields.add('totalBudget');
+    }
+    if ((detail.currency?.trim().isNotEmpty ?? false) == false) {
+      missingFields.add('currency');
+    }
+    if ((detail.travelerCount ?? 0) <= 0) {
+      missingFields.add('travelerCount');
+    }
+    if ((detail.pace?.trim().isNotEmpty ?? false) == false) {
+      missingFields.add('pace');
+    }
+    if ((detail.accommodationPreference?.trim().isNotEmpty ?? false) == false) {
+      missingFields.add('accommodationPreference');
+    }
+    if (detail.preferences.isEmpty) {
+      missingFields.add('preferences');
+    }
+    return missingFields;
   }
 
   Future<void> _openPlanProgressDialogAndGenerate() async {
@@ -612,19 +687,6 @@ class _ChecklistDetailPageState extends State<ChecklistDetailPage>
   ) async {
     debugPrint('[ChecklistEdit] budget edit opened');
     FocusScope.of(context).unfocus();
-    final textController = TextEditingController(
-      text: detail.totalBudget == null
-          ? ''
-          : detail.totalBudget!.toStringAsFixed(
-              detail.totalBudget! % 1 == 0 ? 0 : 2,
-            ),
-    );
-    final formKey = GlobalKey<FormState>();
-    var selectedCurrency = (detail.currency ?? '').trim();
-    if (selectedCurrency.isEmpty) {
-      selectedCurrency = 'CNY';
-    }
-
     final result = await showModalBottomSheet<_BudgetEditResult>(
       context: context,
       isScrollControlled: true,
@@ -634,280 +696,13 @@ class _ChecklistDetailPageState extends State<ChecklistDetailPage>
         borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
       ),
       builder: (sheetContext) {
-        final bottomInset = MediaQuery.of(sheetContext).viewInsets.bottom;
-        final safeBottom = MediaQuery.of(sheetContext).padding.bottom;
-        return StatefulBuilder(
-          builder: (sheetContext, setSheetState) {
-            return AnimatedPadding(
-              duration: const Duration(milliseconds: 180),
-              curve: Curves.easeOut,
-              padding: EdgeInsets.only(bottom: bottomInset),
-              child: SafeArea(
-                top: false,
-                child: SizedBox(
-                  height: MediaQuery.of(sheetContext).size.height * 0.62,
-                  child: Column(
-                    children: <Widget>[
-                      Expanded(
-                        child: SingleChildScrollView(
-                          padding: EdgeInsets.fromLTRB(20, 16, 20, 20),
-                          child: Form(
-                            key: formKey,
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: <Widget>[
-                                Center(
-                                  child: Container(
-                                    width: 44,
-                                    height: 4,
-                                    decoration: BoxDecoration(
-                                      color: const Color(0xFFD1D5DB),
-                                      borderRadius: BorderRadius.circular(999),
-                                    ),
-                                  ),
-                                ),
-                                const SizedBox(height: 18),
-                                Row(
-                                  children: <Widget>[
-                                    Expanded(
-                                      child: Text(
-                                        t.checklistTotalBudget,
-                                        style: const TextStyle(
-                                          fontSize: 22,
-                                          fontWeight: FontWeight.w700,
-                                          color: Color(0xFF111827),
-                                        ),
-                                      ),
-                                    ),
-                                    IconButton(
-                                      onPressed: () {
-                                        FocusManager.instance.primaryFocus
-                                            ?.unfocus();
-                                        Navigator.of(sheetContext).pop();
-                                      },
-                                      icon: const Icon(
-                                        Icons.close_rounded,
-                                        color: Color(0xFF6B7280),
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                                const SizedBox(height: 16),
-                                // 保持和预算拆分页一致的卡片语言，避免编辑层显得过于简陋。
-                                _BudgetEditorFieldCard(
-                                  label: t.journeyWizardTotalBudget,
-                                  child: TextFormField(
-                                    controller: textController,
-                                    keyboardType:
-                                        const TextInputType.numberWithOptions(
-                                          decimal: true,
-                                        ),
-                                    autofocus: true,
-                                    decoration: InputDecoration(
-                                      hintText: t.journeyWizardTotalBudgetHint,
-                                      isDense: true,
-                                      filled: true,
-                                      fillColor: const Color(0xFFF8FAFC),
-                                      contentPadding:
-                                          const EdgeInsets.symmetric(
-                                            horizontal: 14,
-                                            vertical: 14,
-                                          ),
-                                      enabledBorder: OutlineInputBorder(
-                                        borderRadius: BorderRadius.circular(14),
-                                        borderSide: const BorderSide(
-                                          color: Color(0xFFE5E7EB),
-                                        ),
-                                      ),
-                                      focusedBorder: OutlineInputBorder(
-                                        borderRadius: BorderRadius.circular(14),
-                                        borderSide: const BorderSide(
-                                          color: Color(0xFF2F62EC),
-                                          width: 1.4,
-                                        ),
-                                      ),
-                                      errorBorder: OutlineInputBorder(
-                                        borderRadius: BorderRadius.circular(14),
-                                        borderSide: const BorderSide(
-                                          color: Color(0xFFEF4444),
-                                        ),
-                                      ),
-                                      focusedErrorBorder: OutlineInputBorder(
-                                        borderRadius: BorderRadius.circular(14),
-                                        borderSide: const BorderSide(
-                                          color: Color(0xFFEF4444),
-                                          width: 1.4,
-                                        ),
-                                      ),
-                                    ),
-                                    validator: (value) {
-                                      final parsed = double.tryParse(
-                                        (value ?? '').trim(),
-                                      );
-                                      if (parsed == null || parsed <= 0) {
-                                        return t
-                                            .journeyWizardErrorBudgetRequired;
-                                      }
-                                      return null;
-                                    },
-                                  ),
-                                ),
-                                const SizedBox(height: 14),
-                                _BudgetEditorFieldCard(
-                                  label: t.journeyWizardCurrency,
-                                  child: DropdownButtonFormField<String>(
-                                    key: ValueKey<String>(selectedCurrency),
-                                    initialValue: selectedCurrency,
-                                    decoration: InputDecoration(
-                                      isDense: true,
-                                      filled: true,
-                                      fillColor: const Color(0xFFF8FAFC),
-                                      contentPadding:
-                                          const EdgeInsets.symmetric(
-                                            horizontal: 14,
-                                            vertical: 14,
-                                          ),
-                                      enabledBorder: OutlineInputBorder(
-                                        borderRadius: BorderRadius.circular(14),
-                                        borderSide: const BorderSide(
-                                          color: Color(0xFFE5E7EB),
-                                        ),
-                                      ),
-                                      focusedBorder: OutlineInputBorder(
-                                        borderRadius: BorderRadius.circular(14),
-                                        borderSide: const BorderSide(
-                                          color: Color(0xFF2F62EC),
-                                          width: 1.4,
-                                        ),
-                                      ),
-                                      errorBorder: OutlineInputBorder(
-                                        borderRadius: BorderRadius.circular(14),
-                                        borderSide: const BorderSide(
-                                          color: Color(0xFFEF4444),
-                                        ),
-                                      ),
-                                      focusedErrorBorder: OutlineInputBorder(
-                                        borderRadius: BorderRadius.circular(14),
-                                        borderSide: const BorderSide(
-                                          color: Color(0xFFEF4444),
-                                          width: 1.4,
-                                        ),
-                                      ),
-                                    ),
-                                    items: _budgetCurrencyOptions
-                                        .map(
-                                          (currencyCode) =>
-                                              DropdownMenuItem<String>(
-                                                value: currencyCode,
-                                                child: Text(currencyCode),
-                                              ),
-                                        )
-                                        .toList(growable: false),
-                                    onChanged: (value) {
-                                      setSheetState(() {
-                                        selectedCurrency = (value ?? 'CNY')
-                                            .trim();
-                                      });
-                                    },
-                                    validator: (value) {
-                                      if ((value ?? '').trim().isEmpty) {
-                                        return t
-                                            .journeyWizardErrorCurrencyRequired;
-                                      }
-                                      return null;
-                                    },
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                        ),
-                      ),
-                      Container(
-                        padding: EdgeInsets.fromLTRB(
-                          20,
-                          12,
-                          20,
-                          16 + safeBottom,
-                        ),
-                        decoration: const BoxDecoration(
-                          color: Colors.white,
-                          border: Border(
-                            top: BorderSide(color: Color(0xFFE5E7EB)),
-                          ),
-                        ),
-                        child: Row(
-                          children: <Widget>[
-                            Expanded(
-                              child: OutlinedButton(
-                                onPressed: () {
-                                  FocusManager.instance.primaryFocus?.unfocus();
-                                  Navigator.of(sheetContext).pop();
-                                },
-                                style: OutlinedButton.styleFrom(
-                                  minimumSize: const Size.fromHeight(50),
-                                  side: const BorderSide(
-                                    color: Color(0xFFD1D5DB),
-                                  ),
-                                  shape: RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(16),
-                                  ),
-                                ),
-                                child: Text(t.cancel),
-                              ),
-                            ),
-                            const SizedBox(width: 12),
-                            Expanded(
-                              child: ElevatedButton(
-                                onPressed: () {
-                                  if (!(formKey.currentState?.validate() ??
-                                      false)) {
-                                    return;
-                                  }
-                                  FocusManager.instance.primaryFocus?.unfocus();
-                                  final parsed = double.tryParse(
-                                    textController.text.trim(),
-                                  );
-                                  if (parsed == null || parsed <= 0) {
-                                    return;
-                                  }
-                                  Navigator.of(sheetContext).pop(
-                                    _BudgetEditResult(
-                                      totalBudget: parsed,
-                                      currency: selectedCurrency,
-                                    ),
-                                  );
-                                },
-                                style: ElevatedButton.styleFrom(
-                                  minimumSize: const Size.fromHeight(50),
-                                  elevation: 0,
-                                  backgroundColor: const Color(0xFF10131E),
-                                  foregroundColor: Colors.white,
-                                  shape: RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(16),
-                                  ),
-                                ),
-                                child: Text(
-                                  t.save,
-                                  style: const TextStyle(
-                                    fontWeight: FontWeight.w700,
-                                  ),
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-            );
-          },
+        return _BudgetEditSheet(
+          t: t,
+          initialTotalBudget: detail.totalBudget,
+          initialCurrency: detail.currency,
         );
       },
     );
-    textController.dispose();
 
     if (!mounted || result == null) {
       return;
@@ -1687,6 +1482,266 @@ class _StyleChip extends StatelessWidget {
         ),
       ),
     );
+  }
+}
+
+class _BudgetEditSheet extends StatefulWidget {
+  const _BudgetEditSheet({
+    required this.t,
+    required this.initialTotalBudget,
+    required this.initialCurrency,
+  });
+
+  final AppLocalizations t;
+  final double? initialTotalBudget;
+  final String? initialCurrency;
+
+  @override
+  State<_BudgetEditSheet> createState() => _BudgetEditSheetState();
+}
+
+class _BudgetEditSheetState extends State<_BudgetEditSheet> {
+  static const List<String> _currencyOptions = <String>[
+    'CNY',
+    'USD',
+    'EUR',
+    'JPY',
+  ];
+
+  final GlobalKey<FormState> _formKey = GlobalKey<FormState>();
+  late final TextEditingController _textController = TextEditingController(
+    text: widget.initialTotalBudget == null
+        ? ''
+        : widget.initialTotalBudget!.toStringAsFixed(
+            widget.initialTotalBudget! % 1 == 0 ? 0 : 2,
+          ),
+  );
+  late String _selectedCurrency = _resolveInitialCurrency();
+
+  @override
+  void dispose() {
+    _textController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final bottomInset = MediaQuery.of(context).viewInsets.bottom;
+    final safeBottom = MediaQuery.of(context).padding.bottom;
+
+    return AnimatedPadding(
+      duration: const Duration(milliseconds: 180),
+      curve: Curves.easeOut,
+      padding: EdgeInsets.only(bottom: bottomInset),
+      child: SafeArea(
+        top: false,
+        child: SizedBox(
+          height: MediaQuery.of(context).size.height * 0.62,
+          child: Column(
+            children: <Widget>[
+              Expanded(
+                child: SingleChildScrollView(
+                  padding: const EdgeInsets.fromLTRB(20, 16, 20, 20),
+                  child: Form(
+                    key: _formKey,
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: <Widget>[
+                        Center(
+                          child: Container(
+                            width: 44,
+                            height: 4,
+                            decoration: BoxDecoration(
+                              color: const Color(0xFFD1D5DB),
+                              borderRadius: BorderRadius.circular(999),
+                            ),
+                          ),
+                        ),
+                        const SizedBox(height: 18),
+                        Row(
+                          children: <Widget>[
+                            Expanded(
+                              child: Text(
+                                widget.t.checklistTotalBudget,
+                                style: const TextStyle(
+                                  fontSize: 22,
+                                  fontWeight: FontWeight.w700,
+                                  color: Color(0xFF111827),
+                                ),
+                              ),
+                            ),
+                            IconButton(
+                              onPressed: _close,
+                              icon: const Icon(
+                                Icons.close_rounded,
+                                color: Color(0xFF6B7280),
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 16),
+                        // 输入框状态由弹层自己持有，避免关闭动画期间父页面提前释放 controller。
+                        _BudgetEditorFieldCard(
+                          label: widget.t.journeyWizardTotalBudget,
+                          child: TextFormField(
+                            controller: _textController,
+                            keyboardType: const TextInputType.numberWithOptions(
+                              decimal: true,
+                            ),
+                            autofocus: true,
+                            decoration: _inputDecoration(
+                              hintText: widget.t.journeyWizardTotalBudgetHint,
+                            ),
+                            validator: (value) {
+                              final parsed = double.tryParse(
+                                (value ?? '').trim(),
+                              );
+                              if (parsed == null || parsed <= 0) {
+                                return widget
+                                    .t
+                                    .journeyWizardErrorBudgetRequired;
+                              }
+                              return null;
+                            },
+                          ),
+                        ),
+                        const SizedBox(height: 14),
+                        _BudgetEditorFieldCard(
+                          label: widget.t.journeyWizardCurrency,
+                          child: DropdownButtonFormField<String>(
+                            initialValue: _selectedCurrency,
+                            decoration: _inputDecoration(),
+                            items: _currencyOptions
+                                .map(
+                                  (currencyCode) => DropdownMenuItem<String>(
+                                    value: currencyCode,
+                                    child: Text(currencyCode),
+                                  ),
+                                )
+                                .toList(growable: false),
+                            onChanged: (value) {
+                              setState(() {
+                                _selectedCurrency = (value ?? 'CNY').trim();
+                              });
+                            },
+                            validator: (value) {
+                              if ((value ?? '').trim().isEmpty) {
+                                return widget
+                                    .t
+                                    .journeyWizardErrorCurrencyRequired;
+                              }
+                              return null;
+                            },
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+              Container(
+                padding: EdgeInsets.fromLTRB(20, 12, 20, 16 + safeBottom),
+                decoration: const BoxDecoration(
+                  color: Colors.white,
+                  border: Border(top: BorderSide(color: Color(0xFFE5E7EB))),
+                ),
+                child: Row(
+                  children: <Widget>[
+                    Expanded(
+                      child: OutlinedButton(
+                        onPressed: _close,
+                        style: OutlinedButton.styleFrom(
+                          minimumSize: const Size.fromHeight(50),
+                          side: const BorderSide(color: Color(0xFFD1D5DB)),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(16),
+                          ),
+                        ),
+                        child: Text(widget.t.cancel),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: ElevatedButton(
+                        onPressed: _save,
+                        style: ElevatedButton.styleFrom(
+                          minimumSize: const Size.fromHeight(50),
+                          elevation: 0,
+                          backgroundColor: const Color(0xFF10131E),
+                          foregroundColor: Colors.white,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(16),
+                          ),
+                        ),
+                        child: Text(
+                          widget.t.save,
+                          style: const TextStyle(fontWeight: FontWeight.w700),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  String _resolveInitialCurrency() {
+    final normalized = (widget.initialCurrency ?? '').trim().toUpperCase();
+    return _currencyOptions.contains(normalized) ? normalized : 'CNY';
+  }
+
+  InputDecoration _inputDecoration({String? hintText}) {
+    return InputDecoration(
+      hintText: hintText,
+      isDense: true,
+      filled: true,
+      fillColor: const Color(0xFFF8FAFC),
+      contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
+      enabledBorder: _fieldBorder(const Color(0xFFE5E7EB)),
+      focusedBorder: _fieldBorder(const Color(0xFF2F62EC), width: 1.4),
+      errorBorder: _fieldBorder(const Color(0xFFEF4444)),
+      focusedErrorBorder: _fieldBorder(const Color(0xFFEF4444), width: 1.4),
+    );
+  }
+
+  OutlineInputBorder _fieldBorder(Color color, {double width = 1}) {
+    return OutlineInputBorder(
+      borderRadius: BorderRadius.circular(14),
+      borderSide: BorderSide(color: color, width: width),
+    );
+  }
+
+  Future<void> _close() async {
+    FocusManager.instance.primaryFocus?.unfocus();
+    // 先让输入焦点和键盘完成解绑，再关闭弹层，避免 TextField 依赖树还未清理就被销毁。
+    await Future<void>.delayed(Duration.zero);
+    if (!mounted) {
+      return;
+    }
+    Navigator.of(context).pop();
+  }
+
+  Future<void> _save() async {
+    if (!(_formKey.currentState?.validate() ?? false)) {
+      return;
+    }
+    FocusManager.instance.primaryFocus?.unfocus();
+    final parsed = double.tryParse(_textController.text.trim());
+    if (parsed == null || parsed <= 0) {
+      return;
+    }
+    // 保存同样等待焦点释放完成，减少 bottom sheet 关闭动画期间的生命周期冲突。
+    await Future<void>.delayed(Duration.zero);
+    if (!mounted) {
+      return;
+    }
+    Navigator.of(
+      context,
+    ).pop(_BudgetEditResult(totalBudget: parsed, currency: _selectedCurrency));
   }
 }
 

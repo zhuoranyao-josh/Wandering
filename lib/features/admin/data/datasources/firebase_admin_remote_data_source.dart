@@ -345,7 +345,10 @@ class FirebaseAdminRemoteDataSource implements AdminRemoteDataSource {
     switch (kind) {
       case AdminSubcontentKind.experiences:
         payload['title'] = _sanitizeLanguageMap(item.title);
-        payload['badge'] = _sanitizeLanguageMap(item.badge);
+        payload['badge'] = item.badgeCode.trim();
+        payload['badgeCode'] = item.badgeCode.trim();
+        payload['featureName'] = _sanitizeLanguageMap(item.featureName);
+        payload['description'] = _sanitizeLanguageMap(item.description);
         break;
       case AdminSubcontentKind.flavors:
         payload['name'] = _sanitizeLanguageMap(item.name);
@@ -357,6 +360,9 @@ class FirebaseAdminRemoteDataSource implements AdminRemoteDataSource {
         payload['badge'] = _sanitizeLanguageMap(item.badge);
         payload['imageUrl'] = item.imageUrl.trim();
         payload['priceRange'] = item.priceRange.trim();
+        payload['priceMin'] = item.priceMin;
+        payload['priceMax'] = item.priceMax;
+        payload['currencySymbol'] = item.currencySymbol?.trim() ?? '';
         break;
       case AdminSubcontentKind.gallery:
         payload['imageUrl'] = item.imageUrl.trim();
@@ -524,14 +530,31 @@ class FirebaseAdminRemoteDataSource implements AdminRemoteDataSource {
       id: id,
       enabled: (data['enabled'] as bool?) ?? true,
       order: _toInt(data['order']) ?? 0,
-      title: _readLanguageMap(data['title']),
+      title: _readLanguageMapWithStringFallback(data['title']),
       badge: _readLanguageMap(data['badge']),
-      name: _readLanguageMap(data['name']),
-      subtitle: _readLanguageMap(data['subtitle']),
-      caption: _readLanguageMap(data['caption']),
+      badgeCode: _readExperienceBadgeCode(data),
+      featureName: _readLanguageMapWithStringFallback(data['featureName']),
+      name: _readLanguageMapWithStringFallback(data['name']),
+      subtitle: _readLanguageMapWithStringFallback(data['subtitle']),
+      description: _readLanguageMapWithStringFallback(
+        data['description'] ?? data['quote'],
+      ),
+      caption: _readLanguageMapWithStringFallback(data['caption']),
       imageUrl: (data['imageUrl'] as String?)?.trim() ?? '',
       priceRange: (data['priceRange'] as String?)?.trim() ?? '',
+      priceMin: _toDouble(data['priceMin']),
+      priceMax: _toDouble(data['priceMax']),
+      currencySymbol: (data['currencySymbol'] as String?)?.trim(),
     );
+  }
+
+  String _readExperienceBadgeCode(Map<String, dynamic> data) {
+    final badgeCode = (data['badgeCode'] as String?)?.trim();
+    if (badgeCode != null && badgeCode.isNotEmpty) {
+      return badgeCode;
+    }
+    final badge = data['badge'];
+    return badge is String ? badge.trim() : '';
   }
 
   AdminActivity _mapActivity(String id, Map<String, dynamic> data) {

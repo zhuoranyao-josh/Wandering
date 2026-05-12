@@ -290,6 +290,86 @@ class AppLocalizationsEn extends AppLocalizations {
   String get currentLocationFailed => 'Unable to fetch your current location right now.';
 
   @override
+  String get guideButtonLabel => 'Guide';
+
+  @override
+  String get guideSkip => 'Skip';
+
+  @override
+  String get guideBack => 'Back';
+
+  @override
+  String get guideNext => 'Next';
+
+  @override
+  String get guideGotIt => 'Got it';
+
+  @override
+  String guideProgress(Object current, Object total) {
+    return '$current / $total';
+  }
+
+  @override
+  String get guideMapExploreTitle => 'Explore from the map';
+
+  @override
+  String get guideMapExploreDescription => 'Search for a city or tap a marker to start exploring.';
+
+  @override
+  String get guideGlobeTitle => 'Explore with the globe';
+
+  @override
+  String get guideGlobeDescription => 'Tap the globe tab to explore destinations around the world.';
+
+  @override
+  String get guideSearchTitle => 'Search a destination';
+
+  @override
+  String get guideSearchDescription => 'Search for a city, country, or attraction directly from the top bar.';
+
+  @override
+  String get guideMarkerTitle => 'Tap glowing markers';
+
+  @override
+  String get guideMarkerDescription => 'Markers show destinations you can explore. Tap one to zoom in and preview the place.';
+
+  @override
+  String get guidePreviewTitle => 'Preview the place';
+
+  @override
+  String get guidePreviewDescription => 'Preview the destination card before opening full details.';
+
+  @override
+  String get guideDetailsTitle => 'View full details';
+
+  @override
+  String get guideDetailsDescription => 'Open the destination page to see descriptions, activities, and community posts.';
+
+  @override
+  String get guideJourneyTitle => 'Start your journey';
+
+  @override
+  String get guideJourneyDescription => 'Tap Start Journey to create a trip checklist from this destination.';
+
+  @override
+  String get guidePreferencesTitle => 'Tell us your travel style';
+
+  @override
+  String get guidePreferencesDescription => 'Add your dates, budget, travellers, pace, and accommodation preference.';
+
+  @override
+  String get guideGenerateTitle => 'Plan with AI';
+
+  @override
+  String get guideGenerateDescription => 'Add your trip basics, then generate your AI travel plan.';
+
+  @override
+  String get guideSaveUpdateTitle => 'Save or update your plan';
+
+  @override
+  String get guideSaveUpdateDescription => 'Save the current plan, or update it when your budget, dates, or preferences change.';
+
+  @override
   String get mapPlaceTokyoName => 'Tokyo';
 
   @override
@@ -565,6 +645,30 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get placeDetailsDescriptionCollapse => 'Show less';
+
+  @override
+  String get experienceBadgeExplore => 'Explore';
+
+  @override
+  String get experienceBadgeCulture => 'Culture';
+
+  @override
+  String get experienceBadgeLocal => 'Local';
+
+  @override
+  String get experienceBadgeScenic => 'Scenic';
+
+  @override
+  String get experienceBadgePhoto => 'Photo';
+
+  @override
+  String get experienceBadgeNature => 'Nature';
+
+  @override
+  String get experienceBadgeNight => 'Night';
+
+  @override
+  String get experienceBadgeGuided => 'Guided';
 
   @override
   String get placeDetailsStartJourney => 'Start Journey';
@@ -1314,6 +1418,12 @@ class AppLocalizationsEn extends AppLocalizations {
   String get adminBadge => 'Badge';
 
   @override
+  String get adminExperienceFeatureName => 'Feature name';
+
+  @override
+  String get adminExperienceDescription => 'Quote / description';
+
+  @override
   String get adminSubtitle => 'Subtitle';
 
   @override
@@ -1333,6 +1443,18 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get adminPriceRange => 'Price Range';
+
+  @override
+  String get adminPriceMin => 'Min price';
+
+  @override
+  String get adminPriceMax => 'Max price';
+
+  @override
+  String get adminCurrencySymbol => 'Currency';
+
+  @override
+  String get adminLegacyPriceRange => 'Legacy price range';
 
   @override
   String get adminCaption => 'Caption';

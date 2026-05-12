@@ -161,6 +161,7 @@ class _PlaceDetailsPageState extends State<PlaceDetailsPage> {
                           _buildExperiencesSection(
                             model.experiences,
                             languageCode,
+                            t,
                           ),
                           const SizedBox(height: _sectionSpacing),
                           PlaceSectionHeader(
@@ -309,6 +310,7 @@ class _PlaceDetailsPageState extends State<PlaceDetailsPage> {
   Widget _buildExperiencesSection(
     List<PlaceExperienceUiModel> items,
     String languageCode,
+    AppLocalizations t,
   ) {
     final hasItems = items.isNotEmpty;
     final itemCount = hasItems ? items.length : 2;
@@ -324,12 +326,153 @@ class _PlaceDetailsPageState extends State<PlaceDetailsPage> {
             return const ExperienceCard();
           }
           final item = items[index];
+          final title = item.resolveTitle(languageCode);
+          final description = item.resolveDescription(languageCode);
+          final featureName = item.resolveFeatureName(languageCode);
           return ExperienceCard(
-            badge: item.resolveBadge(languageCode),
-            title: item.resolveTitle(languageCode),
+            badge: _experienceBadgeLabel(item, languageCode, t),
+            featureName: featureName,
+            title: title,
+            description: description,
+            onTap: () => _showExperienceDetails(
+              badge: _experienceBadgeLabel(item, languageCode, t),
+              featureName: featureName,
+              title: title,
+              description: description,
+            ),
           );
         },
       ),
+    );
+  }
+
+  String _experienceBadgeLabel(
+    PlaceExperienceUiModel item,
+    String languageCode,
+    AppLocalizations t,
+  ) {
+    switch (item.normalizedBadgeCode) {
+      case 'explore':
+        return t.experienceBadgeExplore;
+      case 'culture':
+        return t.experienceBadgeCulture;
+      case 'local':
+        return t.experienceBadgeLocal;
+      case 'scenic':
+        return t.experienceBadgeScenic;
+      case 'photo':
+        return t.experienceBadgePhoto;
+      case 'nature':
+        return t.experienceBadgeNature;
+      case 'night':
+        return t.experienceBadgeNight;
+      case 'guided':
+        return t.experienceBadgeGuided;
+    }
+    return item.resolveBadge(languageCode)?.trim() ?? '';
+  }
+
+  Future<void> _showExperienceDetails({
+    required String badge,
+    required String? featureName,
+    required String? title,
+    required String? description,
+  }) {
+    final featureNameText = featureName?.trim() ?? '';
+    final titleText = title?.trim() ?? '';
+    final descriptionText = description?.trim() ?? '';
+    if (featureNameText.isEmpty &&
+        titleText.isEmpty &&
+        descriptionText.isEmpty) {
+      return Future<void>.value();
+    }
+
+    return showDialog<void>(
+      context: context,
+      barrierDismissible: true,
+      builder: (dialogContext) {
+        return Dialog(
+          insetPadding: const EdgeInsets.symmetric(
+            horizontal: 24,
+            vertical: 40,
+          ),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(24),
+          ),
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 420, maxHeight: 520),
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(22, 18, 18, 22),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: <Widget>[
+                  Row(
+                    children: <Widget>[
+                      if (badge.trim().isNotEmpty)
+                        Text(
+                          badge.trim().toUpperCase(),
+                          style: const TextStyle(
+                            fontSize: 11,
+                            letterSpacing: 0.9,
+                            fontWeight: FontWeight.w800,
+                            color: Color(0xFF2563EB),
+                          ),
+                        ),
+                      const Spacer(),
+                      IconButton(
+                        onPressed: () => Navigator.of(dialogContext).pop(),
+                        icon: const Icon(Icons.close_rounded),
+                      ),
+                    ],
+                  ),
+                  Flexible(
+                    child: SingleChildScrollView(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: <Widget>[
+                          if (featureNameText.isNotEmpty)
+                            Text(
+                              featureNameText,
+                              style: const TextStyle(
+                                fontSize: 22,
+                                height: 1.18,
+                                fontWeight: FontWeight.w800,
+                                color: Color(0xFF111827),
+                              ),
+                            ),
+                          if (titleText.isNotEmpty) ...<Widget>[
+                            const SizedBox(height: 14),
+                            Text(
+                              titleText,
+                              style: const TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.w700,
+                                color: Color(0xFF1F2937),
+                              ),
+                            ),
+                          ],
+                          if (descriptionText.isNotEmpty) ...<Widget>[
+                            const SizedBox(height: 14),
+                            Text(
+                              descriptionText,
+                              style: const TextStyle(
+                                fontSize: 15,
+                                height: 1.48,
+                                color: Color(0xFF4B5563),
+                              ),
+                            ),
+                          ],
+                        ],
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        );
+      },
     );
   }
 
@@ -381,7 +524,7 @@ class _PlaceDetailsPageState extends State<PlaceDetailsPage> {
             imageUrl: item.imageUrl,
             badge: item.resolveBadge(languageCode),
             name: item.resolveName(languageCode),
-            priceRange: item.priceRange,
+            priceRange: item.formattedPriceRange,
           );
         },
       ),

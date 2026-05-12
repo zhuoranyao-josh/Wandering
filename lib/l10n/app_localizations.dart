@@ -653,6 +653,162 @@ abstract class AppLocalizations {
   /// **'Unable to fetch your current location right now.'**
   String get currentLocationFailed;
 
+  /// No description provided for @guideButtonLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Guide'**
+  String get guideButtonLabel;
+
+  /// No description provided for @guideSkip.
+  ///
+  /// In en, this message translates to:
+  /// **'Skip'**
+  String get guideSkip;
+
+  /// No description provided for @guideBack.
+  ///
+  /// In en, this message translates to:
+  /// **'Back'**
+  String get guideBack;
+
+  /// No description provided for @guideNext.
+  ///
+  /// In en, this message translates to:
+  /// **'Next'**
+  String get guideNext;
+
+  /// No description provided for @guideGotIt.
+  ///
+  /// In en, this message translates to:
+  /// **'Got it'**
+  String get guideGotIt;
+
+  /// No description provided for @guideProgress.
+  ///
+  /// In en, this message translates to:
+  /// **'{current} / {total}'**
+  String guideProgress(Object current, Object total);
+
+  /// No description provided for @guideMapExploreTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Explore from the map'**
+  String get guideMapExploreTitle;
+
+  /// No description provided for @guideMapExploreDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'Search for a city or tap a marker to start exploring.'**
+  String get guideMapExploreDescription;
+
+  /// No description provided for @guideGlobeTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Explore with the globe'**
+  String get guideGlobeTitle;
+
+  /// No description provided for @guideGlobeDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'Tap the globe tab to explore destinations around the world.'**
+  String get guideGlobeDescription;
+
+  /// No description provided for @guideSearchTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Search a destination'**
+  String get guideSearchTitle;
+
+  /// No description provided for @guideSearchDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'Search for a city, country, or attraction directly from the top bar.'**
+  String get guideSearchDescription;
+
+  /// No description provided for @guideMarkerTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Tap glowing markers'**
+  String get guideMarkerTitle;
+
+  /// No description provided for @guideMarkerDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'Markers show destinations you can explore. Tap one to zoom in and preview the place.'**
+  String get guideMarkerDescription;
+
+  /// No description provided for @guidePreviewTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Preview the place'**
+  String get guidePreviewTitle;
+
+  /// No description provided for @guidePreviewDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'Preview the destination card before opening full details.'**
+  String get guidePreviewDescription;
+
+  /// No description provided for @guideDetailsTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'View full details'**
+  String get guideDetailsTitle;
+
+  /// No description provided for @guideDetailsDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'Open the destination page to see descriptions, activities, and community posts.'**
+  String get guideDetailsDescription;
+
+  /// No description provided for @guideJourneyTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Start your journey'**
+  String get guideJourneyTitle;
+
+  /// No description provided for @guideJourneyDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'Tap Start Journey to create a trip checklist from this destination.'**
+  String get guideJourneyDescription;
+
+  /// No description provided for @guidePreferencesTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Tell us your travel style'**
+  String get guidePreferencesTitle;
+
+  /// No description provided for @guidePreferencesDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'Add your dates, budget, travellers, pace, and accommodation preference.'**
+  String get guidePreferencesDescription;
+
+  /// No description provided for @guideGenerateTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Plan with AI'**
+  String get guideGenerateTitle;
+
+  /// No description provided for @guideGenerateDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'Add your trip basics, then generate your AI travel plan.'**
+  String get guideGenerateDescription;
+
+  /// No description provided for @guideSaveUpdateTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Save or update your plan'**
+  String get guideSaveUpdateTitle;
+
+  /// No description provided for @guideSaveUpdateDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'Save the current plan, or update it when your budget, dates, or preferences change.'**
+  String get guideSaveUpdateDescription;
+
   /// No description provided for @mapPlaceTokyoName.
   ///
   /// In en, this message translates to:
@@ -1198,6 +1354,54 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Show less'**
   String get placeDetailsDescriptionCollapse;
+
+  /// No description provided for @experienceBadgeExplore.
+  ///
+  /// In en, this message translates to:
+  /// **'Explore'**
+  String get experienceBadgeExplore;
+
+  /// No description provided for @experienceBadgeCulture.
+  ///
+  /// In en, this message translates to:
+  /// **'Culture'**
+  String get experienceBadgeCulture;
+
+  /// No description provided for @experienceBadgeLocal.
+  ///
+  /// In en, this message translates to:
+  /// **'Local'**
+  String get experienceBadgeLocal;
+
+  /// No description provided for @experienceBadgeScenic.
+  ///
+  /// In en, this message translates to:
+  /// **'Scenic'**
+  String get experienceBadgeScenic;
+
+  /// No description provided for @experienceBadgePhoto.
+  ///
+  /// In en, this message translates to:
+  /// **'Photo'**
+  String get experienceBadgePhoto;
+
+  /// No description provided for @experienceBadgeNature.
+  ///
+  /// In en, this message translates to:
+  /// **'Nature'**
+  String get experienceBadgeNature;
+
+  /// No description provided for @experienceBadgeNight.
+  ///
+  /// In en, this message translates to:
+  /// **'Night'**
+  String get experienceBadgeNight;
+
+  /// No description provided for @experienceBadgeGuided.
+  ///
+  /// In en, this message translates to:
+  /// **'Guided'**
+  String get experienceBadgeGuided;
 
   /// No description provided for @placeDetailsStartJourney.
   ///
@@ -2645,6 +2849,18 @@ abstract class AppLocalizations {
   /// **'Badge'**
   String get adminBadge;
 
+  /// No description provided for @adminExperienceFeatureName.
+  ///
+  /// In en, this message translates to:
+  /// **'Feature name'**
+  String get adminExperienceFeatureName;
+
+  /// No description provided for @adminExperienceDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'Quote / description'**
+  String get adminExperienceDescription;
+
   /// No description provided for @adminSubtitle.
   ///
   /// In en, this message translates to:
@@ -2686,6 +2902,30 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Price Range'**
   String get adminPriceRange;
+
+  /// No description provided for @adminPriceMin.
+  ///
+  /// In en, this message translates to:
+  /// **'Min price'**
+  String get adminPriceMin;
+
+  /// No description provided for @adminPriceMax.
+  ///
+  /// In en, this message translates to:
+  /// **'Max price'**
+  String get adminPriceMax;
+
+  /// No description provided for @adminCurrencySymbol.
+  ///
+  /// In en, this message translates to:
+  /// **'Currency'**
+  String get adminCurrencySymbol;
+
+  /// No description provided for @adminLegacyPriceRange.
+  ///
+  /// In en, this message translates to:
+  /// **'Legacy price range'**
+  String get adminLegacyPriceRange;
 
   /// No description provided for @adminCaption.
   ///

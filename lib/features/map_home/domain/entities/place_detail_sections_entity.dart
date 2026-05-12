@@ -20,12 +20,18 @@ class PlaceExperienceEntity {
   const PlaceExperienceEntity({
     required this.title,
     required this.badge,
+    required this.badgeCode,
+    required this.featureName,
+    required this.description,
     required this.order,
     this.enabled = true,
   });
 
   final Map<String, String> title;
   final Map<String, String> badge;
+  final String badgeCode;
+  final Map<String, String> featureName;
+  final Map<String, String> description;
   final int order;
   final bool enabled;
 }
@@ -52,6 +58,9 @@ class PlaceStayEntity {
     required this.badge,
     required this.imageUrl,
     required this.priceRange,
+    this.priceMin,
+    this.priceMax,
+    this.currencySymbol,
     required this.order,
     this.enabled = true,
   });
@@ -60,6 +69,9 @@ class PlaceStayEntity {
   final Map<String, String> badge;
   final String imageUrl;
   final String priceRange;
+  final double? priceMin;
+  final double? priceMax;
+  final String? currencySymbol;
   final int order;
   final bool enabled;
 }

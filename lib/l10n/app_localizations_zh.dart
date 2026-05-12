@@ -290,6 +290,86 @@ class AppLocalizationsZh extends AppLocalizations {
   String get currentLocationFailed => '当前无法获取你的位置信息，请稍后重试。';
 
   @override
+  String get guideButtonLabel => '使用引导';
+
+  @override
+  String get guideSkip => '跳过';
+
+  @override
+  String get guideBack => '上一步';
+
+  @override
+  String get guideNext => '下一步';
+
+  @override
+  String get guideGotIt => '我知道了';
+
+  @override
+  String guideProgress(Object current, Object total) {
+    return '$current / $total';
+  }
+
+  @override
+  String get guideMapExploreTitle => '从主地图开始探索';
+
+  @override
+  String get guideMapExploreDescription => '搜索地点或点击地图标记开始探索。';
+
+  @override
+  String get guideGlobeTitle => '用 3D 地球开始探索';
+
+  @override
+  String get guideGlobeDescription => '点击底部地球入口，在 3D 地球上发现世界各地的目的地。';
+
+  @override
+  String get guideSearchTitle => '搜索目的地';
+
+  @override
+  String get guideSearchDescription => '你可以在顶部搜索栏直接搜索城市、国家或景点。';
+
+  @override
+  String get guideMarkerTitle => '点击地球上的光点';
+
+  @override
+  String get guideMarkerDescription => '地球上的光点代表可以探索的目的地。点击光点后，地图会放大并显示地点预览。';
+
+  @override
+  String get guidePreviewTitle => '预览地点信息';
+
+  @override
+  String get guidePreviewDescription => '先预览地点卡片，再查看完整详情。';
+
+  @override
+  String get guideDetailsTitle => '查看完整详情';
+
+  @override
+  String get guideDetailsDescription => '点击 View Details 可以进入地点详情页，查看城市介绍、活动和社区内容。';
+
+  @override
+  String get guideJourneyTitle => '开始创建旅程';
+
+  @override
+  String get guideJourneyDescription => '点击 Start Journey，基于当前目的地创建旅行清单。';
+
+  @override
+  String get guidePreferencesTitle => '填写你的旅行偏好';
+
+  @override
+  String get guidePreferencesDescription => '填写出行日期、预算、人数、旅行节奏和住宿偏好，AI 会根据这些信息生成更合适的计划。';
+
+  @override
+  String get guideGenerateTitle => '生成 AI 旅行计划';
+
+  @override
+  String get guideGenerateDescription => '添加旅程基础信息后，生成你的 AI 旅行计划。';
+
+  @override
+  String get guideSaveUpdateTitle => '保存或更新计划';
+
+  @override
+  String get guideSaveUpdateDescription => '生成完成后可以保存当前计划。如果修改了日期、预算或偏好，可以重新更新计划。';
+
+  @override
   String get mapPlaceTokyoName => '东京';
 
   @override
@@ -565,6 +645,30 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get placeDetailsDescriptionCollapse => '收起';
+
+  @override
+  String get experienceBadgeExplore => '探索';
+
+  @override
+  String get experienceBadgeCulture => '文化';
+
+  @override
+  String get experienceBadgeLocal => '本地';
+
+  @override
+  String get experienceBadgeScenic => '风景';
+
+  @override
+  String get experienceBadgePhoto => '拍照';
+
+  @override
+  String get experienceBadgeNature => '自然';
+
+  @override
+  String get experienceBadgeNight => '夜游';
+
+  @override
+  String get experienceBadgeGuided => '导览';
 
   @override
   String get placeDetailsStartJourney => '开启旅程';
@@ -1314,6 +1418,12 @@ class AppLocalizationsZh extends AppLocalizations {
   String get adminBadge => '标签';
 
   @override
+  String get adminExperienceFeatureName => '体验关联名称';
+
+  @override
+  String get adminExperienceDescription => '引语 / 简介';
+
+  @override
   String get adminSubtitle => '副标题';
 
   @override
@@ -1333,6 +1443,18 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get adminPriceRange => '价格区间';
+
+  @override
+  String get adminPriceMin => '最低价';
+
+  @override
+  String get adminPriceMax => '最高价';
+
+  @override
+  String get adminCurrencySymbol => '货币符号';
+
+  @override
+  String get adminLegacyPriceRange => '旧版价格区间';
 
   @override
   String get adminCaption => '说明文案';

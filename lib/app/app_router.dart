@@ -119,16 +119,16 @@ class AppRouter {
   }
 
   static String checklistCreate() {
-    return '$checklists/$checklistCreatePath';
+    return '$tabOne/$checklistCreatePath';
   }
 
   static String checklistDetail(String checklistId) {
-    return '$checklists/${checklistDetailPath.replaceFirst(':checklistId', checklistId)}';
+    return '$tabOne/${checklistDetailPath.replaceFirst(':checklistId', checklistId)}';
   }
 
   static String checklistWizard(String checklistId, {bool isEditMode = false}) {
     final basePath =
-        '$checklists/${checklistWizardPath.replaceFirst(':checklistId', checklistId)}';
+        '$tabOne/${checklistWizardPath.replaceFirst(':checklistId', checklistId)}';
     if (!isEditMode) {
       return basePath;
     }
@@ -227,6 +227,36 @@ class AppRouter {
               GoRoute(
                 path: tabOne,
                 builder: (context, state) => const ChecklistListPage(),
+                routes: <RouteBase>[
+                  GoRoute(
+                    path: checklistCreatePath,
+                    builder: (context, state) => const ChecklistCreatePage(),
+                  ),
+                  GoRoute(
+                    path: checklistDetailPath,
+                    builder: (context, state) {
+                      final checklistId =
+                          state.pathParameters['checklistId'] ?? '';
+                      return ChecklistDetailPage(checklistId: checklistId);
+                    },
+                  ),
+                  GoRoute(
+                    path: checklistWizardPath,
+                    builder: (context, state) {
+                      final checklistId =
+                          state.pathParameters['checklistId'] ?? '';
+                      final isEditMode =
+                          state.uri.queryParameters['mode']
+                              ?.trim()
+                              .toLowerCase() ==
+                          'edit';
+                      return JourneyWizardPage(
+                        checklistId: checklistId,
+                        isEditMode: isEditMode,
+                      );
+                    },
+                  ),
+                ],
               ),
             ],
           ),
@@ -332,6 +362,33 @@ class AppRouter {
       ),
       GoRoute(
         path: checklists,
+        redirect: (context, state) {
+          final path = state.uri.path;
+          if (path == checklists) {
+            return tabOne;
+          }
+          if (path == '$checklists/$checklistCreatePath') {
+            return checklistCreate();
+          }
+
+          final detailPrefix =
+              '$checklists/${checklistDetailPath.split('/').first}/';
+          if (path.startsWith(detailPrefix)) {
+            final checklistId = path.substring(detailPrefix.length);
+            return checklistDetail(checklistId);
+          }
+
+          final wizardPrefix =
+              '$checklists/${checklistWizardPath.split('/').first}/';
+          if (path.startsWith(wizardPrefix)) {
+            final checklistId = path.substring(wizardPrefix.length);
+            final isEditMode =
+                state.uri.queryParameters['mode']?.trim().toLowerCase() ==
+                'edit';
+            return checklistWizard(checklistId, isEditMode: isEditMode);
+          }
+          return null;
+        },
         builder: (context, state) => const ChecklistListPage(),
         routes: <RouteBase>[
           GoRoute(
@@ -462,6 +519,7 @@ class AppRouter {
         _authenticatedExactRoutes.contains(location) ||
         location.startsWith('$adminDashboard/') ||
         location.startsWith('$checklists/') ||
+        location.startsWith('$tabOne/') ||
         location.startsWith('$home/') ||
         location.startsWith('/me/') ||
         location.startsWith('$activities/') ||

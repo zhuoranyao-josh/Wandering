@@ -45,7 +45,7 @@ class StayCard extends StatelessWidget {
                   ),
                   child: SizedBox(
                     // 酒店卡片适度加高，减少封面图在 cover 下的纵向裁切。
-                    height: 164,
+                    height: 160,
                     width: double.infinity,
                     child: Stack(
                       fit: StackFit.expand,
@@ -79,7 +79,8 @@ class StayCard extends StatelessWidget {
                   ),
                 ),
                 Padding(
-                  padding: const EdgeInsets.fromLTRB(12, 10, 12, 12),
+                  // 文本区高度更紧凑，避免长标题和价格同时出现时底部溢出。
+                  padding: const EdgeInsets.fromLTRB(12, 8, 12, 8),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: <Widget>[
@@ -89,7 +90,8 @@ class StayCard extends StatelessWidget {
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
                           style: const TextStyle(
-                            fontSize: 16,
+                            fontSize: 15,
+                            height: 1.18,
                             fontWeight: FontWeight.w700,
                             color: Color(0xFF111827),
                           ),
@@ -97,13 +99,14 @@ class StayCard extends StatelessWidget {
                       else
                         _buildPlaceholderLine(142),
                       if (priceText.isNotEmpty) ...<Widget>[
-                        const SizedBox(height: 8),
+                        const SizedBox(height: 4),
                         Text(
                           priceText,
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
                           style: const TextStyle(
-                            fontSize: 13,
+                            fontSize: 12.5,
+                            height: 1.18,
                             color: Color(0xFF6B7280),
                             fontWeight: FontWeight.w600,
                           ),

@@ -151,8 +151,13 @@ class FirebaseMapHomeRemoteDataSource implements MapHomeRemoteDataSource {
           .map((doc) {
             final data = doc.data();
             return PlaceExperienceEntity(
-              title: readLanguageMap(data['title']),
+              title: _readExperienceLanguageMap(data['title']),
               badge: readLanguageMap(data['badge']),
+              badgeCode: _readExperienceBadgeCode(data),
+              featureName: _readExperienceLanguageMap(data['featureName']),
+              description: _readExperienceLanguageMap(
+                data['description'] ?? data['quote'],
+              ),
               order: _readOrder(data),
               enabled: _readEnabled(data),
             );
@@ -168,6 +173,26 @@ class FirebaseMapHomeRemoteDataSource implements MapHomeRemoteDataSource {
       );
       return const <PlaceExperienceEntity>[];
     }
+  }
+
+  String _readExperienceBadgeCode(Map<String, dynamic> data) {
+    final badgeCode = (data['badgeCode'] as String?)?.trim();
+    if (badgeCode != null && badgeCode.isNotEmpty) {
+      return badgeCode;
+    }
+    final badge = data['badge'];
+    return badge is String ? badge.trim() : '';
+  }
+
+  Map<String, String> _readExperienceLanguageMap(Object? value) {
+    if (value is String) {
+      final text = value.trim();
+      if (text.isEmpty) {
+        return const <String, String>{};
+      }
+      return <String, String>{'zh': text, 'en': text};
+    }
+    return readLanguageMap(value);
   }
 
   Future<List<PlaceFlavorEntity>> _loadFlavors(
@@ -212,6 +237,9 @@ class FirebaseMapHomeRemoteDataSource implements MapHomeRemoteDataSource {
               badge: readLanguageMap(data['badge']),
               imageUrl: (data['imageUrl'] as String?)?.trim() ?? '',
               priceRange: (data['priceRange'] as String?)?.trim() ?? '',
+              priceMin: readDouble(data['priceMin']),
+              priceMax: readDouble(data['priceMax']),
+              currencySymbol: (data['currencySymbol'] as String?)?.trim(),
               order: _readOrder(data),
               enabled: _readEnabled(data),
             );

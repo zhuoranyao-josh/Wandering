@@ -97,8 +97,11 @@ class PlaceDetailUiModel {
       experiences: detail.experiences
           .map(
             (item) => PlaceExperienceUiModel(
+              badgeCode: item.badgeCode,
               badgeByLanguage: item.badge,
+              featureNameByLanguage: item.featureName,
               titleByLanguage: item.title,
+              descriptionByLanguage: item.description,
             ),
           )
           .toList(growable: false),
@@ -118,6 +121,9 @@ class PlaceDetailUiModel {
               badgeByLanguage: item.badge,
               nameByLanguage: item.name,
               priceRange: item.priceRange,
+              priceMin: item.priceMin,
+              priceMax: item.priceMax,
+              currencySymbol: item.currencySymbol,
             ),
           )
           .toList(growable: false),
@@ -203,16 +209,28 @@ class PlaceDetailUiModel {
 
 class PlaceExperienceUiModel {
   const PlaceExperienceUiModel({
+    this.badgeCode,
     this.badge,
+    this.featureName,
     this.title,
+    this.description,
     this.badgeByLanguage = const <String, String>{},
+    this.featureNameByLanguage = const <String, String>{},
     this.titleByLanguage = const <String, String>{},
+    this.descriptionByLanguage = const <String, String>{},
   });
 
+  final String? badgeCode;
   final String? badge;
+  final String? featureName;
   final String? title;
+  final String? description;
   final Map<String, String> badgeByLanguage;
+  final Map<String, String> featureNameByLanguage;
   final Map<String, String> titleByLanguage;
+  final Map<String, String> descriptionByLanguage;
+
+  String get normalizedBadgeCode => badgeCode?.trim().toLowerCase() ?? '';
 
   String? resolveBadge(String languageCode) {
     final direct = badge?.trim() ?? '';
@@ -222,12 +240,31 @@ class PlaceExperienceUiModel {
     return _resolveLocalized(languageCode, badgeByLanguage);
   }
 
+  String? resolveFeatureName(String languageCode) {
+    final direct = featureName?.trim() ?? '';
+    if (direct.isNotEmpty) {
+      return direct;
+    }
+    final localized = _resolveLocalized(languageCode, featureNameByLanguage);
+    return localized?.trim().isNotEmpty == true
+        ? localized
+        : resolveTitle(languageCode);
+  }
+
   String? resolveTitle(String languageCode) {
     final direct = title?.trim() ?? '';
     if (direct.isNotEmpty) {
       return direct;
     }
     return _resolveLocalized(languageCode, titleByLanguage);
+  }
+
+  String? resolveDescription(String languageCode) {
+    final direct = description?.trim() ?? '';
+    if (direct.isNotEmpty) {
+      return direct;
+    }
+    return _resolveLocalized(languageCode, descriptionByLanguage);
   }
 }
 
@@ -269,6 +306,9 @@ class PlaceStayUiModel {
     this.badge,
     this.name,
     this.priceRange,
+    this.priceMin,
+    this.priceMax,
+    this.currencySymbol,
     this.badgeByLanguage = const <String, String>{},
     this.nameByLanguage = const <String, String>{},
   });
@@ -277,6 +317,9 @@ class PlaceStayUiModel {
   final String? badge;
   final String? name;
   final String? priceRange;
+  final double? priceMin;
+  final double? priceMax;
+  final String? currencySymbol;
   final Map<String, String> badgeByLanguage;
   final Map<String, String> nameByLanguage;
 
@@ -294,6 +337,25 @@ class PlaceStayUiModel {
       return direct;
     }
     return _resolveLocalized(languageCode, nameByLanguage);
+  }
+
+  String? get formattedPriceRange {
+    final min = priceMin;
+    final max = priceMax;
+    final symbol = currencySymbol?.trim() ?? '';
+    if (min != null && max != null) {
+      return '${_formatPriceValue(min)}$symbol - ${_formatPriceValue(max)}$symbol';
+    }
+
+    final legacy = priceRange?.trim() ?? '';
+    return legacy.isEmpty ? null : legacy;
+  }
+
+  String _formatPriceValue(double value) {
+    if (value == value.roundToDouble()) {
+      return value.toStringAsFixed(0);
+    }
+    return value.toStringAsFixed(2).replaceFirst(RegExp(r'\.?0+$'), '');
   }
 }
 

@@ -6,7 +6,59 @@ import '../../../../l10n/app_localizations.dart';
 import '../../domain/entities/admin_subcontent_item.dart';
 import '../../domain/entities/admin_subcontent_kind.dart';
 import '../controllers/admin_place_subcontent_controller.dart';
+import '../widgets/bilingual_text_area_field.dart';
 import '../widgets/bilingual_text_field.dart';
+
+const List<String> _experienceBadgeCodes = <String>[
+  'explore',
+  'culture',
+  'local',
+  'scenic',
+  'photo',
+  'nature',
+  'night',
+  'guided',
+];
+
+String _experienceBadgeLabelByCode(String code, AppLocalizations t) {
+  switch (code.trim().toLowerCase()) {
+    case 'explore':
+      return t.experienceBadgeExplore;
+    case 'culture':
+      return t.experienceBadgeCulture;
+    case 'local':
+      return t.experienceBadgeLocal;
+    case 'scenic':
+      return t.experienceBadgeScenic;
+    case 'photo':
+      return t.experienceBadgePhoto;
+    case 'nature':
+      return t.experienceBadgeNature;
+    case 'night':
+      return t.experienceBadgeNight;
+    case 'guided':
+      return t.experienceBadgeGuided;
+  }
+  return '';
+}
+
+double? _parseAdminPrice(String value) {
+  final normalized = value.trim().replaceAll(',', '.');
+  if (normalized.isEmpty) {
+    return null;
+  }
+  return double.tryParse(normalized);
+}
+
+String _formatAdminPrice(double? value) {
+  if (value == null) {
+    return '';
+  }
+  if (value == value.roundToDouble()) {
+    return value.toStringAsFixed(0);
+  }
+  return value.toStringAsFixed(2).replaceFirst(RegExp(r'\.?0+$'), '');
+}
 
 class PlaceSubcontentAdminPage extends StatefulWidget {
   const PlaceSubcontentAdminPage({
@@ -110,7 +162,7 @@ class _PlaceSubcontentAdminPageState extends State<PlaceSubcontentAdminPage> {
   String _secondaryText(AdminSubcontentItem item, String languageCode) {
     switch (widget.kind) {
       case AdminSubcontentKind.experiences:
-        return _localizedMap(item.badge, languageCode);
+        return _experienceBadgeLabel(item, AppLocalizations.of(context));
       case AdminSubcontentKind.flavors:
         return _localizedMap(item.subtitle, languageCode);
       case AdminSubcontentKind.stays:
@@ -118,6 +170,18 @@ class _PlaceSubcontentAdminPageState extends State<PlaceSubcontentAdminPage> {
       case AdminSubcontentKind.gallery:
         return item.imageUrl;
     }
+  }
+
+  String _experienceBadgeLabel(AdminSubcontentItem item, AppLocalizations? t) {
+    if (t == null) {
+      return item.badgeCode;
+    }
+    return _experienceBadgeLabelByCode(item.badgeCode, t).trim().isNotEmpty
+        ? _experienceBadgeLabelByCode(item.badgeCode, t)
+        : _localizedMap(
+            item.badge,
+            Localizations.localeOf(context).languageCode,
+          );
   }
 
   Future<void> _openEditDialog({
@@ -280,12 +344,42 @@ class _SubcontentEditDialogState extends State<_SubcontentEditDialog> {
   late final TextEditingController _priceController = TextEditingController(
     text: widget.existing?.priceRange ?? '',
   );
+  late final TextEditingController _priceMinController = TextEditingController(
+    text: _formatAdminPrice(widget.existing?.priceMin),
+  );
+  late final TextEditingController _priceMaxController = TextEditingController(
+    text: _formatAdminPrice(widget.existing?.priceMax),
+  );
+  late final TextEditingController _currencySymbolController =
+      TextEditingController(text: widget.existing?.currencySymbol ?? '');
   late final TextEditingController _titleZhController = TextEditingController(
     text: widget.existing?.title['zh'] ?? '',
   );
   late final TextEditingController _titleEnController = TextEditingController(
     text: widget.existing?.title['en'] ?? '',
   );
+  late final TextEditingController _featureNameZhController =
+      TextEditingController(text: widget.existing?.featureName['zh'] ?? '');
+  late final TextEditingController _featureNameEnController =
+      TextEditingController(text: widget.existing?.featureName['en'] ?? '');
+  late final TextEditingController _descriptionZhController =
+      TextEditingController(text: widget.existing?.description['zh'] ?? '');
+  late final TextEditingController _descriptionEnController =
+      TextEditingController(text: widget.existing?.description['en'] ?? '');
+  late String _selectedExperienceBadgeCode = _initialExperienceBadgeCode();
+
+  String _initialExperienceBadgeCode() {
+    final code = widget.existing?.badgeCode.trim().toLowerCase() ?? '';
+    if (_experienceBadgeCodes.contains(code)) {
+      return code;
+    }
+    final legacyBadge = widget.existing?.badge['en']?.trim().toLowerCase();
+    if (legacyBadge != null && _experienceBadgeCodes.contains(legacyBadge)) {
+      return legacyBadge;
+    }
+    return _experienceBadgeCodes.first;
+  }
+
   late final TextEditingController _badgeZhController = TextEditingController(
     text: widget.existing?.badge['zh'] ?? '',
   );
@@ -318,8 +412,15 @@ class _SubcontentEditDialogState extends State<_SubcontentEditDialog> {
     _orderController.dispose();
     _imageController.dispose();
     _priceController.dispose();
+    _priceMinController.dispose();
+    _priceMaxController.dispose();
+    _currencySymbolController.dispose();
     _titleZhController.dispose();
     _titleEnController.dispose();
+    _featureNameZhController.dispose();
+    _featureNameEnController.dispose();
+    _descriptionZhController.dispose();
+    _descriptionEnController.dispose();
     _badgeZhController.dispose();
     _badgeEnController.dispose();
     _nameZhController.dispose();
@@ -348,6 +449,11 @@ class _SubcontentEditDialogState extends State<_SubcontentEditDialog> {
         'zh': _badgeZhController.text.trim(),
         'en': _badgeEnController.text.trim(),
       },
+      badgeCode: _selectedExperienceBadgeCode,
+      featureName: <String, String>{
+        'zh': _featureNameZhController.text.trim(),
+        'en': _featureNameEnController.text.trim(),
+      },
       name: <String, String>{
         'zh': _nameZhController.text.trim(),
         'en': _nameEnController.text.trim(),
@@ -356,12 +462,19 @@ class _SubcontentEditDialogState extends State<_SubcontentEditDialog> {
         'zh': _subtitleZhController.text.trim(),
         'en': _subtitleEnController.text.trim(),
       },
+      description: <String, String>{
+        'zh': _descriptionZhController.text.trim(),
+        'en': _descriptionEnController.text.trim(),
+      },
       caption: <String, String>{
         'zh': _captionZhController.text.trim(),
         'en': _captionEnController.text.trim(),
       },
       imageUrl: _imageController.text.trim(),
       priceRange: _priceController.text.trim(),
+      priceMin: _parseAdminPrice(_priceMinController.text),
+      priceMax: _parseAdminPrice(_priceMaxController.text),
+      currencySymbol: _currencySymbolController.text.trim(),
     );
     await widget.controller.save(item);
     if (!mounted) return;
@@ -435,6 +548,16 @@ class _SubcontentEditDialogState extends State<_SubcontentEditDialog> {
     switch (widget.kind) {
       case AdminSubcontentKind.experiences:
         return <Widget>[
+          _buildExperienceBadgeDropdown(t),
+          const SizedBox(height: 12),
+          BilingualTextField(
+            label: t.adminExperienceFeatureName,
+            zhLabel: t.languageChinese,
+            enLabel: t.languageEnglish,
+            zhController: _featureNameZhController,
+            enController: _featureNameEnController,
+          ),
+          const SizedBox(height: 12),
           BilingualTextField(
             label: t.adminTitle,
             zhLabel: t.languageChinese,
@@ -443,12 +566,14 @@ class _SubcontentEditDialogState extends State<_SubcontentEditDialog> {
             enController: _titleEnController,
           ),
           const SizedBox(height: 12),
-          BilingualTextField(
-            label: t.adminBadge,
+          BilingualTextAreaField(
+            label: t.adminExperienceDescription,
             zhLabel: t.languageChinese,
             enLabel: t.languageEnglish,
-            zhController: _badgeZhController,
-            enController: _badgeEnController,
+            zhController: _descriptionZhController,
+            enController: _descriptionEnController,
+            minLines: 3,
+            maxLines: 6,
           ),
         ];
       case AdminSubcontentKind.flavors:
@@ -491,13 +616,7 @@ class _SubcontentEditDialogState extends State<_SubcontentEditDialog> {
           const SizedBox(height: 12),
           _buildImageUrlEditor(t),
           const SizedBox(height: 12),
-          TextField(
-            controller: _priceController,
-            decoration: InputDecoration(
-              labelText: t.adminPriceRange,
-              border: const OutlineInputBorder(),
-            ),
-          ),
+          _buildStructuredPriceEditor(t),
         ];
       case AdminSubcontentKind.gallery:
         return <Widget>[
@@ -512,6 +631,95 @@ class _SubcontentEditDialogState extends State<_SubcontentEditDialog> {
           ),
         ];
     }
+  }
+
+  Widget _buildStructuredPriceEditor(AppLocalizations t) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: <Widget>[
+        Text(
+          t.adminPriceRange,
+          style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w700),
+        ),
+        const SizedBox(height: 8),
+        Row(
+          children: <Widget>[
+            Expanded(
+              child: TextField(
+                controller: _priceMinController,
+                keyboardType: const TextInputType.numberWithOptions(
+                  decimal: true,
+                ),
+                decoration: InputDecoration(
+                  labelText: t.adminPriceMin,
+                  border: const OutlineInputBorder(),
+                ),
+              ),
+            ),
+            const SizedBox(width: 10),
+            Expanded(
+              child: TextField(
+                controller: _priceMaxController,
+                keyboardType: const TextInputType.numberWithOptions(
+                  decimal: true,
+                ),
+                decoration: InputDecoration(
+                  labelText: t.adminPriceMax,
+                  border: const OutlineInputBorder(),
+                ),
+              ),
+            ),
+            const SizedBox(width: 10),
+            SizedBox(
+              width: 112,
+              child: TextField(
+                controller: _currencySymbolController,
+                decoration: InputDecoration(
+                  labelText: t.adminCurrencySymbol,
+                  border: const OutlineInputBorder(),
+                ),
+              ),
+            ),
+          ],
+        ),
+        if (_priceController.text.trim().isNotEmpty) ...<Widget>[
+          const SizedBox(height: 10),
+          TextField(
+            controller: _priceController,
+            decoration: InputDecoration(
+              labelText: t.adminLegacyPriceRange,
+              border: const OutlineInputBorder(),
+            ),
+          ),
+        ],
+      ],
+    );
+  }
+
+  Widget _buildExperienceBadgeDropdown(AppLocalizations t) {
+    return DropdownButtonFormField<String>(
+      initialValue: _selectedExperienceBadgeCode,
+      decoration: InputDecoration(
+        labelText: t.adminBadge,
+        border: const OutlineInputBorder(),
+      ),
+      items: _experienceBadgeCodes
+          .map(
+            (code) => DropdownMenuItem<String>(
+              value: code,
+              child: Text(_experienceBadgeLabelByCode(code, t)),
+            ),
+          )
+          .toList(growable: false),
+      onChanged: (value) {
+        if (value == null) {
+          return;
+        }
+        setState(() {
+          _selectedExperienceBadgeCode = value;
+        });
+      },
+    );
   }
 
   Widget _buildImageUrlEditor(AppLocalizations t) {

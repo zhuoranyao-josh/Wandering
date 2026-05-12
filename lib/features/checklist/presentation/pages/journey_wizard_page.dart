@@ -562,17 +562,17 @@ class _JourneyWizardPageState extends State<JourneyWizardPage> {
                         'checklistId=${widget.checklistId}',
                       );
                       debugPrint(
+                        '[ChecklistWizard] save success '
+                        'checklistId=${widget.checklistId}',
+                      );
+                      debugPrint('[ChecklistWizard] basicInfoCompleted=true');
+                      debugPrint(
                         '[ChecklistWizard] navigating to detail '
                         'checklistId=${widget.checklistId}',
                       );
-                      if (widget.isEditMode) {
-                        if (context.canPop()) {
-                          context.pop();
-                        } else {
-                          context.go(
-                            AppRouter.checklistDetail(widget.checklistId),
-                          );
-                        }
+                      if (context.canPop()) {
+                        // Wizard 通常由 Detail push 进入；pop 后 Detail 才能继续 await 并刷新最新数据。
+                        context.pop(true);
                         return;
                       }
                       context.go(AppRouter.checklistDetail(widget.checklistId));
