@@ -33,7 +33,9 @@ https://wandering-landing-page.vercel.app
 
 ## 截图示例
 
-![地球探索](assets/screenshots/globe.png)  
+![地球探索1](assets/screenshots/globe_1.png)
+
+![地球探索2](assets/screenshots/globe_2.png)
 *在 3D 地球上探索目的地*
 
 ![Checklist](assets/screenshots/checklist.png)  
